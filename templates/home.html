@@ -1,15 +1,46 @@
 {% extends 'base.html' %}
 
-{% block title %}Home - Advance Billing System{% endblock %}
+{% block title %}Advance Billing System with QR - Portal Access{% endblock %}
 
 {% block content %}
-<div style="background: #ffffff; padding: 2.5rem; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; margin-top: 1rem;">
-    <h1 style="color: #2c3e50; font-size: 2rem; margin-bottom: 1rem;">🎉 Advance Billing System Ready!</h1>
-    <p style="color: #666; font-size: 1.1rem; margin-bottom: 1.5rem;">
-        Templates aur Static files (CSS, JS) successfully load ho rahe hain.
+<section class="hero-section">
+    <h1 class="hero-title">
+        Next-Gen <span class="gradient-text">Billing & QR POS</span> System
+    </h1>
+    <p class="hero-subtitle">
+        High-performance invoicing with real-time UPI QR generation, multi-role access control, and distributor ledger management.
     </p>
-    <div style="display: inline-flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-        <a href="/admin/" style="display: inline-block; padding: 0.75rem 1.5rem; background: #2c3e50; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 500;">Admin Panel</a>
+
+    <div class="portal-grid">
+        <!-- Admin Portal Card -->
+        <div class="portal-card admin-portal">
+            <div class="portal-icon-wrapper">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h2 class="portal-title">Administrator Portal</h2>
+            <p class="portal-desc">
+                Centralized oversight, system-wide sales analytics, distributor network management, and tax auditing.
+            </p>
+            <a href="{% url 'admin_login' %}" class="btn-portal btn-portal-admin">
+                <span>Access Admin Portal</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+        </div>
+
+        <!-- Distributor Portal Card -->
+        <div class="portal-card distributor-portal">
+            <div class="portal-icon-wrapper">
+                <i class="fa-solid fa-store"></i>
+            </div>
+            <h2 class="portal-title">Distributor Portal</h2>
+            <p class="portal-desc">
+                Point-of-Sale billing, instant dynamic UPI QR code generator, customer invoice receipts, and inventory tracking.
+            </p>
+            <a href="{% url 'distributor_login' %}" class="btn-portal btn-portal-dist">
+                <span>Access Distributor Portal</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+        </div>
     </div>
-</div>
+</section>
 {% endblock %}

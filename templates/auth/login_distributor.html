@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Distributor Login - Advance Billing System{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="auth-card-header">
+            <div class="auth-role-badge distributor">
+                <i class="fa-solid fa-qrcode"></i>
+                <span>Distributor Portal</span>
+            </div>
+            <h2 class="auth-title">Distributor Login</h2>
+            <p class="auth-subtitle">Access your billing register, create invoices and accept QR payments.</p>
+        </div>
+
+        <form method="POST" action="{% url 'distributor_login' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="username" class="form-label">Distributor Username</label>
+                <div class="input-icon-group">
+                    <i class="fa-solid fa-store"></i>
+                    <input type="text" id="username" name="username" class="form-input" placeholder="distributor" required autofocus>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Account Password</label>
+                <div class="input-icon-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit-auth btn-submit-distributor">
+                <span>Sign In to Distributor Register</span>
+                <i class="fa-solid fa-arrow-right-to-bracket"></i>
+            </button>
+        </form>
+
+        <!-- Quick Fill Demo Box -->
+        <div class="auth-demo-box">
+            <div class="demo-title">Default Distributor Demo Credentials</div>
+            <div class="demo-creds">User: <strong>distributor</strong> | Pass: <strong>dist123</strong></div>
+            <button type="button" class="btn-quick-fill" data-user="distributor" data-pass="dist123">
+                <i class="fa-solid fa-bolt"></i> Auto-fill Credentials
+            </button>
+        </div>
+
+        <div class="auth-switch-link">
+            System Administrator? <a href="{% url 'admin_login' %}">Sign in to Admin Console &rarr;</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

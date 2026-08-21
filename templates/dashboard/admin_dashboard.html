@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Overview - Advance Billing System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">System Admin Dashboard</h1>
+        <p class="page-subtitle">Centralized oversight, live revenue tracking, and distributor registry.</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <a href="/django-admin/" target="_blank" class="btn-print" style="background: #1e1b4b;">
+            <i class="fa-solid fa-screwdriver-wrench"></i> Django Backend Admin
+        </a>
+    </div>
+</div>
+
+<!-- Metrics Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon emerald">
+            <i class="fa-solid fa-indian-rupee-sign"></i>
+        </div>
+        <div>
+            <div class="stat-val">₹{{ total_revenue|floatformat:2 }}</div>
+            <div class="stat-lbl">Total System Revenue</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon indigo">
+            <i class="fa-solid fa-receipt"></i>
+        </div>
+        <div>
+            <div class="stat-val">{{ total_invoices }}</div>
+            <div class="stat-lbl">Invoices Generated</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon amber">
+            <i class="fa-solid fa-users-gear"></i>
+        </div>
+        <div>
+            <div class="stat-val">{{ total_distributors }}</div>
+            <div class="stat-lbl">Active Distributors</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon sky">
+            <i class="fa-solid fa-boxes-stacked"></i>
+        </div>
+        <div>
+            <div class="stat-val">{{ total_products }}</div>
+            <div class="stat-lbl">Catalog Products</div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Distributors -->
+<div class="dashboard-card">
+    <div class="card-header-clean">
+        <div class="card-title-clean">
+            <i class="fa-solid fa-store" style="color: #4f46e5;"></i>
+            <span>Registered Distributors</span>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="app-table">
+            <thead>
+                <tr>
+                    <th>Distributor Name</th>
+                    <th>Business / Agency</th>
+                    <th>Phone</th>
+                    <th>Assigned UPI ID</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dist in distributors %}
+                <tr>
+                    <td>
+                        <div style="font-weight: 700;">{{ dist.user.get_full_name|default:dist.user.username }}</div>
+                        <div style="font-size: 0.8rem; color: #64748b;">{{ dist.user.email }}</div>
+                    </td>
+                    <td>{{ dist.business_name|default:"General Agency" }}</td>
+                    <td>{{ dist.phone|default:"N/A" }}</td>
+                    <td><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #4f46e5;">{{ dist.upi_id }}</code></td>
+                    <td><span class="role-pill distributor">DISTRIBUTOR</span></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #94a3b8; padding: 2rem;">No distributors registered yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Global Recent Invoices -->
+<div class="dashboard-card">
+    <div class="card-header-clean">
+        <div class="card-title-clean">
+            <i class="fa-solid fa-clock-rotate-left" style="color: #10b981;"></i>
+            <span>Recent System Invoices (Live Feed)</span>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="app-table">
+            <thead>
+                <tr>
+                    <th>Invoice No.</th>
+                    <th>Date</th>
+                    <th>Distributor</th>
+                    <th>Customer</th>
+                    <th>Payment Method</th>
+                    <th>Total Amount</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in recent_invoices %}
+                <tr>
+                    <td style="font-weight: 700; color: #4f46e5;">#{{ inv.invoice_number }}</td>
+                    <td>{{ inv.created_at|date:"M d, Y H:i" }}</td>
+                    <td>{{ inv.distributor.username|default:"System" }}</td>
+                    <td>
+                        <div style="font-weight: 600;">{{ inv.customer_name }}</div>
+                        <div style="font-size: 0.8rem; color: #64748b;">{{ inv.customer_phone }}</div>
+                    </td>
+                    <td><i class="fa-solid fa-qrcode" style="color: #06b6d4;"></i> {{ inv.payment_method }}</td>
+                    <td style="font-weight: 700; font-size: 1rem;">₹{{ inv.grand_total|floatformat:2 }}</td>
+                    <td><span class="badge-status paid">{{ inv.payment_status }}</span></td>
+                    <td>
+                        <a href="{% url 'invoice_detail' inv.id %}" class="btn-quick-fill" style="text-decoration: none;">
+                            <i class="fa-solid fa-eye"></i> View QR Bill
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; color: #94a3b8; padding: 2rem;">No invoices created yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

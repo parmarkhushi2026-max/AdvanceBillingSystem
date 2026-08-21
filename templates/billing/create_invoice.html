@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}Create QR Invoice - Advance Billing System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Generate Instant QR Bill</h1>
+        <p class="page-subtitle">Add items, compute real-time GST, and generate dynamic UPI QR code for checkout.</p>
+    </div>
+    <div>
+        <a href="{% url 'distributor_dashboard' %}" class="btn-quick-fill" style="text-decoration: none; font-size: 0.9rem; padding: 8px 16px;">
+            <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<form method="POST" action="{% url 'create_invoice' %}" id="billing-form">
+    {% csrf_token %}
+    <input type="hidden" name="items_data" id="items_data_input" value="[]">
+
+    <div class="billing-grid">
+        <!-- Left Column: Bill & Customer Details -->
+        <div>
+            <!-- Customer Information Card -->
+            <div class="dashboard-card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+                <h3 style="font-size: 1.1rem; color: #0f172a; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-user" style="color: #4f46e5;"></i>
+                    <span>Customer Details</span>
+                </h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Customer Name</label>
+                        <div class="input-icon-group">
+                            <i class="fa-solid fa-user"></i>
+                            <input type="text" name="customer_name" class="form-input" placeholder="e.g. Ramesh Kumar" required value="Walk-in Customer">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Phone Number</label>
+                        <div class="input-icon-group">
+                            <i class="fa-solid fa-phone"></i>
+                            <input type="text" name="customer_phone" class="form-input" placeholder="e.g. 9876543210" required value="9876543210">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoice Items Card -->
+            <div class="dashboard-card">
+                <div class="card-header-clean">
+                    <div class="card-title-clean">
+                        <i class="fa-solid fa-cart-shopping" style="color: #10b981;"></i>
+                        <span>Invoice Line Items</span>
+                    </div>
+                    <button type="button" id="btn-add-item" class="btn-add-item">
+                        <i class="fa-solid fa-plus"></i> Add Item
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="app-table">
+                        <thead>
+                            <tr>
+                                <th>Item Description</th>
+                                <th>Price (₹)</th>
+                                <th>Qty</th>
+                                <th>Tax (%)</th>
+                                <th>Total</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="billing-items-tbody">
+                            <tr class="item-row">
+                                <td>
+                                    <input type="text" class="form-input item-name" placeholder="Item / Product Name" value="Wireless Barcode Scanner Pro" required>
+                                </td>
+                                <td style="width: 140px;">
+                                    <input type="number" class="form-input item-price" min="0" step="0.5" value="2499.00" required>
+                                </td>
+                                <td style="width: 100px;">
+                                    <input type="number" class="form-input item-qty" min="1" value="1" required>
+                                </td>
+                                <td style="width: 120px;">
+                                    <select class="form-input item-tax">
+                                        <option value="0">0%</option>
+                                        <option value="5">5%</option>
+                                        <option value="12">12%</option>
+                                        <option value="18" selected>18%</option>
+                                        <option value="28">28%</option>
+                                    </select>
+                                </td>
+                                <td style="width: 130px; font-weight: 700;" class="item-total-val">₹2948.82</td>
+                                <td style="width: 50px; text-align: center;">
+                                    <button type="button" class="btn-remove-row" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer;">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Notes & Payment Method -->
+                <div style="padding: 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Payment Method</label>
+                        <select name="payment_method" class="form-input">
+                            <option value="UPI QR Code" selected>Dynamic UPI QR Code</option>
+                            <option value="Cash">Cash at Counter</option>
+                            <option value="Credit / Debit Card">Credit / Debit Card POS</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Invoice Remarks / Notes</label>
+                        <input type="text" name="notes" class="form-input" placeholder="Optional notes for customer receipt">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Real-time QR Code Checkout -->
+        <div>
+            <div class="qr-preview-box">
+                <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 4px 12px; border-radius: 9999px; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.75rem;">
+                    <i class="fa-solid fa-qrcode"></i> DYNAMIC QR CHECKOUT
+                </div>
+                <h3 style="font-size: 1.3rem; font-weight: 700;">Scan & Pay with Any UPI App</h3>
+                <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">GPay &bull; PhonePe &bull; Paytm &bull; BHIM</p>
+
+                <!-- Dynamic QR Canvas Box -->
+                <div class="qr-code-canvas-container">
+                    <div id="dynamic-qr-box" data-upi="{{ upi_id }}"></div>
+                </div>
+
+                <div style="font-size: 0.85rem; color: #94a3b8;">Payable Grand Total</div>
+                <div class="qr-amount-display" id="qr-amount-display">₹2,948.82</div>
+                
+                <div style="background: rgba(255,255,255,0.06); border-radius: 8px; padding: 12px; margin: 1rem 0; font-size: 0.88rem; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="color: #94a3b8;">Subtotal:</span>
+                        <span id="display-subtotal" style="font-weight: 600;">₹2,499.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #94a3b8;">GST Tax:</span>
+                        <span id="display-tax" style="font-weight: 600;">₹449.82</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-create-bill">
+                    <i class="fa-solid fa-check-circle"></i>
+                    <span>Generate Bill & Print Receipt</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
