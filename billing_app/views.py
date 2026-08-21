@@ -2,17 +2,18 @@ import json
 import uuid
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
-from django.db.models import Sum, Count
+from django.db.models import Sum
 from .models import UserProfile, Product, Invoice, InvoiceItem
+from .forms import AdminLoginForm, DistributorLoginForm
+from .decorators import admin_required, distributor_required
 
 def initialize_default_users():
-    """Ensure default admin, distributor and demo products exist for instant demonstration."""
-    # Admin
+    """Ensure default admin, distributor and demo products exist in the database."""
+    # Admin Account
     if not User.objects.filter(username='admin').exists():
         admin_user = User.objects.create_superuser('admin', 'admin@advancebilling.com', 'admin123')
         admin_user.first_name = 'Super'
@@ -26,7 +27,7 @@ def initialize_default_users():
             upi_id='advancebilling@upi'
         )
 
-    # Distributor
+    # Distributor Account
     if not User.objects.filter(username='distributor').exists():
         dist_user = User.objects.create_user('distributor', 'distributor@agency.com', 'dist123')
         dist_user.first_name = 'Rahul'
@@ -40,7 +41,7 @@ def initialize_default_users():
             upi_id='sharmadist@upi'
         )
 
-    # Sample Products if none exist
+    # Sample Products
     if Product.objects.count() == 0:
         Product.objects.bulk_create([
             Product(name='Wireless Barcode Scanner Pro', category='Hardware', price=Decimal('2499.00'), tax_rate=18.00, stock=45),
@@ -63,69 +64,65 @@ def portal_select(request):
             return redirect('distributor_dashboard')
     return render(request, 'home.html')
 
-# 2. Admin Login View
+# 2. Admin Login View (Django Auth Backend)
 def admin_login_view(request):
     initialize_default_users()
     if request.user.is_authenticated:
-        return redirect('admin_dashboard')
+        if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'):
+            return redirect('admin_dashboard')
 
     if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
-        password = request.POST.get('password', '').strip()
-        
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            # Verify admin role
-            is_admin = user.is_superuser
-            if hasattr(user, 'profile') and user.profile.role == 'ADMIN':
-                is_admin = True
-            
-            if is_admin:
-                login(request, user)
-                messages.success(request, f'Welcome back, System Admin {user.username}!')
-                return redirect('admin_dashboard')
-            else:
-                messages.error(request, 'Access Denied: This account is not registered with Admin privileges. Please use Distributor Login.')
+        form = AdminLoginForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            auth_login(request, user)
+            messages.success(request, f'Welcome back, Administrator {user.get_full_name() or user.username}!')
+            next_url = request.GET.get('next') or 'admin_dashboard'
+            return redirect(next_url)
         else:
-            messages.error(request, 'Invalid Admin username or password.')
+            for error in form.non_field_errors():
+                messages.error(request, error)
+    else:
+        form = AdminLoginForm(request)
 
-    return render(request, 'auth/login_admin.html')
+    return render(request, 'auth/login_admin.html', {'form': form})
 
-# 3. Distributor Login View
+# 3. Distributor Login View (Django Auth Backend)
 def distributor_login_view(request):
     initialize_default_users()
     if request.user.is_authenticated:
         return redirect('distributor_dashboard')
 
     if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
-        password = request.POST.get('password', '').strip()
-        
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            messages.success(request, f'Welcome back, Distributor {user.username}!')
-            return redirect('distributor_dashboard')
+        form = DistributorLoginForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            auth_login(request, user)
+            messages.success(request, f'Welcome back, Distributor {user.get_full_name() or user.username}!')
+            next_url = request.GET.get('next') or 'distributor_dashboard'
+            return redirect(next_url)
         else:
-            messages.error(request, 'Invalid Distributor username or password.')
+            for error in form.non_field_errors():
+                messages.error(request, error)
+    else:
+        form = DistributorLoginForm(request)
 
-    return render(request, 'auth/login_distributor.html')
+    return render(request, 'auth/login_distributor.html', {'form': form})
 
-# 4. Logout
+# 4. Logout View
 def user_logout(request):
-    logout(request)
-    messages.info(request, 'You have been securely logged out.')
+    username = request.user.username if request.user.is_authenticated else ''
+    auth_logout(request)
+    if username:
+        messages.info(request, f'Goodbye {username}, you have been securely logged out.')
+    else:
+        messages.info(request, 'You have been securely logged out.')
     return redirect('portal_select')
 
-# 5. Admin Dashboard
-@login_required(login_url='admin_login')
+# 5. Admin Dashboard (Protected by @admin_required)
+@admin_required
 def admin_dashboard_view(request):
     initialize_default_users()
-    # Ensure only admin can access
-    if hasattr(request.user, 'profile') and request.user.profile.role != 'ADMIN' and not request.user.is_superuser:
-        messages.error(request, 'Unauthorized: Admin privileges required.')
-        return redirect('distributor_dashboard')
-
     total_invoices = Invoice.objects.count()
     total_revenue = Invoice.objects.filter(payment_status='PAID').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
     total_distributors = UserProfile.objects.filter(role='DISTRIBUTOR').count()
@@ -145,13 +142,11 @@ def admin_dashboard_view(request):
     }
     return render(request, 'dashboard/admin_dashboard.html', context)
 
-# 6. Distributor Dashboard
-@login_required(login_url='distributor_login')
+# 6. Distributor Dashboard (Protected by @distributor_required)
+@distributor_required
 def distributor_dashboard_view(request):
     initialize_default_users()
     distributor = request.user
-    
-    # Get user profile or fallback
     profile = getattr(distributor, 'profile', None)
     upi_id = profile.upi_id if profile else 'merchant@upi'
     business_name = profile.business_name if profile else 'Distributor Agency'
@@ -176,8 +171,8 @@ def distributor_dashboard_view(request):
     }
     return render(request, 'dashboard/distributor_dashboard.html', context)
 
-# 7. Create QR Bill & Invoice View
-@login_required(login_url='distributor_login')
+# 7. Create QR Bill & Invoice View (Protected by @distributor_required)
+@distributor_required
 def create_invoice_view(request):
     initialize_default_users()
     products = Product.objects.all()
@@ -204,8 +199,6 @@ def create_invoice_view(request):
         # Calculate totals
         subtotal = Decimal('0.00')
         tax_total = Decimal('0.00')
-        
-        # Generate unique invoice number
         inv_number = f"INV-{uuid.uuid4().hex[:8].upper()}"
 
         invoice = Invoice.objects.create(
@@ -266,8 +259,7 @@ def invoice_detail_view(request, invoice_id):
     upi_id = profile.upi_id if profile else 'advancebilling@upi'
     business_name = profile.business_name if profile else 'Advance Billing Agency'
 
-    # UPI Dynamic Payment URL format
-    # upi://pay?pa=UPI_ID&pn=NAME&am=AMOUNT&tn=INVOICE_NO&cu=INR
+    # Dynamic UPI Payment format
     upi_payment_url = f"upi://pay?pa={upi_id}&pn={business_name.replace(' ', '%20')}&am={invoice.grand_total}&tn={invoice.invoice_number}&cu=INR"
 
     context = {

@@ -128,3 +128,8 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+# Django Auth Settings
+LOGIN_URL = 'portal_select'
+LOGIN_REDIRECT_URL = 'portal_select'
+LOGOUT_REDIRECT_URL = 'portal_select'
