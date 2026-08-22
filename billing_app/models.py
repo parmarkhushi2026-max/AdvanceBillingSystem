@@ -57,3 +57,45 @@ class InvoiceItem(models.Model):
 
     def __str__(self):
         return f"{self.product_name} x {self.quantity}"
+
+
+import random
+from django.utils import timezone
+from datetime import timedelta
+
+class OTPToken(models.Model):
+    """Temporary database model for storing randomly generated OTP codes."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='otp_tokens')
+    otp_code = models.CharField(max_length=6)
+    is_verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def is_valid(self):
+        """Check if OTP is not verified yet and has not expired."""
+        return not self.is_verified and timezone.now() <= self.expires_at
+
+    @classmethod
+    def generate_otp_for_user(cls, user, validity_minutes=10):
+        """Generate a random 6-digit OTP code, store in DB, and invalidate older active OTPs."""
+        # Invalidate old unverified OTPs
+        cls.objects.filter(user=user, is_verified=False).update(is_verified=True)
+        
+        # Generate random 6-digit OTP code
+        random_code = f"{random.randint(100000, 999999)}"
+        expiration = timezone.now() + timedelta(minutes=validity_minutes)
+
+        token = cls.objects.create(
+            user=user,
+            otp_code=random_code,
+            expires_at=expiration
+        )
+        return token
+
+    def __str__(self):
+        status = "Verified" if self.is_verified else ("Valid" if self.is_valid() else "Expired")
+        return f"OTP {self.otp_code} for {self.user.username} ({status})"
+

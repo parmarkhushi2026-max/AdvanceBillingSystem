@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Sum, Q
-from .models import UserProfile, Product, Invoice, InvoiceItem
+from .models import UserProfile, Product, Invoice, InvoiceItem, OTPToken
 from .forms import AdminLoginForm, DistributorLoginForm, ForgotPasswordForm, VerifyOTPForm, ResetPasswordForm
 from .decorators import admin_required, distributor_required
 
@@ -276,7 +276,7 @@ def invoice_detail_view(request, invoice_id):
     return render(request, 'billing/invoice_detail.html', context)
 
 
-# 9. Forgot Password View (Multi-step OTP flow)
+# 9. Forgot Password View (Multi-step DB-backed OTP flow)
 def forgot_password_view(request):
     initialize_default_users()
     
@@ -299,7 +299,7 @@ def forgot_password_view(request):
     if request.method == 'POST':
         action = request.POST.get('action')
 
-        # STEP 1: Request OTP for Username/Email
+        # STEP 1: Request & Generate DB-backed OTP for Username/Email
         if action == 'request_otp' or step == 1:
             forgot_form = ForgotPasswordForm(request.POST)
             if forgot_form.is_valid():
@@ -307,7 +307,10 @@ def forgot_password_view(request):
                 user = User.objects.filter(Q(username__iexact=input_id) | Q(email__iexact=input_id)).first()
                 
                 if user:
-                    otp_code = str(random.randint(100000, 999999))
+                    # Generate OTP and save to Database (OTPToken table)
+                    token = OTPToken.generate_otp_for_user(user, validity_minutes=10)
+                    otp_code = token.otp_code
+
                     request.session['reset_user_id'] = user.id
                     request.session['reset_otp'] = otp_code
                     request.session['reset_identity'] = user.username
@@ -315,13 +318,13 @@ def forgot_password_view(request):
                     
                     messages.success(
                         request,
-                        f"🔐 DEMO OTP SENT: Your 6-digit verification code is [{otp_code}]."
+                        f"🔐 DB OTP GENERATED & STORED: Your 6-digit code is [{otp_code}]. (Saved in Database, Valid 10 mins)"
                     )
                     return redirect('forgot_password')
                 else:
                     messages.error(request, "No account found matching that username or email address.")
 
-        # STEP 2: Verify 6-digit OTP
+        # STEP 2: Validate 6-digit OTP from Database
         elif action == 'verify_otp' or (step == 2 and action != 'request_otp'):
             verify_form = VerifyOTPForm(request.POST)
             otp_entered = request.POST.get('otp_code', '').strip()
@@ -332,10 +335,23 @@ def forgot_password_view(request):
                 if all(k in request.POST for k in digit_keys):
                     otp_entered = "".join([request.POST.get(k, '') for k in digit_keys])
 
-            if stored_otp and otp_entered == stored_otp:
+            # Query DB for OTP matching user and code
+            token = OTPToken.objects.filter(
+                user_id=user_id,
+                otp_code=otp_entered
+            ).order_by('-created_at').first()
+
+            if token and token.is_valid():
+                # Mark as verified in DB so it cannot be reused
+                token.is_verified = True
+                token.save()
+
                 request.session['reset_step'] = 3
-                messages.success(request, "✅ OTP verified successfully! Please enter your new password.")
+                messages.success(request, "✅ Database OTP validated successfully! Please enter your new password.")
                 return redirect('forgot_password')
+            elif token and not token.is_valid():
+                messages.error(request, "⏰ This OTP code has expired or was already used. Please click 'Resend OTP Code'.")
+                verify_form = VerifyOTPForm(initial={'otp_code': otp_entered})
             else:
                 messages.error(request, "❌ Invalid OTP code. Please check the code and try again.")
                 verify_form = VerifyOTPForm(initial={'otp_code': otp_entered})
@@ -373,20 +389,26 @@ def forgot_password_view(request):
     return render(request, 'auth/forgot_password.html', context)
 
 
-# 10. Resend OTP View (AJAX / POST)
+# 10. Resend DB OTP View (AJAX / POST)
 def resend_otp_view(request):
     if request.method == 'POST':
         user_id = request.session.get('reset_user_id')
         if not user_id:
             return JsonResponse({'success': False, 'message': 'Session expired. Please request OTP again.'}, status=400)
         
-        new_otp = str(random.randint(100000, 999999))
-        request.session['reset_otp'] = new_otp
+        try:
+            user = User.objects.get(id=user_id)
+            token = OTPToken.generate_otp_for_user(user, validity_minutes=10)
+            new_otp = token.otp_code
+            request.session['reset_otp'] = new_otp
 
-        return JsonResponse({
-            'success': True,
-            'otp': new_otp,
-            'message': f'New OTP code [{new_otp}] generated and sent successfully!'
-        })
+            return JsonResponse({
+                'success': True,
+                'otp': new_otp,
+                'message': f'New OTP code [{new_otp}] generated & saved to database successfully!'
+            })
+        except User.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'User account not found.'}, status=404)
     return JsonResponse({'success': False, 'message': 'Invalid request method.'}, status=405)
+
 

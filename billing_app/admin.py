@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserProfile, Product, Invoice, InvoiceItem
+from .models import UserProfile, Product, Invoice, InvoiceItem, OTPToken
 
 class InvoiceItemInline(admin.TabularInline):
     model = InvoiceItem
@@ -23,3 +23,10 @@ class ProductAdmin(admin.ModelAdmin):
     list_display = ('name', 'category', 'price', 'tax_rate', 'stock')
     list_filter = ('category',)
     search_fields = ('name',)
+
+@admin.register(OTPToken)
+class OTPTokenAdmin(admin.ModelAdmin):
+    list_display = ('otp_code', 'user', 'is_verified', 'created_at', 'expires_at')
+    list_filter = ('is_verified', 'created_at')
+    search_fields = ('otp_code', 'user__username')
+
