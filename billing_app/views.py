@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Sum, Q
 from .models import UserProfile, Product, Invoice, InvoiceItem, OTPToken
-from .forms import AdminLoginForm, DistributorLoginForm, ForgotPasswordForm, VerifyOTPForm, ResetPasswordForm
+from .forms import AdminLoginForm, DistributorLoginForm, ForgotPasswordForm, VerifyOTPForm, ResetPasswordForm, DistributorRegistrationForm
 from .decorators import admin_required, distributor_required
 
 
@@ -409,6 +409,57 @@ def resend_otp_view(request):
             })
         except User.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'User account not found.'}, status=404)
-    return JsonResponse({'success': False, 'message': 'Invalid request method.'}, status=405)
+# 11. Distributor Registration View
+def distributor_register_view(request):
+    initialize_default_users()
+    if request.user.is_authenticated:
+        return redirect('distributor_dashboard')
+
+    if request.method == 'POST':
+        form = DistributorRegistrationForm(request.POST)
+        if form.is_valid():
+            full_name = form.cleaned_data['full_name'].strip()
+            name_parts = full_name.split(' ', 1)
+            first_name = name_parts[0]
+            last_name = name_parts[1] if len(name_parts) > 1 else ''
+
+            username = form.cleaned_data['username'].strip()
+            email = form.cleaned_data['email'].strip()
+            password = form.cleaned_data['password']
+            business_name = form.cleaned_data.get('business_name', '').strip() or f"{first_name}'s Agency"
+            phone = form.cleaned_data.get('phone', '').strip()
+            upi_id = form.cleaned_data.get('upi_id', 'merchant@upi').strip()
+
+            # Create User
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name
+            )
+
+            # Create UserProfile
+            UserProfile.objects.create(
+                user=user,
+                role='DISTRIBUTOR',
+                business_name=business_name,
+                phone=phone,
+                upi_id=upi_id
+            )
+
+            # Auto login the registered distributor
+            auth_login(request, user)
+            messages.success(request, f"🎉 Account created successfully! Welcome to Advance Billing, {first_name}!")
+            return redirect('distributor_dashboard')
+        else:
+            for field, errors in form.errors.items():
+                for err in errors:
+                    messages.error(request, f"{field.replace('_', ' ').title()}: {err}")
+    else:
+        form = DistributorRegistrationForm()
+
+    return render(request, 'auth/register_distributor.html', {'form': form})
+
 
 

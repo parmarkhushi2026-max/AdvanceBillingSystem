@@ -1178,3 +1178,37 @@ body {
     color: var(--border-color);
 }
 
+/* Distributor Registration Styles */
+.register-card {
+    max-width: 640px !important;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+@media (max-width: 600px) {
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+}
+
+.required-star {
+    color: var(--accent-rose);
+    font-weight: 700;
+}
+
+.highlight-link {
+    color: var(--primary) !important;
+    font-weight: 700 !important;
+}
+
+.secondary-switch {
+    margin-top: 0.5rem !important;
+    font-size: 0.82rem !important;
+}
+
+

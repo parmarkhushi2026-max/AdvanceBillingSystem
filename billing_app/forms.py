@@ -139,3 +139,103 @@ class ResetPasswordForm(forms.Form):
             raise ValidationError("Passwords do not match. Please enter matching passwords.")
         return cleaned_data
 
+
+from django.contrib.auth.models import User
+
+class DistributorRegistrationForm(forms.Form):
+    """Frontend registration form for new Distributors."""
+    full_name = forms.CharField(
+        label="Full Name",
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'e.g. Rajesh Kumar',
+            'autofocus': True,
+            'id': 'full_name'
+        })
+    )
+    business_name = forms.CharField(
+        label="Business / Store Name",
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'e.g. Kumar Retail & Trading Co.',
+            'id': 'business_name'
+        })
+    )
+    email = forms.EmailField(
+        label="Email Address",
+        widget=forms.EmailInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'rajesh@example.com',
+            'id': 'email'
+        })
+    )
+    phone = forms.CharField(
+        label="Phone Number",
+        max_length=20,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': '+91 98765 43210',
+            'id': 'phone'
+        })
+    )
+    upi_id = forms.CharField(
+        label="UPI ID (For QR Payments)",
+        max_length=100,
+        initial='merchant@upi',
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'rajesh@upi',
+            'id': 'upi_id'
+        })
+    )
+    username = forms.CharField(
+        label="Account Username",
+        max_length=50,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'rajesh123',
+            'id': 'username'
+        })
+    )
+    password = forms.CharField(
+        label="Password",
+        min_length=6,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Minimum 6 characters',
+            'id': 'password'
+        })
+    )
+    confirm_password = forms.CharField(
+        label="Confirm Password",
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Re-enter password',
+            'id': 'confirm_password'
+        })
+    )
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if User.objects.filter(username__iexact=username).exists():
+            raise ValidationError("This username is already taken. Please choose another.")
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise ValidationError("An account with this email address already exists.")
+        return email
+
+    def clean(self):
+        cleaned_data = super().clean()
+        p1 = cleaned_data.get("password")
+        p2 = cleaned_data.get("confirm_password")
+        if p1 and p2 and p1 != p2:
+            raise ValidationError("Passwords do not match. Please ensure both password fields match.")
+        return cleaned_data
+
+

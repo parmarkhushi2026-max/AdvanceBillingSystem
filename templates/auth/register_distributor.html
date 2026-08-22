@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}Distributor Registration - Advance Billing System{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card register-card">
+        <div class="auth-card-header">
+            <div class="auth-role-badge distributor">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Distributor Registration</span>
+            </div>
+            <h2 class="auth-title">Create Distributor Account</h2>
+            <p class="auth-subtitle">Register your business to start generating instant QR bills and managing invoices.</p>
+        </div>
+
+        <form method="POST" action="{% url 'distributor_register' %}">
+            {% csrf_token %}
+            
+            <div class="form-row">
+                <!-- Full Name -->
+                <div class="form-group">
+                    <label for="full_name" class="form-label">Full Name <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-user"></i>
+                        {{ form.full_name }}
+                    </div>
+                </div>
+
+                <!-- Business Name -->
+                <div class="form-group">
+                    <label for="business_name" class="form-label">Business / Store Name</label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-store"></i>
+                        {{ form.business_name }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <!-- Email Address -->
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-envelope"></i>
+                        {{ form.email }}
+                    </div>
+                </div>
+
+                <!-- Phone Number -->
+                <div class="form-group">
+                    <label for="phone" class="form-label">Phone Number <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-phone"></i>
+                        {{ form.phone }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <!-- UPI ID -->
+                <div class="form-group">
+                    <label for="upi_id" class="form-label">UPI ID for QR Billing <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-qrcode"></i>
+                        {{ form.upi_id }}
+                    </div>
+                </div>
+
+                <!-- Account Username -->
+                <div class="form-group">
+                    <label for="username" class="form-label">Username <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-user-gear"></i>
+                        {{ form.username }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <!-- Password -->
+                <div class="form-group">
+                    <label for="password" class="form-label">Password <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-lock"></i>
+                        {{ form.password }}
+                        <button type="button" class="btn-toggle-pwd" data-target="password">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Confirm Password -->
+                <div class="form-group">
+                    <label for="confirm_password" class="form-label">Confirm Password <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        {{ form.confirm_password }}
+                        <button type="button" class="btn-toggle-pwd" data-target="confirm_password">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit-auth btn-submit-distributor">
+                <span>Create & Activate Distributor Account</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </form>
+
+        <div class="auth-switch-link">
+            Already have a Distributor Account? <a href="{% url 'distributor_login' %}">Sign In Here &rarr;</a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Password Visibility Toggle
+    document.querySelectorAll('.btn-toggle-pwd').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            const targetInput = document.getElementById(targetId);
+            if (targetInput) {
+                const type = targetInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                targetInput.setAttribute('type', type);
+                this.querySelector('i').className = type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
