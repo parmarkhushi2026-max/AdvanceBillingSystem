@@ -1,15 +1,19 @@
 import json
 import uuid
+import random
+import time
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
 from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from .models import UserProfile, Product, Invoice, InvoiceItem
-from .forms import AdminLoginForm, DistributorLoginForm
+from .forms import AdminLoginForm, DistributorLoginForm, ForgotPasswordForm, VerifyOTPForm, ResetPasswordForm
 from .decorators import admin_required, distributor_required
+
 
 def initialize_default_users():
     """Ensure default admin, distributor and demo products exist in the database."""
@@ -270,3 +274,119 @@ def invoice_detail_view(request, invoice_id):
         'upi_payment_url': upi_payment_url,
     }
     return render(request, 'billing/invoice_detail.html', context)
+
+
+# 9. Forgot Password View (Multi-step OTP flow)
+def forgot_password_view(request):
+    initialize_default_users()
+    
+    # Reset flow if requested
+    if request.GET.get('reset') == '1':
+        for key in ['reset_user_id', 'reset_otp', 'reset_identity', 'reset_step']:
+            if key in request.session:
+                del request.session[key]
+        return redirect('forgot_password')
+
+    step = request.session.get('reset_step', 1)
+    user_id = request.session.get('reset_user_id')
+    stored_otp = request.session.get('reset_otp')
+    identity = request.session.get('reset_identity', '')
+
+    forgot_form = ForgotPasswordForm()
+    verify_form = VerifyOTPForm()
+    reset_form = ResetPasswordForm()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        # STEP 1: Request OTP for Username/Email
+        if action == 'request_otp' or step == 1:
+            forgot_form = ForgotPasswordForm(request.POST)
+            if forgot_form.is_valid():
+                input_id = forgot_form.cleaned_data['identity'].strip()
+                user = User.objects.filter(Q(username__iexact=input_id) | Q(email__iexact=input_id)).first()
+                
+                if user:
+                    otp_code = str(random.randint(100000, 999999))
+                    request.session['reset_user_id'] = user.id
+                    request.session['reset_otp'] = otp_code
+                    request.session['reset_identity'] = user.username
+                    request.session['reset_step'] = 2
+                    
+                    messages.success(
+                        request,
+                        f"🔐 DEMO OTP SENT: Your 6-digit verification code is [{otp_code}]."
+                    )
+                    return redirect('forgot_password')
+                else:
+                    messages.error(request, "No account found matching that username or email address.")
+
+        # STEP 2: Verify 6-digit OTP
+        elif action == 'verify_otp' or (step == 2 and action != 'request_otp'):
+            verify_form = VerifyOTPForm(request.POST)
+            otp_entered = request.POST.get('otp_code', '').strip()
+            
+            # Combine input boxes if multi-box OTP sent
+            if not otp_entered:
+                digit_keys = [f'otp_{i}' for i in range(1, 7)]
+                if all(k in request.POST for k in digit_keys):
+                    otp_entered = "".join([request.POST.get(k, '') for k in digit_keys])
+
+            if stored_otp and otp_entered == stored_otp:
+                request.session['reset_step'] = 3
+                messages.success(request, "✅ OTP verified successfully! Please enter your new password.")
+                return redirect('forgot_password')
+            else:
+                messages.error(request, "❌ Invalid OTP code. Please check the code and try again.")
+                verify_form = VerifyOTPForm(initial={'otp_code': otp_entered})
+
+        # STEP 3: Reset Password
+        elif action == 'reset_password' or step == 3:
+            reset_form = ResetPasswordForm(request.POST)
+            if reset_form.is_valid():
+                new_pass = reset_form.cleaned_data['new_password']
+                try:
+                    user = User.objects.get(id=user_id)
+                    user.set_password(new_pass)
+                    user.save()
+
+                    # Clear reset session
+                    for key in ['reset_user_id', 'reset_otp', 'reset_identity', 'reset_step']:
+                        if key in request.session:
+                            del request.session[key]
+
+                    messages.success(request, "🎉 Password reset successful! You can now log in with your new password.")
+                    return redirect('portal_select')
+                except User.DoesNotExist:
+                    messages.error(request, "Session expired or invalid user. Please start again.")
+                    request.session['reset_step'] = 1
+                    return redirect('forgot_password')
+
+    context = {
+        'step': step,
+        'identity': identity,
+        'stored_otp': stored_otp,
+        'forgot_form': forgot_form,
+        'verify_form': verify_form,
+        'reset_form': reset_form,
+    }
+    return render(request, 'auth/forgot_password.html', context)
+
+
+# 10. Resend OTP View (AJAX / POST)
+def resend_otp_view(request):
+    if request.method == 'POST':
+        user_id = request.session.get('reset_user_id')
+        if not user_id:
+            return JsonResponse({'success': False, 'message': 'Session expired. Please request OTP again.'}, status=400)
+        
+        new_otp = str(random.randint(100000, 999999))
+        request.session['reset_otp'] = new_otp
+
+        return JsonResponse({
+            'success': True,
+            'otp': new_otp,
+            'message': f'New OTP code [{new_otp}] generated and sent successfully!'
+        })
+    return JsonResponse({'success': False, 'message': 'Invalid request method.'}, status=405)
+

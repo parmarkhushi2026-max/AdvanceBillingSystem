@@ -913,3 +913,268 @@ body {
         transform: translateY(0);
     }
 }
+
+/* ==========================================================================
+   FORGOT PASSWORD & OTP UI STYLES
+   ========================================================================== */
+
+.label-with-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.label-with-link .form-label {
+    margin-bottom: 0;
+}
+
+.link-forgot-pwd {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.link-forgot-pwd:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+/* Wizard Progress Bar */
+.wizard-progress {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding: 0 0.5rem;
+}
+
+.wizard-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    z-index: 2;
+}
+
+.step-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.wizard-step.active .step-icon {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 0 12px rgba(79, 70, 229, 0.4);
+}
+
+.wizard-step.completed .step-icon {
+    background: #10b981;
+    color: #ffffff;
+    border-color: #10b981;
+}
+
+.step-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.wizard-step.active .step-label {
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+.wizard-line {
+    flex: 1;
+    height: 3px;
+    background: var(--border-color);
+    margin: 0 8px;
+    position: relative;
+    top: -12px;
+    transition: background 0.3s ease;
+}
+
+.wizard-line.active {
+    background: linear-gradient(90deg, var(--primary), #10b981);
+}
+
+/* Role Badges for Forgot Password */
+.auth-role-badge.forgot {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+
+.auth-role-badge.otp {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+}
+
+.auth-role-badge.reset {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+/* OTP 6-Digit Box Input Grid */
+.otp-digits-container {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 1.25rem 0;
+}
+
+.otp-box {
+    width: 48px;
+    height: 54px;
+    text-align: center;
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--secondary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.otp-box:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.18);
+    transform: scale(1.04);
+}
+
+.change-identity-link {
+    color: var(--primary);
+    text-decoration: underline;
+    font-size: 0.85rem;
+    margin-left: 4px;
+}
+
+/* Resend OTP & Countdown Styling */
+.resend-otp-wrapper {
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px dashed var(--border-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.otp-timer-text {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+}
+
+.timer-bold {
+    font-weight: 800;
+    color: var(--secondary);
+    font-family: monospace;
+    font-size: 0.95rem;
+}
+
+.btn-resend-otp {
+    background: transparent;
+    border: 1.5px solid var(--border-color);
+    padding: 8px 18px;
+    border-radius: var(--radius-full);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: not-allowed;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.25s ease;
+    opacity: 0.6;
+}
+
+.btn-resend-otp.active {
+    opacity: 1;
+    cursor: pointer;
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-light);
+}
+
+.btn-resend-otp.active:hover {
+    background: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.btn-submit-emerald {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+}
+
+.btn-submit-emerald:hover {
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+    transform: translateY(-1px);
+}
+
+.btn-submit-primary {
+    background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+}
+
+.btn-submit-primary:hover {
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+    transform: translateY(-1px);
+}
+
+.btn-toggle-pwd {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 0.95rem;
+    padding: 4px;
+    transition: color 0.2s;
+}
+
+.btn-toggle-pwd:hover {
+    color: var(--secondary);
+}
+
+.auth-footer-links {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.85rem;
+}
+
+.auth-footer-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.auth-footer-links a:hover {
+    color: var(--primary);
+}
+
+.auth-footer-links .divider {
+    color: var(--border-color);
+}
+

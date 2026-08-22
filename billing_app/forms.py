@@ -81,3 +81,61 @@ class DistributorLoginForm(AuthenticationForm):
                 self.confirm_login_allowed(self.user_cache)
 
         return self.cleaned_data
+
+
+class ForgotPasswordForm(forms.Form):
+    """Form to request password reset OTP by username or email."""
+    identity = forms.CharField(
+        label="Username or Email",
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Enter your username or email',
+            'autofocus': True,
+            'id': 'identity'
+        })
+    )
+
+
+class VerifyOTPForm(forms.Form):
+    """Form to verify 6-digit OTP code."""
+    otp_code = forms.CharField(
+        label="Enter 6-Digit OTP",
+        max_length=6,
+        min_length=6,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input otp-code-input',
+            'placeholder': '123456',
+            'maxlength': '6',
+            'id': 'otp_code'
+        })
+    )
+
+
+class ResetPasswordForm(forms.Form):
+    """Form to reset account password."""
+    new_password = forms.CharField(
+        label="New Password",
+        min_length=6,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Enter new password (min 6 characters)',
+            'id': 'new_password'
+        })
+    )
+    confirm_password = forms.CharField(
+        label="Confirm New Password",
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Re-enter new password',
+            'id': 'confirm_password'
+        })
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        p1 = cleaned_data.get("new_password")
+        p2 = cleaned_data.get("confirm_password")
+        if p1 and p2 and p1 != p2:
+            raise ValidationError("Passwords do not match. Please enter matching passwords.")
+        return cleaned_data
+
