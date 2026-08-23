@@ -1211,4 +1211,22 @@ body {
     font-size: 0.82rem !important;
 }
 
+.field-error-text {
+    color: var(--accent-rose);
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    animation: fadeInDown 0.2s ease-out;
+}
+
+.field-hint-text {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-top: 3px;
+}
+
+
 

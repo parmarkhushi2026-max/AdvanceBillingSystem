@@ -14,7 +14,7 @@
             <p class="auth-subtitle">Register your business to start generating instant QR bills and managing invoices.</p>
         </div>
 
-        <form method="POST" action="{% url 'distributor_register' %}">
+        <form method="POST" action="{% url 'distributor_register' %}" novalidate id="distributor-reg-form">
             {% csrf_token %}
             
             <div class="form-row">
@@ -25,6 +25,11 @@
                         <i class="fa-solid fa-user"></i>
                         {{ form.full_name }}
                     </div>
+                    {% if form.full_name.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.full_name.errors.0 }}</div>
+                    {% else %}
+                        <div class="field-hint-text">Letters and spaces only (min 2 chars)</div>
+                    {% endif %}
                 </div>
 
                 <!-- Business Name -->
@@ -34,6 +39,9 @@
                         <i class="fa-solid fa-store"></i>
                         {{ form.business_name }}
                     </div>
+                    {% if form.business_name.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.business_name.errors.0 }}</div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -45,6 +53,11 @@
                         <i class="fa-solid fa-envelope"></i>
                         {{ form.email }}
                     </div>
+                    {% if form.email.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.email.errors.0 }}</div>
+                    {% else %}
+                        <div class="field-hint-text">e.g. name@domain.com</div>
+                    {% endif %}
                 </div>
 
                 <!-- Phone Number -->
@@ -54,6 +67,11 @@
                         <i class="fa-solid fa-phone"></i>
                         {{ form.phone }}
                     </div>
+                    {% if form.phone.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.phone.errors.0 }}</div>
+                    {% else %}
+                        <div class="field-hint-text">10 to 15 digits (e.g. +91 9876543210)</div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -65,6 +83,11 @@
                         <i class="fa-solid fa-qrcode"></i>
                         {{ form.upi_id }}
                     </div>
+                    {% if form.upi_id.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.upi_id.errors.0 }}</div>
+                    {% else %}
+                        <div class="field-hint-text">Format: name@upi or mobile@paytm</div>
+                    {% endif %}
                 </div>
 
                 <!-- Account Username -->
@@ -74,6 +97,11 @@
                         <i class="fa-solid fa-user-gear"></i>
                         {{ form.username }}
                     </div>
+                    {% if form.username.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.username.errors.0 }}</div>
+                    {% else %}
+                        <div class="field-hint-text">Min 3 chars (letters, numbers, hyphens)</div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -88,6 +116,11 @@
                             <i class="fa-solid fa-eye"></i>
                         </button>
                     </div>
+                    {% if form.password.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.password.errors.0 }}</div>
+                    {% else %}
+                        <div class="field-hint-text">Min 6 chars (must include letters & numbers)</div>
+                    {% endif %}
                 </div>
 
                 <!-- Confirm Password -->
@@ -100,6 +133,10 @@
                             <i class="fa-solid fa-eye"></i>
                         </button>
                     </div>
+                    {% if form.confirm_password.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.confirm_password.errors.0 }}</div>
+                    {% endif %}
+                    <div id="pwd-match-status" class="field-hint-text"></div>
                 </div>
             </div>
 
@@ -117,7 +154,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Password Visibility Toggle
+    // 1. Password Visibility Toggle
     document.querySelectorAll('.btn-toggle-pwd').forEach(btn => {
         btn.addEventListener('click', function() {
             const targetId = this.getAttribute('data-target');
@@ -129,6 +166,32 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // 2. Real-time Client-side Validation Feedback
+    const pwdInput = document.getElementById('password');
+    const confirmPwdInput = document.getElementById('confirm_password');
+    const matchStatus = document.getElementById('pwd-match-status');
+
+    function checkPasswordMatch() {
+        if (!pwdInput || !confirmPwdInput || !matchStatus) return;
+        const p1 = pwdInput.value;
+        const p2 = confirmPwdInput.value;
+
+        if (p2.length > 0) {
+            if (p1 === p2) {
+                matchStatus.innerHTML = '<span style="color:#10b981; font-weight:600;"><i class="fa-solid fa-check"></i> Passwords match!</span>';
+            } else {
+                matchStatus.innerHTML = '<span style="color:#ef4444; font-weight:600;"><i class="fa-solid fa-xmark"></i> Passwords do not match</span>';
+            }
+        } else {
+            matchStatus.innerHTML = '';
+        }
+    }
+
+    if (pwdInput && confirmPwdInput) {
+        pwdInput.addEventListener('input', checkPasswordMatch);
+        confirmPwdInput.addEventListener('input', checkPasswordMatch);
+    }
 });
 </script>
 {% endblock %}

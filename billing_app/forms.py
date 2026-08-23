@@ -111,14 +111,17 @@ class VerifyOTPForm(forms.Form):
     )
 
 
+import re
+from django.core.validators import validate_email
+
 class ResetPasswordForm(forms.Form):
-    """Form to reset account password."""
+    """Form to reset account password with strength validation."""
     new_password = forms.CharField(
         label="New Password",
         min_length=6,
         widget=forms.PasswordInput(attrs={
             'class': 'form-input',
-            'placeholder': 'Enter new password (min 6 characters)',
+            'placeholder': 'Min 6 chars (must include letters & numbers)',
             'id': 'new_password'
         })
     )
@@ -130,6 +133,16 @@ class ResetPasswordForm(forms.Form):
             'id': 'confirm_password'
         })
     )
+
+    def clean_new_password(self):
+        pwd = self.cleaned_data.get('new_password', '')
+        if len(pwd) < 6:
+            raise ValidationError("Password must be at least 6 characters long.")
+        if not re.search(r'[a-zA-Z]', pwd):
+            raise ValidationError("Password must contain at least one letter (a-z, A-Z).")
+        if not re.search(r'[0-9]', pwd):
+            raise ValidationError("Password must contain at least one digit (0-9).")
+        return pwd
 
     def clean(self):
         cleaned_data = super().clean()
@@ -143,7 +156,7 @@ class ResetPasswordForm(forms.Form):
 from django.contrib.auth.models import User
 
 class DistributorRegistrationForm(forms.Form):
-    """Frontend registration form for new Distributors."""
+    """Frontend registration form for new Distributors with strict input validation."""
     full_name = forms.CharField(
         label="Full Name",
         max_length=100,
@@ -205,7 +218,7 @@ class DistributorRegistrationForm(forms.Form):
         min_length=6,
         widget=forms.PasswordInput(attrs={
             'class': 'form-input',
-            'placeholder': 'Minimum 6 characters',
+            'placeholder': 'Min 6 chars (letters & numbers)',
             'id': 'password'
         })
     )
@@ -218,18 +231,72 @@ class DistributorRegistrationForm(forms.Form):
         })
     )
 
-    def clean_username(self):
-        username = self.cleaned_data.get('username')
-        if User.objects.filter(username__iexact=username).exists():
-            raise ValidationError("This username is already taken. Please choose another.")
-        return username
+    # 1. Full Name Validation
+    def clean_full_name(self):
+        name = self.cleaned_data.get('full_name', '').strip()
+        if len(name) < 2:
+            raise ValidationError("Full Name must be at least 2 characters long.")
+        if not re.match(r"^[a-zA-Z\s\.\']+$", name):
+            raise ValidationError("Full Name can only contain letters, spaces, dots, and apostrophes.")
+        return name
 
+    # 2. Email Format & Uniqueness Validation
     def clean_email(self):
-        email = self.cleaned_data.get('email')
-        if email and User.objects.filter(email__iexact=email).exists():
-            raise ValidationError("An account with this email address already exists.")
+        email = self.cleaned_data.get('email', '').strip().lower()
+        try:
+            validate_email(email)
+        except ValidationError:
+            raise ValidationError("Please enter a valid email address (e.g. user@domain.com).")
+        
+        domain = email.split('@')[-1]
+        if '.' not in domain or len(domain.split('.')[-1]) < 2:
+            raise ValidationError("Please provide an email with a valid domain (e.g. .com, .org, .in).")
+
+        if User.objects.filter(email__iexact=email).exists():
+            raise ValidationError("An account with this email address already exists. Please login or use a different email.")
         return email
 
+    # 3. Phone Number Format Validation
+    def clean_phone(self):
+        phone_raw = self.cleaned_data.get('phone', '').strip()
+        phone_clean = re.sub(r'[\s\-\(\)]', '', phone_raw)
+        
+        if not re.match(r"^\+?[0-9]{10,15}$", phone_clean):
+            raise ValidationError("Please enter a valid phone number (10 to 15 digits, optional + country code).")
+        return phone_raw
+
+    # 4. UPI ID Format Validation
+    def clean_upi_id(self):
+        upi = self.cleaned_data.get('upi_id', '').strip().lower()
+        if upi:
+            if not re.match(r"^[a-zA-Z0-9\.\-_]{2,100}@[a-zA-Z]{2,30}$", upi):
+                raise ValidationError("Please enter a valid UPI handle (e.g. name@upi, store@okicici, 9876543210@paytm).")
+        return upi
+
+    # 5. Username Format, Length & Uniqueness Validation
+    def clean_username(self):
+        username = self.cleaned_data.get('username', '').strip()
+        if len(username) < 3:
+            raise ValidationError("Username must be at least 3 characters long.")
+        if not re.match(r"^[a-zA-Z][a-zA-Z0-9_\-]*$", username):
+            raise ValidationError("Username must start with a letter and contain only letters, numbers, underscores, or hyphens.")
+        
+        if User.objects.filter(username__iexact=username).exists():
+            raise ValidationError("This username is already taken. Please choose another username.")
+        return username
+
+    # 6. Password Strength Validation
+    def clean_password(self):
+        pwd = self.cleaned_data.get('password', '')
+        if len(pwd) < 6:
+            raise ValidationError("Password must be at least 6 characters long.")
+        if not re.search(r'[a-zA-Z]', pwd):
+            raise ValidationError("Password must contain at least one letter (a-z, A-Z).")
+        if not re.search(r'[0-9]', pwd):
+            raise ValidationError("Password must contain at least one number (0-9).")
+        return pwd
+
+    # 7. Password Match Validation
     def clean(self):
         cleaned_data = super().clean()
         p1 = cleaned_data.get("password")
@@ -237,5 +304,6 @@ class DistributorRegistrationForm(forms.Form):
         if p1 and p2 and p1 != p2:
             raise ValidationError("Passwords do not match. Please ensure both password fields match.")
         return cleaned_data
+
 
 
