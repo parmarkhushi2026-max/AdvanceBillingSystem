@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Sum, Q
 from .models import UserProfile, Product, Invoice, InvoiceItem, OTPToken
-from .forms import AdminLoginForm, DistributorLoginForm, ForgotPasswordForm, VerifyOTPForm, ResetPasswordForm, DistributorRegistrationForm
+from .forms import AdminLoginForm, DistributorLoginForm, ForgotPasswordForm, VerifyOTPForm, ResetPasswordForm, DistributorRegistrationForm, DistributorProfileForm
 from .decorators import admin_required, distributor_required
 
 
@@ -462,6 +462,63 @@ def distributor_register_view(request):
         form = DistributorRegistrationForm()
 
     return render(request, 'auth/register_distributor.html', {'form': form})
+
+
+# 12. Distributor Profile View
+@distributor_required
+def distributor_profile_view(request):
+    initialize_default_users()
+    user = request.user
+    profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'role': 'DISTRIBUTOR'})
+
+    # Calculate statistics for this distributor
+    my_invoices = Invoice.objects.filter(distributor=user)
+    if not my_invoices.exists() and user.is_superuser:
+        my_invoices = Invoice.objects.all()
+
+    total_invoices = my_invoices.count()
+    total_earnings = my_invoices.filter(payment_status='PAID').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+
+    full_name = user.get_full_name() or user.username
+
+    if request.method == 'POST':
+        form = DistributorProfileForm(request.POST)
+        if form.is_valid():
+            new_full_name = form.cleaned_data['full_name'].strip()
+            name_parts = new_full_name.split(' ', 1)
+            user.first_name = name_parts[0]
+            user.last_name = name_parts[1] if len(name_parts) > 1 else ''
+            user.save()
+
+            profile.business_name = form.cleaned_data.get('business_name', '').strip()
+            profile.phone = form.cleaned_data.get('phone', '').strip()
+            profile.upi_id = form.cleaned_data.get('upi_id', '').strip()
+            profile.save()
+
+            messages.success(request, "🎉 Profile details updated successfully!")
+            return redirect('distributor_profile')
+        else:
+            for field, errors in form.errors.items():
+                for err in errors:
+                    messages.error(request, f"{field.replace('_', ' ').title()}: {err}")
+    else:
+        form = DistributorProfileForm(initial={
+            'full_name': full_name,
+            'business_name': profile.business_name or '',
+            'phone': profile.phone or '',
+            'upi_id': profile.upi_id or 'merchant@upi',
+        })
+
+    context = {
+        'user_obj': user,
+        'profile': profile,
+        'form': form,
+        'total_invoices': total_invoices,
+        'total_earnings': total_earnings,
+        'role': 'Distributor',
+    }
+    return render(request, 'dashboard/distributor_profile.html', context)
+
 
 
 

@@ -306,4 +306,51 @@ class DistributorRegistrationForm(forms.Form):
         return cleaned_data
 
 
+class DistributorProfileForm(forms.Form):
+    """Form to update Distributor profile details."""
+    full_name = forms.CharField(
+        label="Full Name",
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'id': 'full_name'})
+    )
+    business_name = forms.CharField(
+        label="Business / Store Name",
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'id': 'business_name'})
+    )
+    phone = forms.CharField(
+        label="Phone Number",
+        max_length=20,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'id': 'phone'})
+    )
+    upi_id = forms.CharField(
+        label="UPI ID (For Dynamic QR Billing)",
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'id': 'upi_id'})
+    )
+
+    def clean_full_name(self):
+        name = self.cleaned_data.get('full_name', '').strip()
+        if len(name) < 2:
+            raise ValidationError("Full Name must be at least 2 characters long.")
+        if not re.match(r"^[a-zA-Z\s\.\']+$", name):
+            raise ValidationError("Full Name can only contain letters, spaces, dots, and apostrophes.")
+        return name
+
+    def clean_phone(self):
+        phone_raw = self.cleaned_data.get('phone', '').strip()
+        phone_clean = re.sub(r'[\s\-\(\)]', '', phone_raw)
+        if not re.match(r"^\+?[0-9]{10,15}$", phone_clean):
+            raise ValidationError("Please enter a valid phone number (10 to 15 digits, optional + country code).")
+        return phone_raw
+
+    def clean_upi_id(self):
+        upi = self.cleaned_data.get('upi_id', '').strip().lower()
+        if upi and not re.match(r"^[a-zA-Z0-9\.\-_]{2,100}@[a-zA-Z]{2,30}$", upi):
+            raise ValidationError("Please enter a valid UPI handle (e.g. name@upi, store@okicici).")
+        return upi
+
+
+
 

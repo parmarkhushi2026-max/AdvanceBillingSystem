@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Distributor Profile - Advance Billing System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fa-solid fa-user-circle"></i> Distributor Profile</h1>
+        <p class="page-subtitle">View and update your personal info, business credentials, and payment settings.</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'distributor_dashboard' %}" class="btn-secondary-action">
+            <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <a href="{% url 'create_invoice' %}" class="btn-primary-action">
+            <i class="fa-solid fa-receipt"></i> Create New QR Bill
+        </a>
+    </div>
+</div>
+
+<div class="profile-grid-container">
+    
+    <!-- Left Column: Profile Card Overview -->
+    <div class="profile-card-overview">
+        <div class="profile-avatar-wrapper">
+            <div class="profile-avatar-circle">
+                <span>{{ user_obj.first_name|default:user_obj.username|slice:":1"|upper }}</span>
+            </div>
+            <h2 class="profile-name">{{ user_obj.get_full_name|default:user_obj.username }}</h2>
+            <div class="profile-business">{{ profile.business_name|default:"Distributor Agency" }}</div>
+            <span class="role-pill distributor"><i class="fa-solid fa-store"></i> Distributor Account</span>
+        </div>
+
+        <hr class="profile-divider">
+
+        <div class="profile-info-list">
+            <div class="profile-info-item">
+                <div class="info-label"><i class="fa-solid fa-user-gear"></i> Username</div>
+                <div class="info-value">@{{ user_obj.username }}</div>
+            </div>
+
+            <div class="profile-info-item">
+                <div class="info-label"><i class="fa-solid fa-envelope"></i> Email Address</div>
+                <div class="info-value">{{ user_obj.email|default:"Not Provided" }}</div>
+            </div>
+
+            <div class="profile-info-item">
+                <div class="info-label"><i class="fa-solid fa-phone"></i> Phone Number</div>
+                <div class="info-value">{{ profile.phone|default:"Not Provided" }}</div>
+            </div>
+
+            <div class="profile-info-item">
+                <div class="info-label"><i class="fa-solid fa-qrcode"></i> QR Billing UPI ID</div>
+                <div class="info-value upi-highlight">{{ profile.upi_id|default:"merchant@upi" }}</div>
+            </div>
+
+            <div class="profile-info-item">
+                <div class="info-label"><i class="fa-solid fa-calendar-check"></i> Account Created</div>
+                <div class="info-value">{{ user_obj.date_joined|date:"M d, Y" }}</div>
+            </div>
+        </div>
+
+        <div class="profile-summary-stats">
+            <div class="summary-stat-box">
+                <div class="stat-num">{{ total_invoices }}</div>
+                <div class="stat-lbl">Invoices Generated</div>
+            </div>
+            <div class="summary-stat-box highlight">
+                <div class="stat-num">₹{{ total_earnings|floatformat:2 }}</div>
+                <div class="stat-lbl">Total Collections</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Edit Profile Form -->
+    <div class="profile-card-edit">
+        <div class="card-header-clean">
+            <h2 class="card-title-clean">
+                <i class="fa-solid fa-user-pen"></i> Edit Profile Details
+            </h2>
+            <span class="badge-status paid">Live Status: Active</span>
+        </div>
+
+        <form method="POST" action="{% url 'distributor_profile' %}" class="profile-form-padding">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="full_name" class="form-label">Full Name <span class="required-star">*</span></label>
+                <div class="input-icon-group">
+                    <i class="fa-solid fa-user"></i>
+                    {{ form.full_name }}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="business_name" class="form-label">Business / Store Name</label>
+                <div class="input-icon-group">
+                    <i class="fa-solid fa-store"></i>
+                    {{ form.business_name }}
+                </div>
+                <div class="field-hint-text">This business name appears on all customer invoice receipts and QR codes.</div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="phone" class="form-label">Phone Number <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-phone"></i>
+                        {{ form.phone }}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="upi_id" class="form-label">UPI ID for Dynamic QR Payments <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-qrcode"></i>
+                        {{ form.upi_id }}
+                    </div>
+                    <div class="field-hint-text">Customers scan this UPI QR code to pay bills directly.</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Email Address (Account Identifier)</label>
+                <div class="input-icon-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="text" class="form-input read-only-input" value="{{ user_obj.email }}" readonly disabled>
+                </div>
+                <div class="field-hint-text">Account email address is locked for security purposes.</div>
+            </div>
+
+            <button type="submit" class="btn-submit-auth btn-submit-emerald mt-4">
+                <span>Save & Update Profile</span>
+                <i class="fa-solid fa-floppy-disk"></i>
+            </button>
+        </form>
+    </div>
+
+</div>
+{% endblock %}
