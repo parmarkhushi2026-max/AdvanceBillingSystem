@@ -448,10 +448,12 @@ def distributor_register_view(request):
                 upi_id=upi_id
             )
 
-            # Auto login the registered distributor
-            auth_login(request, user)
-            messages.success(request, f"🎉 Account created successfully! Welcome to Advance Billing, {first_name}!")
-            return redirect('distributor_dashboard')
+            # Save User & UserProfile to Database
+            messages.success(
+                request,
+                f"🎉 Registration successful! Account created for '{username}'. Please sign in with your credentials to access the distributor portal."
+            )
+            return redirect('distributor_login')
         else:
             for field, errors in form.errors.items():
                 for err in errors:
