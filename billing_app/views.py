@@ -2,7 +2,7 @@ import json
 import uuid
 import random
 import time
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth import login as auth_login, logout as auth_logout
@@ -219,10 +219,22 @@ def create_invoice_view(request):
         )
 
         for item in items_data:
-            p_name = item.get('name', 'Product')
-            p_qty = int(item.get('qty', 1))
-            p_price = Decimal(str(item.get('price', 0)))
-            p_tax_rate = Decimal(str(item.get('tax', 18)))
+            p_name = str(item.get('name', 'Product')).strip() or 'Product'
+            
+            try:
+                p_qty = max(1, int(item.get('qty', 1)))
+            except (ValueError, TypeError):
+                p_qty = 1
+
+            try:
+                p_price = Decimal(str(item.get('price', 0)))
+            except (InvalidOperation, ValueError, TypeError):
+                p_price = Decimal('0.00')
+
+            try:
+                p_tax_rate = Decimal(str(item.get('tax', 18)))
+            except (InvalidOperation, ValueError, TypeError):
+                p_tax_rate = Decimal('18.00')
             
             line_subtotal = p_price * p_qty
             line_tax = line_subtotal * (p_tax_rate / Decimal('100'))
