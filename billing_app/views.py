@@ -205,9 +205,15 @@ def create_invoice_view(request):
         tax_total = Decimal('0.00')
         inv_number = f"INV-{uuid.uuid4().hex[:8].upper()}"
 
+        customer_obj = Customer.objects.filter(
+            Q(phone=customer_phone) | Q(name__iexact=customer_name),
+            Q(created_by=request.user) | Q(created_by__isnull=True)
+        ).first()
+
         invoice = Invoice.objects.create(
             invoice_number=inv_number,
             distributor=request.user,
+            customer_ref=customer_obj,
             customer_name=customer_name,
             customer_phone=customer_phone,
             payment_status='PAID',
