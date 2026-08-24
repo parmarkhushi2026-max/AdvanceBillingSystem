@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError
+from .models import UserProfile
 
 class AdminLoginForm(AuthenticationForm):
     """Custom Django Authentication form specifically validating Admin privileges."""
@@ -306,12 +307,16 @@ class DistributorRegistrationForm(forms.Form):
         return cleaned_data
 
 
-class DistributorProfileForm(forms.Form):
-    """Form to update Distributor profile details."""
+class UserProfileUpdateForm(forms.Form):
+    """Form to update User & UserProfile details with validation and DB save method."""
     full_name = forms.CharField(
         label="Full Name",
         max_length=100,
         widget=forms.TextInput(attrs={'class': 'form-input', 'id': 'full_name'})
+    )
+    email = forms.EmailField(
+        label="Email Address",
+        widget=forms.EmailInput(attrs={'class': 'form-input', 'id': 'email'})
     )
     business_name = forms.CharField(
         label="Business / Store Name",
@@ -330,6 +335,27 @@ class DistributorProfileForm(forms.Form):
         widget=forms.TextInput(attrs={'class': 'form-input', 'id': 'upi_id'})
     )
 
+    # Optional Password Change Fields
+    current_password = forms.CharField(
+        label="Current Password",
+        required=False,
+        widget=forms.PasswordInput(attrs={'class': 'form-input', 'placeholder': 'Leave blank if not changing', 'id': 'current_password'})
+    )
+    new_password = forms.CharField(
+        label="New Password",
+        required=False,
+        widget=forms.PasswordInput(attrs={'class': 'form-input', 'placeholder': 'Min 6 chars (letters & numbers)', 'id': 'new_password'})
+    )
+    confirm_new_password = forms.CharField(
+        label="Confirm New Password",
+        required=False,
+        widget=forms.PasswordInput(attrs={'class': 'form-input', 'placeholder': 'Re-enter new password', 'id': 'confirm_new_password'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
     def clean_full_name(self):
         name = self.cleaned_data.get('full_name', '').strip()
         if len(name) < 2:
@@ -337,6 +363,21 @@ class DistributorProfileForm(forms.Form):
         if not re.match(r"^[a-zA-Z\s\.\']+$", name):
             raise ValidationError("Full Name can only contain letters, spaces, dots, and apostrophes.")
         return name
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email', '').strip().lower()
+        try:
+            validate_email(email)
+        except ValidationError:
+            raise ValidationError("Please enter a valid email address.")
+        
+        domain = email.split('@')[-1]
+        if '.' not in domain or len(domain.split('.')[-1]) < 2:
+            raise ValidationError("Please enter an email with a valid domain (e.g. .com, .in).")
+
+        if self.user and User.objects.filter(email__iexact=email).exclude(pk=self.user.pk).exists():
+            raise ValidationError("An account with this email address already exists.")
+        return email
 
     def clean_phone(self):
         phone_raw = self.cleaned_data.get('phone', '').strip()
@@ -350,6 +391,60 @@ class DistributorProfileForm(forms.Form):
         if upi and not re.match(r"^[a-zA-Z0-9\.\-_]{2,100}@[a-zA-Z]{2,30}$", upi):
             raise ValidationError("Please enter a valid UPI handle (e.g. name@upi, store@okicici).")
         return upi
+
+    def clean(self):
+        cleaned_data = super().clean()
+        curr_pwd = cleaned_data.get('current_password')
+        new_pwd = cleaned_data.get('new_password')
+        confirm_pwd = cleaned_data.get('confirm_new_password')
+
+        if curr_pwd or new_pwd or confirm_pwd:
+            if not curr_pwd:
+                self.add_error('current_password', "Please enter your current password to set a new password.")
+            elif self.user and not self.user.check_password(curr_pwd):
+                self.add_error('current_password', "Current password is incorrect.")
+
+            if not new_pwd:
+                self.add_error('new_password', "Please enter a new password.")
+            else:
+                if len(new_pwd) < 6:
+                    self.add_error('new_password', "New password must be at least 6 characters long.")
+                if not re.search(r'[a-zA-Z]', new_pwd):
+                    self.add_error('new_password', "New password must contain at least one letter.")
+                if not re.search(r'[0-9]', new_pwd):
+                    self.add_error('new_password', "New password must contain at least one number.")
+
+            if new_pwd and confirm_pwd and new_pwd != confirm_pwd:
+                self.add_error('confirm_new_password', "New passwords do not match.")
+
+        return cleaned_data
+
+    def save_profile(self, user):
+        """Save updated profile data and optional new password directly to Database."""
+        full_name = self.cleaned_data['full_name'].strip()
+        name_parts = full_name.split(' ', 1)
+        user.first_name = name_parts[0]
+        user.last_name = name_parts[1] if len(name_parts) > 1 else ''
+        user.email = self.cleaned_data['email']
+
+        new_pwd = self.cleaned_data.get('new_password')
+        if new_pwd:
+            user.set_password(new_pwd)
+
+        user.save()
+
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.business_name = self.cleaned_data.get('business_name', '').strip()
+        profile.phone = self.cleaned_data.get('phone', '').strip()
+        profile.upi_id = self.cleaned_data.get('upi_id', '').strip()
+        profile.save()
+
+        return user, profile
+
+
+# Alias for backward compatibility
+DistributorProfileForm = UserProfileUpdateForm
+
 
 
 

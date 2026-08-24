@@ -76,61 +76,127 @@
     <div class="profile-card-edit">
         <div class="card-header-clean">
             <h2 class="card-title-clean">
-                <i class="fa-solid fa-user-pen"></i> Edit Profile Details
+                <i class="fa-solid fa-user-pen"></i> Edit Profile & Account Settings
             </h2>
             <span class="badge-status paid">Live Status: Active</span>
         </div>
 
-        <form method="POST" action="{% url 'distributor_profile' %}" class="profile-form-padding">
+        <form method="POST" action="{% url 'distributor_profile' %}" class="profile-form-padding" novalidate>
             {% csrf_token %}
 
-            <div class="form-group">
-                <label for="full_name" class="form-label">Full Name <span class="required-star">*</span></label>
-                <div class="input-icon-group">
-                    <i class="fa-solid fa-user"></i>
-                    {{ form.full_name }}
+            <div class="form-row">
+                <!-- Full Name -->
+                <div class="form-group">
+                    <label for="full_name" class="form-label">Full Name <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-user"></i>
+                        {{ form.full_name }}
+                    </div>
+                    {% if form.full_name.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.full_name.errors.0 }}</div>
+                    {% endif %}
                 </div>
-            </div>
 
-            <div class="form-group">
-                <label for="business_name" class="form-label">Business / Store Name</label>
-                <div class="input-icon-group">
-                    <i class="fa-solid fa-store"></i>
-                    {{ form.business_name }}
+                <!-- Business Name -->
+                <div class="form-group">
+                    <label for="business_name" class="form-label">Business / Store Name</label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-store"></i>
+                        {{ form.business_name }}
+                    </div>
+                    {% if form.business_name.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.business_name.errors.0 }}</div>
+                    {% else %}
+                        <div class="field-hint-text">Appears on receipt & QR bills.</div>
+                    {% endif %}
                 </div>
-                <div class="field-hint-text">This business name appears on all customer invoice receipts and QR codes.</div>
             </div>
 
             <div class="form-row">
+                <!-- Email Address -->
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-envelope"></i>
+                        {{ form.email }}
+                    </div>
+                    {% if form.email.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.email.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Phone Number -->
                 <div class="form-group">
                     <label for="phone" class="form-label">Phone Number <span class="required-star">*</span></label>
                     <div class="input-icon-group">
                         <i class="fa-solid fa-phone"></i>
                         {{ form.phone }}
                     </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="upi_id" class="form-label">UPI ID for Dynamic QR Payments <span class="required-star">*</span></label>
-                    <div class="input-icon-group">
-                        <i class="fa-solid fa-qrcode"></i>
-                        {{ form.upi_id }}
-                    </div>
-                    <div class="field-hint-text">Customers scan this UPI QR code to pay bills directly.</div>
+                    {% if form.phone.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.phone.errors.0 }}</div>
+                    {% endif %}
                 </div>
             </div>
 
+            <!-- UPI ID -->
             <div class="form-group">
-                <label class="form-label">Email Address (Account Identifier)</label>
+                <label for="upi_id" class="form-label">UPI ID for Dynamic QR Payments <span class="required-star">*</span></label>
                 <div class="input-icon-group">
-                    <i class="fa-solid fa-lock"></i>
-                    <input type="text" class="form-input read-only-input" value="{{ user_obj.email }}" readonly disabled>
+                    <i class="fa-solid fa-qrcode"></i>
+                    {{ form.upi_id }}
                 </div>
-                <div class="field-hint-text">Account email address is locked for security purposes.</div>
+                {% if form.upi_id.errors %}
+                    <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.upi_id.errors.0 }}</div>
+                {% else %}
+                    <div class="field-hint-text">Customers scan this QR code to complete payments directly.</div>
+                {% endif %}
+            </div>
+
+            <!-- Optional Password Change Box -->
+            <div class="password-change-box">
+                <div class="password-box-title">
+                    <i class="fa-solid fa-shield-keyhole"></i> Change Password (Optional)
+                </div>
+                <div class="field-hint-text mb-3">Leave blank if you do not wish to change your account password.</div>
+
+                <div class="form-group">
+                    <label for="current_password" class="form-label">Current Password</label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-lock"></i>
+                        {{ form.current_password }}
+                    </div>
+                    {% if form.current_password.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.current_password.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="new_password" class="form-label">New Password</label>
+                        <div class="input-icon-group">
+                            <i class="fa-solid fa-key"></i>
+                            {{ form.new_password }}
+                        </div>
+                        {% if form.new_password.errors %}
+                            <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.new_password.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm_new_password" class="form-label">Confirm New Password</label>
+                        <div class="input-icon-group">
+                            <i class="fa-solid fa-check-double"></i>
+                            {{ form.confirm_new_password }}
+                        </div>
+                        {% if form.confirm_new_password.errors %}
+                            <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.confirm_new_password.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
 
             <button type="submit" class="btn-submit-auth btn-submit-emerald mt-4">
-                <span>Save & Update Profile</span>
+                <span>Save Profile Changes & Update Database</span>
                 <i class="fa-solid fa-floppy-disk"></i>
             </button>
         </form>

@@ -494,28 +494,27 @@ def distributor_profile_view(request):
     full_name = user.get_full_name() or user.username
 
     if request.method == 'POST':
-        form = DistributorProfileForm(request.POST)
+        form = DistributorProfileForm(request.POST, user=user)
         if form.is_valid():
-            new_full_name = form.cleaned_data['full_name'].strip()
-            name_parts = new_full_name.split(' ', 1)
-            user.first_name = name_parts[0]
-            user.last_name = name_parts[1] if len(name_parts) > 1 else ''
-            user.save()
+            pwd_changed = bool(form.cleaned_data.get('new_password'))
+            user, profile = form.save_profile(user)
 
-            profile.business_name = form.cleaned_data.get('business_name', '').strip()
-            profile.phone = form.cleaned_data.get('phone', '').strip()
-            profile.upi_id = form.cleaned_data.get('upi_id', '').strip()
-            profile.save()
-
-            messages.success(request, "🎉 Profile details updated successfully!")
+            if pwd_changed:
+                from django.contrib.auth import update_session_auth_hash
+                update_session_auth_hash(request, user)
+                messages.success(request, "🎉 Profile and password updated successfully in Database!")
+            else:
+                messages.success(request, "🎉 Profile details updated and saved to Database successfully!")
+                
             return redirect('distributor_profile')
         else:
             for field, errors in form.errors.items():
                 for err in errors:
                     messages.error(request, f"{field.replace('_', ' ').title()}: {err}")
     else:
-        form = DistributorProfileForm(initial={
+        form = DistributorProfileForm(user=user, initial={
             'full_name': full_name,
+            'email': user.email or '',
             'business_name': profile.business_name or '',
             'phone': profile.phone or '',
             'upi_id': profile.upi_id or 'merchant@upi',
@@ -530,6 +529,7 @@ def distributor_profile_view(request):
         'role': 'Distributor',
     }
     return render(request, 'dashboard/distributor_profile.html', context)
+
 
 
 
