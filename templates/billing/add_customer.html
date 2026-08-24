@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Add New Customer - Advance Billing System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fa-solid fa-user-plus"></i> Add New Customer</h1>
+        <p class="page-subtitle">Register customer details to manage directory, invoices, and GST billing.</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'customer_list' %}" class="btn-secondary-action">
+            <i class="fa-solid fa-users"></i> View All Customers
+        </a>
+        <a href="{% url 'distributor_dashboard' %}" class="btn-secondary-action">
+            <i class="fa-solid fa-arrow-left"></i> Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="auth-wrapper" style="min-height: auto; padding: 1rem 0;">
+    <div class="auth-card register-card">
+        <div class="auth-card-header">
+            <div class="auth-role-badge distributor">
+                <i class="fa-solid fa-address-book"></i>
+                <span>Customer Directory</span>
+            </div>
+            <h2 class="auth-title">Customer Information</h2>
+            <p class="auth-subtitle">Enter customer contact info and optional GSTIN for official invoices.</p>
+        </div>
+
+        <form method="POST" action="{% url 'add_customer' %}" novalidate>
+            {% csrf_token %}
+
+            <div class="form-row">
+                <!-- Customer Name -->
+                <div class="form-group">
+                    <label for="name" class="form-label">Customer Name <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-user"></i>
+                        {{ form.name }}
+                    </div>
+                    {% if form.name.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.name.errors.0 }}</div>
+                    {% else %}
+                        <div class="field-hint-text">Individual or Business Name</div>
+                    {% endif %}
+                </div>
+
+                <!-- Phone Number -->
+                <div class="form-group">
+                    <label for="phone" class="form-label">Phone Number <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-phone"></i>
+                        {{ form.phone }}
+                    </div>
+                    {% if form.phone.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.phone.errors.0 }}</div>
+                    {% else %}
+                        <div class="field-hint-text">10 to 15 digits (e.g. +91 9876543210)</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <!-- Email Address -->
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address (Optional)</label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-envelope"></i>
+                        {{ form.email }}
+                    </div>
+                    {% if form.email.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.email.errors.0 }}</div>
+                    {% else %}
+                        <div class="field-hint-text">For digital invoice receipts</div>
+                    {% endif %}
+                </div>
+
+                <!-- GSTIN -->
+                <div class="form-group">
+                    <label for="gstin" class="form-label">GSTIN (Optional)</label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                        {{ form.gstin }}
+                    </div>
+                    {% if form.gstin.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.gstin.errors.0 }}</div>
+                    {% else %}
+                        <div class="field-hint-text">15-character GST Tax ID (e.g. 27AAAAA0000A1Z5)</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <!-- City -->
+                <div class="form-group">
+                    <label for="city" class="form-label">City / Location (Optional)</label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-city"></i>
+                        {{ form.city }}
+                    </div>
+                    {% if form.city.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.city.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Street Address -->
+                <div class="form-group">
+                    <label for="address" class="form-label">Street Address (Optional)</label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-location-dot"></i>
+                        {{ form.address }}
+                    </div>
+                    {% if form.address.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.address.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit-auth btn-submit-emerald mt-4">
+                <span>Save Customer & Add to Directory</span>
+                <i class="fa-solid fa-user-check"></i>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

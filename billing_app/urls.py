@@ -20,4 +20,10 @@ urlpatterns = [
     path('distributor/profile/', views.distributor_profile_view, name='distributor_profile'),
     path('distributor/billing/', views.create_invoice_view, name='create_invoice'),
     path('invoice/<int:invoice_id>/', views.invoice_detail_view, name='invoice_detail'),
+
+    # Customer Management
+    path('customers/', views.customer_list_view, name='customer_list'),
+    path('customers/add/', views.add_customer_view, name='add_customer'),
 ]
+
+

@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}Customer Directory - Advance Billing System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fa-solid fa-users"></i> Customer Directory</h1>
+        <p class="page-subtitle">Manage customer records, view contact details, and quickly create QR bills.</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'add_customer' %}" class="btn-primary-action">
+            <i class="fa-solid fa-user-plus"></i> Add New Customer
+        </a>
+    </div>
+</div>
+
+<!-- Search & Filter Card -->
+<div class="dashboard-card" style="margin-bottom: 1.5rem;">
+    <div class="card-header-clean">
+        <form method="GET" action="{% url 'customer_list' %}" style="display: flex; gap: 12px; width: 100%; max-width: 600px;">
+            <div class="input-icon-group" style="flex: 1;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" name="q" class="form-input" placeholder="Search by customer name, phone, email, city, GSTIN..." value="{{ query }}">
+            </div>
+            <button type="submit" class="btn-secondary-action" style="padding: 0 1.25rem;">
+                Search
+            </button>
+            {% if query %}
+                <a href="{% url 'customer_list' %}" class="btn-secondary-action" style="color: var(--accent-rose);">Clear</a>
+            {% endif %}
+        </form>
+        <span class="badge-status paid">{{ total_count }} Customer{% if total_count != 1 %}s{% endif %} Found</span>
+    </div>
+</div>
+
+<!-- Customers Table -->
+<div class="dashboard-card">
+    <div class="table-responsive">
+        <table class="app-table">
+            <thead>
+                <tr>
+                    <th>Customer Name</th>
+                    <th>Contact Info</th>
+                    <th>Location / City</th>
+                    <th>GSTIN Tax ID</th>
+                    <th>Registered Date</th>
+                    <th>Quick Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if customers %}
+                    {% for c in customers %}
+                        <tr>
+                            <td>
+                                <strong>{{ c.name }}</strong>
+                            </td>
+                            <td>
+                                <div><i class="fa-solid fa-phone" style="font-size:0.75rem; color:var(--text-muted);"></i> {{ c.phone }}</div>
+                                {% if c.email %}
+                                    <div style="font-size:0.8rem; color:var(--text-muted);"><i class="fa-solid fa-envelope" style="font-size:0.75rem;"></i> {{ c.email }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ c.city|default:"-" }}</td>
+                            <td>
+                                {% if c.gstin %}
+                                    <span class="upi-highlight">{{ c.gstin }}</span>
+                                {% else %}
+                                    <span style="color:var(--text-light);">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ c.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <a href="{% url 'create_invoice' %}?customer_name={{ c.name|urlencode }}&customer_phone={{ c.phone|urlencode }}" class="btn-secondary-action" style="padding: 4px 10px; font-size: 0.78rem;">
+                                    <i class="fa-solid fa-receipt"></i> Create Bill
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                            <i class="fa-solid fa-folder-open" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; color: var(--text-light);"></i>
+                            No customers found in directory. <a href="{% url 'add_customer' %}" style="color: var(--primary); font-weight: 600;">Add your first customer &rarr;</a>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

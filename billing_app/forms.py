@@ -446,6 +446,87 @@ class UserProfileUpdateForm(forms.Form):
 DistributorProfileForm = UserProfileUpdateForm
 
 
+from .models import Customer
+
+class CustomerForm(forms.Form):
+    """Form to add a new Customer with strict validations."""
+    name = forms.CharField(
+        label="Customer Name",
+        max_length=150,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Acme Corporation or Anish Patel', 'autofocus': True, 'id': 'name'})
+    )
+    email = forms.EmailField(
+        label="Email Address",
+        required=False,
+        widget=forms.EmailInput(attrs={'class': 'form-input', 'placeholder': 'customer@example.com', 'id': 'email'})
+    )
+    phone = forms.CharField(
+        label="Phone Number",
+        max_length=20,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': '+91 98765 43210', 'id': 'phone'})
+    )
+    address = forms.CharField(
+        label="Street Address",
+        required=False,
+        widget=forms.Textarea(attrs={'class': 'form-input', 'rows': 3, 'placeholder': '123 Business Way, Suite 400', 'id': 'address'})
+    )
+    city = forms.CharField(
+        label="City / Location",
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Mumbai', 'id': 'city'})
+    )
+    gstin = forms.CharField(
+        label="GSTIN (Optional)",
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': '27AAAAA0000A1Z5', 'id': 'gstin'})
+    )
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name', '').strip()
+        if len(name) < 2:
+            raise ValidationError("Customer Name must be at least 2 characters long.")
+        return name
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email', '').strip().lower()
+        if email:
+            try:
+                validate_email(email)
+            except ValidationError:
+                raise ValidationError("Please enter a valid email address.")
+        return email
+
+    def clean_phone(self):
+        phone_raw = self.cleaned_data.get('phone', '').strip()
+        phone_clean = re.sub(r'[\s\-\(\)]', '', phone_raw)
+        if not re.match(r"^\+?[0-9]{10,15}$", phone_clean):
+            raise ValidationError("Please enter a valid phone number (10 to 15 digits, optional + country code).")
+        return phone_raw
+
+    def clean_gstin(self):
+        gstin = self.cleaned_data.get('gstin', '').strip().upper()
+        if gstin:
+            if not re.match(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", gstin):
+                raise ValidationError("Please enter a valid 15-character GSTIN (e.g. 27AAAAA0000A1Z5).")
+        return gstin
+
+    def save_customer(self, created_by=None):
+        """Save new Customer to database."""
+        customer = Customer.objects.create(
+            name=self.cleaned_data['name'].strip(),
+            email=self.cleaned_data.get('email', '').strip() or None,
+            phone=self.cleaned_data['phone'].strip(),
+            address=self.cleaned_data.get('address', '').strip() or None,
+            city=self.cleaned_data.get('city', '').strip() or None,
+            gstin=self.cleaned_data.get('gstin', '').strip() or None,
+            created_by=created_by
+        )
+        return customer
+
+
+
 
 
 

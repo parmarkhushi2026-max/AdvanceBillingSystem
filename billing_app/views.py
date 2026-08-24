@@ -10,8 +10,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Sum, Q
-from .models import UserProfile, Product, Invoice, InvoiceItem, OTPToken
-from .forms import AdminLoginForm, DistributorLoginForm, ForgotPasswordForm, VerifyOTPForm, ResetPasswordForm, DistributorRegistrationForm, DistributorProfileForm
+from .models import UserProfile, Product, Invoice, InvoiceItem, OTPToken, Customer
+from .forms import AdminLoginForm, DistributorLoginForm, ForgotPasswordForm, VerifyOTPForm, ResetPasswordForm, DistributorRegistrationForm, DistributorProfileForm, CustomerForm
 from .decorators import admin_required, distributor_required
 
 
@@ -529,6 +529,59 @@ def distributor_profile_view(request):
         'role': 'Distributor',
     }
     return render(request, 'dashboard/distributor_profile.html', context)
+
+
+# 13. Customer Management: Add Customer View
+@distributor_required
+def add_customer_view(request):
+    initialize_default_users()
+    if request.method == 'POST':
+        form = CustomerForm(request.POST)
+        if form.is_valid():
+            customer = form.save_customer(created_by=request.user)
+            messages.success(request, f"🎉 Customer '{customer.name}' ({customer.phone}) added successfully to database!")
+            return redirect('customer_list')
+        else:
+            for field, errors in form.errors.items():
+                for err in errors:
+                    messages.error(request, f"{field.replace('_', ' ').title()}: {err}")
+    else:
+        form = CustomerForm()
+
+    context = {
+        'form': form,
+        'role': 'Distributor',
+    }
+    return render(request, 'billing/add_customer.html', context)
+
+
+# 14. Customer Management: Customer List View
+@distributor_required
+def customer_list_view(request):
+    initialize_default_users()
+    query = request.GET.get('q', '').strip()
+    
+    customers = Customer.objects.all()
+    if not request.user.is_superuser:
+        customers = customers.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
+
+    if query:
+        customers = customers.filter(
+            Q(name__icontains=query) |
+            Q(phone__icontains=query) |
+            Q(email__icontains=query) |
+            Q(city__icontains=query) |
+            Q(gstin__icontains=query)
+        )
+
+    context = {
+        'customers': customers,
+        'query': query,
+        'total_count': customers.count(),
+        'role': 'Distributor',
+    }
+    return render(request, 'billing/customer_list.html', context)
+
 
 
 
