@@ -25,6 +25,24 @@ class Product(models.Model):
     def __str__(self):
         return f"{self.name} - ₹{self.price}"
 
+class Customer(models.Model):
+    """Model representing retail/wholesale customers of distributors."""
+    name = models.CharField(max_length=150)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=20)
+    address = models.TextField(blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    gstin = models.CharField(max_length=20, blank=True, null=True, help_text='GST Identification Number')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='customers')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.phone})"
+
+
 class Invoice(models.Model):
     PAYMENT_CHOICES = (
         ('PAID', 'Paid via QR/Cash'),
@@ -33,6 +51,7 @@ class Invoice(models.Model):
     )
     invoice_number = models.CharField(max_length=50, unique=True)
     distributor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices')
+    customer_ref = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices')
     customer_name = models.CharField(max_length=150)
     customer_phone = models.CharField(max_length=20)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
@@ -46,6 +65,7 @@ class Invoice(models.Model):
 
     def __str__(self):
         return f"Invoice #{self.invoice_number} - ₹{self.grand_total}"
+
 
 class InvoiceItem(models.Model):
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='items')
