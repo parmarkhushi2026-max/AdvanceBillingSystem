@@ -1,41 +1,57 @@
 # 🧾 Advance Billing System
 
-A feature-packed Django-based Billing and Invoice Management System designed for managing distributors, customers, invoices, and payment tracking.
+A feature-packed, production-ready Django Billing and Invoice Management System designed for managing distributors, customers, dynamic QR code billing, tax receipts, and payment tracking.
 
 ---
 
-## 🚀 Key Features & Project Configurations
+## 🚀 Key Features & Architectural Stack
 
 - **Framework**: Django (Python 3.x)
 - **Database**: SQLite3 (`db.sqlite3` pre-configured for seamless development)
-- **Installed Apps**:
-  - `billing_app` (Main billing & invoice logic, auth portals, dashboards)
-  - `billing` (Supporting billing models)
+- **Installed Core App**: `billing_app` (Main billing & invoice logic, auth portals, customer directory, dashboards)
+- **Security & CSRF**: Configured `CSRF_TRUSTED_ORIGINS`, session cookie policies, and custom CSRF failure fallback handler.
 - **Static & Media File Management**:
-  - Centralized `static/` directory for global CSS, JavaScript, and asset files.
-  - Pre-configured `STATIC_ROOT` and `MEDIA_ROOT` for production build readiness.
+  - Centralized `static/` directory for CSS design system (`style.css`), JS (`main.js`), and assets.
+  - Pre-configured `STATIC_ROOT` and `MEDIA_ROOT` for production deployment.
 
 ---
 
-## 📁 Directory Structure
+## 📁 Clean Directory Architecture
 
 ```text
 AdvanceBillingSystem/
-├── billing/                # Django app for billing models
-├── billing_app/            # Main application (Views, Forms, Models, URLs)
-├── billing_system/         # Core Django project configuration (settings.py, urls.py, wsgi.py)
-├── static/                 # CSS, JS, and image assets
-├── templates/              # HTML templates (Auth, Billing, Dashboard)
+├── billing_app/            # Main application directory
+│   ├── migrations/         # Database migration scripts (UserProfile, OTPToken, Customer)
+│   ├── admin.py            # Django Admin registration for all models
+│   ├── decorators.py       # Role-based access control (@admin_required, @distributor_required)
+│   ├── forms.py            # Form validation (Auth, Profile, Register, Customer, OTP)
+│   ├── models.py           # Database models (UserProfile, Product, Invoice, InvoiceItem, Customer, OTPToken)
+│   ├── urls.py             # App URL routing
+│   └── views.py            # Business logic, auth flows, billing, PDF export, CSRF handlers
+├── billing_system/         # Core Django project configuration
+│   ├── settings.py         # App configuration, security settings, database setup
+│   ├── urls.py             # Root URL resolver (includes static & media handlers)
+│   ├── wsgi.py             # WSGI web server interface
+│   └── asgi.py             # ASGI asynchronous server interface
+├── static/                 # Centralized CSS, JS, and image assets
+│   ├── css/style.css       # Design system (variables, glassmorphism, responsive grids, modals)
+│   └── js/main.js          # Core frontend scripts
+├── templates/              # Structured HTML templates
+│   ├── auth/               # Admin login, distributor login, distributor register, forgot password
+│   ├── billing/            # Create QR bill, invoice detail receipt, add customer, customer list
+│   ├── dashboard/          # Admin dashboard, distributor dashboard, distributor profile
+│   ├── base.html           # Master navigation & footer layout
+│   └── home.html           # Portal landing page
 ├── .gitignore              # Git ignore rules for Django & Python
 ├── db.sqlite3              # Local SQLite database
-├── manage.py               # Django management script
-├── README.md               # Project documentation
-└── requirements.txt        # Project dependencies
+├── manage.py               # Django management CLI script
+├── README.md               # Project architecture documentation
+└── requirements.txt        # Python package dependencies
 ```
 
 ---
 
-## ⚙️ Project Settings Overview (`billing_system/settings.py`)
+## ⚙️ Core Project Settings Overview (`billing_system/settings.py`)
 
 ### 1. Database Setup (SQLite3)
 ```python
@@ -47,7 +63,7 @@ DATABASES = {
 }
 ```
 
-### 2. Registered Apps (`INSTALLED_APPS`)
+### 2. Registered App (`INSTALLED_APPS`)
 ```python
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -56,7 +72,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'billing',
     'billing_app',
 ]
 ```
@@ -73,7 +88,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 ---
 
-## 📦 Setup & Installation
+## 📦 Setup & Execution
 
 1. **Clone the Repository:**
    ```bash
