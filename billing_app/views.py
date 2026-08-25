@@ -636,6 +636,17 @@ def delete_customer_view(request, customer_id):
     return redirect('customer_list')
 
 
+# 17. Custom CSRF Failure Handler
+def csrf_failure_view(request, reason=""):
+    """User-friendly CSRF failure view that automatically redirects or alerts."""
+    messages.warning(request, "⚠️ Session security token updated. Please re-submit your action.")
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
+    return redirect('portal_select')
+
+
+
 
 
 

@@ -27,6 +27,24 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'testserver', '*']
 
+CSRF_TRUSTED_ORIGINS = [
+    'http://127.0.0.1:8001',
+    'http://localhost:8001',
+    'http://127.0.0.1:*',
+    'http://localhost:*',
+    'http://0.0.0.0:*',
+]
+
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+CSRF_FAILURE_VIEW = 'billing_app.views.csrf_failure_view'
+
+
+
 
 # Application definition
 
