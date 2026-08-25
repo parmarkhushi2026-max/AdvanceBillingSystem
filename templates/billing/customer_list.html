@@ -6,7 +6,7 @@
 <div class="page-header">
     <div>
         <h1 class="page-title"><i class="fa-solid fa-users"></i> Customer Directory</h1>
-        <p class="page-subtitle">Manage customer records, view contact details, and quickly create QR bills.</p>
+        <p class="page-subtitle">Manage customer records, view contact details, edit info, and generate instant QR bills.</p>
     </div>
     <div class="page-actions">
         <a href="{% url 'add_customer' %}" class="btn-primary-action">
@@ -15,22 +15,57 @@
     </div>
 </div>
 
+<!-- Stats Summary Row -->
+<div class="dashboard-grid" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+    <div class="dash-stat-card">
+        <div class="stat-icon-wrap" style="background: #e0e7ff; color: #4f46e5;">
+            <i class="fa-solid fa-users"></i>
+        </div>
+        <div>
+            <div class="dash-stat-value">{{ total_count }}</div>
+            <div class="dash-stat-label">Total Registered Customers</div>
+        </div>
+    </div>
+
+    <div class="dash-stat-card">
+        <div class="stat-icon-wrap" style="background: #ecfdf5; color: #059669;">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+        </div>
+        <div>
+            <div class="dash-stat-value">{{ gst_count }}</div>
+            <div class="dash-stat-label">GST Registered Clients</div>
+        </div>
+    </div>
+
+    <div class="dash-stat-card">
+        <div class="stat-icon-wrap" style="background: #fef3c7; color: #d97706;">
+            <i class="fa-solid fa-address-book"></i>
+        </div>
+        <div>
+            <div class="dash-stat-value">Active</div>
+            <div class="dash-stat-label">Directory Status</div>
+        </div>
+    </div>
+</div>
+
 <!-- Search & Filter Card -->
 <div class="dashboard-card" style="margin-bottom: 1.5rem;">
-    <div class="card-header-clean">
-        <form method="GET" action="{% url 'customer_list' %}" style="display: flex; gap: 12px; width: 100%; max-width: 600px;">
+    <div class="card-header-clean" style="flex-wrap: wrap; gap: 1rem;">
+        <form method="GET" action="{% url 'customer_list' %}" style="display: flex; gap: 12px; flex: 1; min-width: 300px;">
             <div class="input-icon-group" style="flex: 1;">
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="text" name="q" class="form-input" placeholder="Search by customer name, phone, email, city, GSTIN..." value="{{ query }}">
             </div>
             <button type="submit" class="btn-secondary-action" style="padding: 0 1.25rem;">
-                Search
+                <i class="fa-solid fa-filter"></i> Filter Results
             </button>
             {% if query %}
-                <a href="{% url 'customer_list' %}" class="btn-secondary-action" style="color: var(--accent-rose);">Clear</a>
+                <a href="{% url 'customer_list' %}" class="btn-secondary-action" style="color: var(--accent-rose);">
+                    <i class="fa-solid fa-xmark"></i> Clear
+                </a>
             {% endif %}
         </form>
-        <span class="badge-status paid">{{ total_count }} Customer{% if total_count != 1 %}s{% endif %} Found</span>
+        <span class="badge-status paid">{{ total_count }} Record{% if total_count != 1 %}s{% endif %} Found</span>
     </div>
 </div>
 
@@ -45,7 +80,7 @@
                     <th>Location / City</th>
                     <th>GSTIN Tax ID</th>
                     <th>Registered Date</th>
-                    <th>Quick Actions</th>
+                    <th style="text-align: right;">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -53,15 +88,31 @@
                     {% for c in customers %}
                         <tr>
                             <td>
-                                <strong>{{ c.name }}</strong>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div class="profile-avatar-circle" style="width: 36px; height: 36px; font-size: 0.9rem;">
+                                        <span>{{ c.name|slice:":1"|upper }}</span>
+                                    </div>
+                                    <div>
+                                        <strong style="color: var(--secondary); font-size: 0.95rem;">{{ c.name }}</strong>
+                                        {% if c.address %}
+                                            <div style="font-size: 0.78rem; color: var(--text-muted);"><i class="fa-solid fa-location-dot" style="font-size: 0.72rem;"></i> {{ c.address|truncatechars:30 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
                             </td>
                             <td>
-                                <div><i class="fa-solid fa-phone" style="font-size:0.75rem; color:var(--text-muted);"></i> {{ c.phone }}</div>
+                                <div><i class="fa-solid fa-phone" style="font-size:0.75rem; color:var(--text-muted);"></i> <strong>{{ c.phone }}</strong></div>
                                 {% if c.email %}
                                     <div style="font-size:0.8rem; color:var(--text-muted);"><i class="fa-solid fa-envelope" style="font-size:0.75rem;"></i> {{ c.email }}</div>
                                 {% endif %}
                             </td>
-                            <td>{{ c.city|default:"-" }}</td>
+                            <td>
+                                {% if c.city %}
+                                    <span class="role-pill distributor" style="font-size: 0.75rem;"><i class="fa-solid fa-city"></i> {{ c.city }}</span>
+                                {% else %}
+                                    <span style="color:var(--text-light);">-</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if c.gstin %}
                                     <span class="upi-highlight">{{ c.gstin }}</span>
@@ -70,18 +121,30 @@
                                 {% endif %}
                             </td>
                             <td>{{ c.created_at|date:"M d, Y" }}</td>
-                            <td>
-                                <a href="{% url 'create_invoice' %}?customer_name={{ c.name|urlencode }}&customer_phone={{ c.phone|urlencode }}" class="btn-secondary-action" style="padding: 4px 10px; font-size: 0.78rem;">
-                                    <i class="fa-solid fa-receipt"></i> Create Bill
-                                </a>
+                            <td style="text-align: right;">
+                                <div style="display: flex; justify-content: flex-end; gap: 6px;">
+                                    <a href="{% url 'create_invoice' %}?customer_name={{ c.name|urlencode }}&customer_phone={{ c.phone|urlencode }}" class="btn-secondary-action" style="padding: 4px 10px; font-size: 0.78rem; background: #ecfdf5; color: #047857; border-color: #a7f3d0;" title="Generate QR Bill">
+                                        <i class="fa-solid fa-receipt"></i> Create Bill
+                                    </a>
+                                    <a href="{% url 'edit_customer' c.id %}" class="btn-secondary-action" style="padding: 4px 8px; font-size: 0.78rem;" title="Edit Details">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </a>
+                                    <a href="{% url 'delete_customer' c.id %}" onclick="return confirm('Are you sure you want to delete customer {{ c.name }}?');" class="btn-secondary-action" style="padding: 4px 8px; font-size: 0.78rem; color: var(--accent-rose); border-color: #fecdd3;" title="Delete Record">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
-                            <i class="fa-solid fa-folder-open" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; color: var(--text-light);"></i>
-                            No customers found in directory. <a href="{% url 'add_customer' %}" style="color: var(--primary); font-weight: 600;">Add your first customer &rarr;</a>
+                        <td colspan="6" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+                            <i class="fa-solid fa-folder-open" style="font-size: 2.5rem; margin-bottom: 0.75rem; display: block; color: var(--text-light);"></i>
+                            {% if query %}
+                                No customers found matching query <strong>"{{ query }}"</strong>. <a href="{% url 'customer_list' %}" style="color: var(--primary); font-weight: 600;">Clear filter &rarr;</a>
+                            {% else %}
+                                No customers registered in your directory yet. <a href="{% url 'add_customer' %}" style="color: var(--primary); font-weight: 600;">Add your first customer &rarr;</a>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endif %}

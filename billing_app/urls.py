@@ -24,6 +24,9 @@ urlpatterns = [
     # Customer Management
     path('customers/', views.customer_list_view, name='customer_list'),
     path('customers/add/', views.add_customer_view, name='add_customer'),
+    path('customers/<int:customer_id>/edit/', views.edit_customer_view, name='edit_customer'),
+    path('customers/<int:customer_id>/delete/', views.delete_customer_view, name='delete_customer'),
 ]
+
 
 

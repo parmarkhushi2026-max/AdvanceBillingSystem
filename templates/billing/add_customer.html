@@ -1,12 +1,24 @@
 {% extends 'base.html' %}
 
-{% block title %}Add New Customer - Advance Billing System{% endblock %}
+{% block title %}{% if is_edit %}Edit Customer - {{ customer.name }}{% else %}Add New Customer{% endif %} - Advance Billing System{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title"><i class="fa-solid fa-user-plus"></i> Add New Customer</h1>
-        <p class="page-subtitle">Register customer details to manage directory, invoices, and GST billing.</p>
+        <h1 class="page-title">
+            {% if is_edit %}
+                <i class="fa-solid fa-user-pen"></i> Edit Customer Details
+            {% else %}
+                <i class="fa-solid fa-user-plus"></i> Add New Customer
+            {% endif %}
+        </h1>
+        <p class="page-subtitle">
+            {% if is_edit %}
+                Modify contact info, city, or GSTIN tax ID for {{ customer.name }}.
+            {% else %}
+                Register customer details to manage directory, invoices, and GST billing.
+            {% endif %}
+        </p>
     </div>
     <div class="page-actions">
         <a href="{% url 'customer_list' %}" class="btn-secondary-action">
@@ -25,11 +37,11 @@
                 <i class="fa-solid fa-address-book"></i>
                 <span>Customer Directory</span>
             </div>
-            <h2 class="auth-title">Customer Information</h2>
+            <h2 class="auth-title">{% if is_edit %}Update Details{% else %}Customer Information{% endif %}</h2>
             <p class="auth-subtitle">Enter customer contact info and optional GSTIN for official invoices.</p>
         </div>
 
-        <form method="POST" action="{% url 'add_customer' %}" novalidate>
+        <form method="POST" action="{% if is_edit %}{% url 'edit_customer' customer.id %}{% else %}{% url 'add_customer' %}{% endif %}" novalidate>
             {% csrf_token %}
 
             <div class="form-row">
@@ -119,7 +131,7 @@
             </div>
 
             <button type="submit" class="btn-submit-auth btn-submit-emerald mt-4">
-                <span>Save Customer & Add to Directory</span>
+                <span>{% if is_edit %}Update Customer Details{% else %}Save Customer & Add to Directory{% endif %}</span>
                 <i class="fa-solid fa-user-check"></i>
             </button>
         </form>

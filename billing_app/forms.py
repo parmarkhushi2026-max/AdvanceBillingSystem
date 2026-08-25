@@ -525,6 +525,18 @@ class CustomerForm(forms.Form):
         )
         return customer
 
+    def update_customer(self, customer):
+        """Update existing Customer instance in database."""
+        customer.name = self.cleaned_data['name'].strip()
+        customer.email = self.cleaned_data.get('email', '').strip() or None
+        customer.phone = self.cleaned_data['phone'].strip()
+        customer.address = self.cleaned_data.get('address', '').strip() or None
+        customer.city = self.cleaned_data.get('city', '').strip() or None
+        customer.gstin = self.cleaned_data.get('gstin', '').strip() or None
+        customer.save()
+        return customer
+
+
 
 
 

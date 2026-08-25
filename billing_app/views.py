@@ -584,9 +584,57 @@ def customer_list_view(request):
         'customers': customers,
         'query': query,
         'total_count': customers.count(),
+        'gst_count': customers.filter(gstin__isnull=False).exclude(gstin='').count(),
         'role': 'Distributor',
     }
     return render(request, 'billing/customer_list.html', context)
+
+
+# 15. Edit Customer View
+@distributor_required
+def edit_customer_view(request, customer_id):
+    initialize_default_users()
+    customer = get_object_or_404(Customer, pk=customer_id)
+
+    if request.method == 'POST':
+        form = CustomerForm(request.POST)
+        if form.is_valid():
+            customer = form.update_customer(customer)
+            messages.success(request, f"🎉 Customer '{customer.name}' updated successfully!")
+            return redirect('customer_list')
+        else:
+            for field, errors in form.errors.items():
+                for err in errors:
+                    messages.error(request, f"{field.replace('_', ' ').title()}: {err}")
+    else:
+        form = CustomerForm(initial={
+            'name': customer.name,
+            'email': customer.email or '',
+            'phone': customer.phone,
+            'address': customer.address or '',
+            'city': customer.city or '',
+            'gstin': customer.gstin or '',
+        })
+
+    context = {
+        'form': form,
+        'customer': customer,
+        'is_edit': True,
+        'role': 'Distributor',
+    }
+    return render(request, 'billing/add_customer.html', context)
+
+
+# 16. Delete Customer View
+@distributor_required
+def delete_customer_view(request, customer_id):
+    initialize_default_users()
+    customer = get_object_or_404(Customer, pk=customer_id)
+    name = customer.name
+    customer.delete()
+    messages.success(request, f"🗑️ Customer '{name}' deleted successfully.")
+    return redirect('customer_list')
+
 
 
 
