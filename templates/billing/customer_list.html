@@ -129,9 +129,9 @@
                                     <a href="{% url 'edit_customer' c.id %}" class="btn-secondary-action" style="padding: 4px 8px; font-size: 0.78rem;" title="Edit Details">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </a>
-                                    <a href="{% url 'delete_customer' c.id %}" onclick="return confirm('Are you sure you want to delete customer {{ c.name }}?');" class="btn-secondary-action" style="padding: 4px 8px; font-size: 0.78rem; color: var(--accent-rose); border-color: #fecdd3;" title="Delete Record">
+                                    <button type="button" onclick="triggerDeleteModal('{{ c.name|escapejs }}', '{% url 'delete_customer' c.id %}')" class="btn-secondary-action" style="padding: 4px 8px; font-size: 0.78rem; color: var(--accent-rose); border-color: #fecdd3;" title="Delete Record">
                                         <i class="fa-solid fa-trash"></i>
-                                    </a>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -152,4 +152,46 @@
         </table>
     </div>
 </div>
+
+<!-- Custom Glassmorphic Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-card">
+        <div class="modal-icon-danger">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 class="modal-title">Confirm Delete Record</h3>
+        <p class="modal-body-text">
+            Are you sure you want to permanently delete customer <span class="modal-target-name" id="modalTargetName">Customer</span>?
+            <br><br>
+            <strong style="color: #e11d48; font-size: 0.85rem;">⚠️ This record will be permanently removed from the Database.</strong>
+        </p>
+        <div class="modal-actions">
+            <button type="button" class="btn-modal-cancel" onclick="closeDeleteModal()">Cancel</button>
+            <a href="#" id="modalConfirmBtn" class="btn-danger-confirm">
+                <i class="fa-solid fa-trash"></i> Yes, Delete Record
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function triggerDeleteModal(customerName, deleteUrl) {
+        document.getElementById('modalTargetName').textContent = customerName;
+        document.getElementById('modalConfirmBtn').href = deleteUrl;
+        document.getElementById('deleteModal').classList.add('active');
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.remove('active');
+    }
+
+    // Close modal on Escape key press or backdrop click
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeDeleteModal();
+    });
+
+    document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this) closeDeleteModal();
+    });
+</script>
 {% endblock %}
