@@ -3,21 +3,27 @@
 {% block title %}Invoice #{{ invoice.invoice_number }} - Advance Billing System{% endblock %}
 
 {% block content %}
+<!-- Include html2pdf.js for client-side PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 <div class="print-actions-bar">
     <a href="{% url 'distributor_dashboard' %}" class="btn-quick-fill" style="text-decoration: none; font-size: 0.9rem;">
         <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
     </a>
-    <div style="display: flex; gap: 10px;">
+    <div style="display: flex; gap: 10px; align-items: center;">
         <a href="{% url 'create_invoice' %}" class="btn-quick-fill" style="text-decoration: none; font-size: 0.9rem; background: #ecfdf5; color: #065f46;">
             <i class="fa-solid fa-plus"></i> New Bill
         </a>
+        <button type="button" id="btn-pdf-download" onclick="exportInvoiceToPDF()" class="btn-export-pdf">
+            <i class="fa-solid fa-file-pdf"></i> Download PDF Invoice
+        </button>
         <button type="button" onclick="window.print()" class="btn-print">
-            <i class="fa-solid fa-print"></i> Print Invoice Receipt
+            <i class="fa-solid fa-print"></i> Print Tax Receipt
         </button>
     </div>
 </div>
 
-<div class="invoice-sheet">
+<div class="invoice-sheet" id="invoice-printable-area">
     <!-- Header -->
     <div class="invoice-top-bar">
         <div>
@@ -120,4 +126,39 @@
         <p>Thank you for your business! This is a computer-generated tax invoice verified with QR Code.</p>
     </div>
 </div>
+
+<script>
+function exportInvoiceToPDF() {
+    const element = document.getElementById('invoice-printable-area');
+    const filename = 'Invoice_{{ invoice.invoice_number }}.pdf';
+    const opt = {
+        margin:       [0.3, 0.3, 0.3, 0.3],
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    const downloadBtn = document.getElementById('btn-pdf-download');
+    const origHTML = downloadBtn.innerHTML;
+    downloadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating PDF...';
+    downloadBtn.disabled = true;
+
+    if (typeof html2pdf !== 'undefined') {
+        html2pdf().set(opt).from(element).save().then(() => {
+            downloadBtn.innerHTML = origHTML;
+            downloadBtn.disabled = false;
+        }).catch(err => {
+            console.error('PDF export error:', err);
+            window.print();
+            downloadBtn.innerHTML = origHTML;
+            downloadBtn.disabled = false;
+        });
+    } else {
+        window.print();
+        downloadBtn.innerHTML = origHTML;
+        downloadBtn.disabled = false;
+    }
+}
+</script>
 {% endblock %}
