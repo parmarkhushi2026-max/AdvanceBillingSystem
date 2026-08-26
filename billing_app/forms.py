@@ -18,7 +18,8 @@ class AdminLoginForm(AuthenticationForm):
         widget=forms.PasswordInput(attrs={
             'class': 'form-input',
             'placeholder': 'Enter admin password',
-            'id': 'password'
+            'id': 'password',
+            'autocomplete': 'new-password'
         })
     )
 
@@ -63,7 +64,8 @@ class DistributorLoginForm(AuthenticationForm):
         widget=forms.PasswordInput(attrs={
             'class': 'form-input',
             'placeholder': 'Enter distributor password',
-            'id': 'password'
+            'id': 'password',
+            'autocomplete': 'new-password'
         })
     )
 
