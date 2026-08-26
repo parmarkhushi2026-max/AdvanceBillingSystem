@@ -45,7 +45,7 @@
             margin-left: 280px;
             display: flex;
             flex-direction: column;
-            min-width: 0; /* Important for preventing flexbox overflow */
+            min-width: 0;
         }
         
         .sidebar-header {
@@ -133,7 +133,6 @@
             font-size: 1.25rem;
         }
 
-        /* Adjust app-container if not authenticated */
         body.unauth-body { flex-direction: column; }
         body.unauth-body .app-container { margin: 0 auto; width: 100%; }
         
@@ -143,9 +142,8 @@
 <body class="{% if not user.is_authenticated %}unauth-body{% endif %}">
 
     {% if user.is_authenticated %}
-        <!-- AUTHENTICATED LAYOUT WITH SIDEBAR -->
+        <!-- AUTHENTICATED LAYOUT -->
         <div class="app-wrapper">
-            <!-- Sidebar -->
             <aside class="sidebar">
                 <div class="sidebar-header">
                     <a href="{% url 'portal_select' %}" class="brand-logo" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: white;">
@@ -204,38 +202,14 @@
                 </div>
             </aside>
             
-            <!-- Main Content Area -->
             <main class="main-content">
                 <header class="topbar">
                     <div class="topbar-title">{% block topbar_title %}Advance Billing System{% endblock %}</div>
                 </header>
                 
                 <div class="app-container" style="padding: 2rem;">
-                    <!-- Flash Messages -->
-                    {% if messages %}
-                        <div class="alert-wrapper" style="margin-bottom: 2rem;">
-                            {% for message in messages %}
-                                <div class="alert-banner {{ message.tags }}">
-                                    {% if message.tags == 'success' %}
-                                        <i class="fa-solid fa-circle-check"></i>
-                                    {% elif message.tags == 'error' %}
-                                        <i class="fa-solid fa-triangle-exclamation"></i>
-                                    {% else %}
-                                        <i class="fa-solid fa-circle-info"></i>
-                                    {% endif %}
-                                    <span>{{ message }}</span>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-
-                    {% block content %}{% endblock %}
-                </div>
-            </main>
-        </div>
-        
     {% else %}
-        <!-- UNAUTHENTICATED LAYOUT WITH TOP NAVBAR -->
+        <!-- UNAUTHENTICATED LAYOUT -->
         <header class="app-header">
             <nav class="navbar" style="max-width: 1300px; margin: 0 auto; padding: 0.85rem 1.5rem; display: flex; align-items: center; justify-content: space-between;">
                 <a href="{% url 'portal_select' %}" class="brand-logo" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: white; font-weight: 700; font-size: 1.25rem;">
@@ -257,7 +231,9 @@
         </header>
 
         <main class="app-container" style="max-width: 1300px; margin: 0 auto; padding: 2rem 1.5rem;">
-            <!-- Flash Messages -->
+    {% endif %}
+
+            <!-- Common Flash Messages -->
             {% if messages %}
                 <div class="alert-wrapper" style="margin-bottom: 2rem;">
                     {% for message in messages %}
@@ -275,7 +251,14 @@
                 </div>
             {% endif %}
 
+            <!-- ONE SINGLE CONTENT BLOCK -->
             {% block content %}{% endblock %}
+
+    {% if user.is_authenticated %}
+                </div>
+            </main>
+        </div>
+    {% else %}
         </main>
     {% endif %}
 
