@@ -5,8 +5,8 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title"><i class="fa-solid fa-users"></i> Customer Directory</h1>
-        <p class="page-subtitle">Manage customer records, view contact details, edit info, and generate instant QR bills.</p>
+        <h1 class="page-title"><i class="fa-solid fa-address-book" style="color: var(--primary);"></i> Customer Directory</h1>
+        <p class="page-subtitle">Manage customer profiles, contact info, tax IDs, and generate instant QR invoices.</p>
     </div>
     <div class="page-actions">
         <a href="{% url 'add_customer' %}" class="btn-primary-action">
@@ -16,61 +16,77 @@
 </div>
 
 <!-- Stats Summary Row -->
-<div class="dashboard-grid" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-    <div class="dash-stat-card">
-        <div class="stat-icon-wrap" style="background: #e0e7ff; color: #4f46e5;">
+<div class="stats-grid" style="margin-bottom: 1.5rem;">
+    <div class="stat-card">
+        <div class="stat-icon indigo">
             <i class="fa-solid fa-users"></i>
         </div>
         <div>
-            <div class="dash-stat-value">{{ total_count }}</div>
-            <div class="dash-stat-label">Total Registered Customers</div>
+            <div class="stat-val">{{ total_count }}</div>
+            <div class="stat-lbl">Total Customers</div>
         </div>
     </div>
 
-    <div class="dash-stat-card">
-        <div class="stat-icon-wrap" style="background: #ecfdf5; color: #059669;">
+    <div class="stat-card">
+        <div class="stat-icon emerald">
             <i class="fa-solid fa-file-invoice-dollar"></i>
         </div>
         <div>
-            <div class="dash-stat-value">{{ gst_count }}</div>
-            <div class="dash-stat-label">GST Registered Clients</div>
+            <div class="stat-val">{{ gst_count }}</div>
+            <div class="stat-lbl">GST Registered Clients</div>
         </div>
     </div>
 
-    <div class="dash-stat-card">
-        <div class="stat-icon-wrap" style="background: #fef3c7; color: #d97706;">
-            <i class="fa-solid fa-address-book"></i>
+    <div class="stat-card">
+        <div class="stat-icon amber">
+            <i class="fa-solid fa-circle-check"></i>
         </div>
         <div>
-            <div class="dash-stat-value">Active</div>
-            <div class="dash-stat-label">Directory Status</div>
+            <div class="stat-val" style="color: #d97706; font-size: 1.35rem;">Active</div>
+            <div class="stat-lbl">Directory Status</div>
         </div>
     </div>
 </div>
 
-<!-- Search & Filter Card -->
-<div class="dashboard-card" style="margin-bottom: 1.5rem;">
-    <div class="card-header-clean" style="flex-wrap: wrap; gap: 1rem;">
-        <form method="GET" action="{% url 'customer_list' %}" style="display: flex; gap: 12px; flex: 1; min-width: 300px;">
+<!-- Search, Filter & View Controls -->
+<div class="dashboard-card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <!-- Search Form -->
+        <form method="GET" action="{% url 'customer_list' %}" style="display: flex; gap: 10px; flex: 1; min-width: 280px; align-items: center;">
             <div class="input-icon-group" style="flex: 1;">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" name="q" class="form-input" placeholder="Search by customer name, phone, email, city, GSTIN..." value="{{ query }}">
+                <input type="text" name="q" class="form-input" placeholder="Search by name, phone, email, city, GSTIN..." value="{{ query }}">
             </div>
             <button type="submit" class="btn-secondary-action" style="padding: 0 1.25rem;">
-                <i class="fa-solid fa-filter"></i> Filter Results
+                <i class="fa-solid fa-filter"></i> Search
             </button>
             {% if query %}
-                <a href="{% url 'customer_list' %}" class="btn-secondary-action" style="color: var(--accent-rose);">
+                <a href="{% url 'customer_list' %}" class="btn-secondary-action" style="color: var(--accent-rose);" title="Clear Search">
                     <i class="fa-solid fa-xmark"></i> Clear
                 </a>
             {% endif %}
         </form>
-        <span class="badge-status paid">{{ total_count }} Record{% if total_count != 1 %}s{% endif %} Found</span>
+
+        <!-- View Switcher & Counter -->
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <span class="badge-status paid" style="font-size: 0.82rem; padding: 6px 12px;">
+                <i class="fa-solid fa-database"></i> {{ total_count }} Record{% if total_count != 1 %}s{% endif %}
+            </span>
+
+            <div class="customer-view-toggle">
+                <button type="button" class="view-toggle-btn active" id="btnTableView" onclick="switchView('table')">
+                    <i class="fa-solid fa-list"></i> Table
+                </button>
+                <button type="button" class="view-toggle-btn" id="btnGridView" onclick="switchView('grid')">
+                    <i class="fa-solid fa-grip"></i> Grid
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Customers Table -->
-<div class="dashboard-card">
+<!-- 1. Table View Container -->
+<div class="dashboard-card" id="tableViewContainer">
     <div class="table-responsive">
         <table class="app-table">
             <thead>
@@ -78,8 +94,8 @@
                     <th>Customer Name</th>
                     <th>Contact Info</th>
                     <th>Location / City</th>
-                    <th>GSTIN Tax ID</th>
-                    <th>Registered Date</th>
+                    <th>GSTIN / Tax ID</th>
+                    <th>Created On</th>
                     <th style="text-align: right;">Actions</th>
                 </tr>
             </thead>
@@ -88,48 +104,62 @@
                     {% for c in customers %}
                         <tr>
                             <td>
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <div class="profile-avatar-circle" style="width: 36px; height: 36px; font-size: 0.9rem;">
-                                        <span>{{ c.name|slice:":1"|upper }}</span>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="avatar-initials">
+                                        {{ c.name|slice:":1"|upper }}
                                     </div>
                                     <div>
-                                        <strong style="color: var(--secondary); font-size: 0.95rem;">{{ c.name }}</strong>
+                                        <div style="font-weight: 700; color: var(--secondary); font-size: 0.95rem;">{{ c.name }}</div>
                                         {% if c.address %}
-                                            <div style="font-size: 0.78rem; color: var(--text-muted);"><i class="fa-solid fa-location-dot" style="font-size: 0.72rem;"></i> {{ c.address|truncatechars:30 }}</div>
+                                            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+                                                <i class="fa-solid fa-location-dot" style="color: var(--primary); font-size: 0.72rem;"></i> {{ c.address|truncatechars:35 }}
+                                            </div>
                                         {% endif %}
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                <div><i class="fa-solid fa-phone" style="font-size:0.75rem; color:var(--text-muted);"></i> <strong>{{ c.phone }}</strong></div>
+                                <div class="info-item">
+                                    <i class="fa-solid fa-phone"></i>
+                                    <a href="tel:{{ c.phone }}" style="font-weight: 600;">{{ c.phone }}</a>
+                                </div>
                                 {% if c.email %}
-                                    <div style="font-size:0.8rem; color:var(--text-muted);"><i class="fa-solid fa-envelope" style="font-size:0.75rem;"></i> {{ c.email }}</div>
+                                    <div class="info-item" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+                                        <i class="fa-solid fa-envelope"></i>
+                                        <a href="mailto:{{ c.email }}" style="color: var(--text-muted);">{{ c.email }}</a>
+                                    </div>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if c.city %}
-                                    <span class="role-pill distributor" style="font-size: 0.75rem;"><i class="fa-solid fa-city"></i> {{ c.city }}</span>
+                                    <span class="role-pill distributor" style="font-size: 0.78rem;">
+                                        <i class="fa-solid fa-building"></i> {{ c.city }}
+                                    </span>
                                 {% else %}
-                                    <span style="color:var(--text-light);">-</span>
+                                    <span style="color: var(--text-light); font-size: 0.85rem;">-</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if c.gstin %}
-                                    <span class="upi-highlight">{{ c.gstin }}</span>
+                                    <span class="gst-badge-pill">
+                                        <i class="fa-solid fa-receipt"></i> {{ c.gstin }}
+                                    </span>
                                 {% else %}
-                                    <span style="color:var(--text-light);">-</span>
+                                    <span class="no-gst-pill">Unregistered</span>
                                 {% endif %}
                             </td>
-                            <td>{{ c.created_at|date:"M d, Y" }}</td>
+                            <td style="font-size: 0.85rem; color: var(--text-muted);">
+                                {{ c.created_at|date:"M d, Y" }}
+                            </td>
                             <td style="text-align: right;">
                                 <div style="display: flex; justify-content: flex-end; gap: 6px;">
-                                    <a href="{% url 'create_invoice' %}?customer_name={{ c.name|urlencode }}&customer_phone={{ c.phone|urlencode }}" class="btn-secondary-action" style="padding: 4px 10px; font-size: 0.78rem; background: #ecfdf5; color: #047857; border-color: #a7f3d0;" title="Generate QR Bill">
-                                        <i class="fa-solid fa-receipt"></i> Create Bill
+                                    <a href="{% url 'create_invoice' %}?customer_name={{ c.name|urlencode }}&customer_phone={{ c.phone|urlencode }}" class="btn-card-create-bill" title="Create Invoice for {{ c.name }}">
+                                        <i class="fa-solid fa-file-invoice"></i> Create Bill
                                     </a>
-                                    <a href="{% url 'edit_customer' c.id %}" class="btn-secondary-action" style="padding: 4px 8px; font-size: 0.78rem;" title="Edit Details">
+                                    <a href="{% url 'edit_customer' c.id %}" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem;" title="Edit Profile">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </a>
-                                    <button type="button" onclick="triggerDeleteModal('{{ c.name|escapejs }}', '{% url 'delete_customer' c.id %}')" class="btn-secondary-action" style="padding: 4px 8px; font-size: 0.78rem; color: var(--accent-rose); border-color: #fecdd3;" title="Delete Record">
+                                    <button type="button" data-name="{{ c.name }}" data-url="{% url 'delete_customer' c.id %}" onclick="triggerDeleteModal(this)" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem; color: var(--accent-rose); border-color: #fecdd3;" title="Delete Profile">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </div>
@@ -138,12 +168,18 @@
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
-                            <i class="fa-solid fa-folder-open" style="font-size: 2.5rem; margin-bottom: 0.75rem; display: block; color: var(--text-light);"></i>
+                        <td colspan="6" style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
+                            <i class="fa-solid fa-folder-open" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--text-light);"></i>
                             {% if query %}
-                                No customers found matching query <strong>"{{ query }}"</strong>. <a href="{% url 'customer_list' %}" style="color: var(--primary); font-weight: 600;">Clear filter &rarr;</a>
+                                <h4>No customers found</h4>
+                                <p style="font-size: 0.9rem; margin-top: 4px;">No records matched your search query <strong>"{{ query }}"</strong>.</p>
+                                <a href="{% url 'customer_list' %}" class="btn-secondary-action" style="margin-top: 1rem; display: inline-flex;">Clear Search Filter &rarr;</a>
                             {% else %}
-                                No customers registered in your directory yet. <a href="{% url 'add_customer' %}" style="color: var(--primary); font-weight: 600;">Add your first customer &rarr;</a>
+                                <h4>No customers registered yet</h4>
+                                <p style="font-size: 0.9rem; margin-top: 4px;">Get started by adding your first customer profile.</p>
+                                <a href="{% url 'add_customer' %}" class="btn-primary-action" style="margin-top: 1rem; display: inline-flex;">
+                                    <i class="fa-solid fa-user-plus"></i> Add First Customer
+                                </a>
                             {% endif %}
                         </td>
                     </tr>
@@ -153,29 +189,151 @@
     </div>
 </div>
 
-<!-- Custom Glassmorphic Confirmation Modal -->
+<!-- 2. Grid Cards View Container -->
+<div id="gridViewContainer" style="display: none;">
+    {% if customers %}
+        <div class="customer-card-grid">
+            {% for c in customers %}
+                <div class="customer-card">
+                    <div class="customer-card-header">
+                        <div class="customer-avatar-wrapper">
+                            <div class="avatar-initials">
+                                {{ c.name|slice:":1"|upper }}
+                            </div>
+                            <div>
+                                <div class="customer-card-title">{{ c.name }}</div>
+                                {% if c.city %}
+                                    <div style="font-size: 0.78rem; color: var(--text-muted);"><i class="fa-solid fa-city"></i> {{ c.city }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if c.gstin %}
+                            <span class="gst-badge-pill" title="GSTIN: {{ c.gstin }}">
+                                <i class="fa-solid fa-check-circle"></i> GST
+                            </span>
+                        {% else %}
+                            <span class="no-gst-pill">Consumer</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="customer-card-body">
+                        <div class="info-item">
+                            <i class="fa-solid fa-phone"></i>
+                            <a href="tel:{{ c.phone }}"><strong>{{ c.phone }}</strong></a>
+                        </div>
+                        {% if c.email %}
+                            <div class="info-item">
+                                <i class="fa-solid fa-envelope"></i>
+                                <a href="mailto:{{ c.email }}">{{ c.email }}</a>
+                            </div>
+                        {% endif %}
+                        {% if c.address %}
+                            <div class="info-item">
+                                <i class="fa-solid fa-location-dot"></i>
+                                <span>{{ c.address }}</span>
+                            </div>
+                        {% endif %}
+                        {% if c.gstin %}
+                            <div class="info-item">
+                                <i class="fa-solid fa-receipt"></i>
+                                <span>GSTIN: <strong>{{ c.gstin }}</strong></span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="customer-card-footer">
+                        <a href="{% url 'create_invoice' %}?customer_name={{ c.name|urlencode }}&customer_phone={{ c.phone|urlencode }}" class="btn-card-create-bill">
+                            <i class="fa-solid fa-file-invoice"></i> Create Bill
+                        </a>
+                        <a href="{% url 'edit_customer' c.id %}" class="btn-secondary-action" style="padding: 8px 11px;" title="Edit Customer">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </a>
+                        <button type="button" data-name="{{ c.name }}" data-url="{% url 'delete_customer' c.id %}" onclick="triggerDeleteModal(this)" class="btn-secondary-action" style="padding: 8px 11px; color: var(--accent-rose); border-color: #fecdd3;" title="Delete Customer">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="dashboard-card" style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
+            <i class="fa-solid fa-folder-open" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--text-light);"></i>
+            {% if query %}
+                <h4>No customers found</h4>
+                <p style="font-size: 0.9rem; margin-top: 4px;">No records matched your search query <strong>"{{ query }}"</strong>.</p>
+                <a href="{% url 'customer_list' %}" class="btn-secondary-action" style="margin-top: 1rem; display: inline-flex;">Clear Search Filter &rarr;</a>
+            {% else %}
+                <h4>No customers registered yet</h4>
+                <p style="font-size: 0.9rem; margin-top: 4px;">Get started by adding your first customer profile.</p>
+                <a href="{% url 'add_customer' %}" class="btn-primary-action" style="margin-top: 1rem; display: inline-flex;">
+                    <i class="fa-solid fa-user-plus"></i> Add First Customer
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<!-- Custom Confirmation Modal -->
 <div class="modal-overlay" id="deleteModal">
     <div class="modal-card">
         <div class="modal-icon-danger">
             <i class="fa-solid fa-triangle-exclamation"></i>
         </div>
-        <h3 class="modal-title">Confirm Delete Record</h3>
+        <h3 class="modal-title">Delete Customer Record?</h3>
         <p class="modal-body-text">
-            Are you sure you want to permanently delete customer <span class="modal-target-name" id="modalTargetName">Customer</span>?
+            Are you sure you want to delete <strong id="modalTargetName" style="color: var(--secondary);">Customer</strong>?
             <br><br>
-            <strong style="color: #e11d48; font-size: 0.85rem;">⚠️ This record will be permanently removed from the Database.</strong>
+            <span style="color: #e11d48; font-size: 0.85rem;">⚠️ This customer profile will be permanently removed from your system.</span>
         </p>
         <div class="modal-actions">
             <button type="button" class="btn-modal-cancel" onclick="closeDeleteModal()">Cancel</button>
             <a href="#" id="modalConfirmBtn" class="btn-danger-confirm">
-                <i class="fa-solid fa-trash"></i> Yes, Delete Record
+                <i class="fa-solid fa-trash"></i> Delete Profile
             </a>
         </div>
     </div>
 </div>
 
 <script>
-    function triggerDeleteModal(customerName, deleteUrl) {
+    // View Switcher logic (Table vs Grid)
+    function switchView(viewMode) {
+        const tableView = document.getElementById('tableViewContainer');
+        const gridView = document.getElementById('gridViewContainer');
+        const btnTable = document.getElementById('btnTableView');
+        const btnGrid = document.getElementById('btnGridView');
+
+        if (viewMode === 'grid') {
+            tableView.style.display = 'none';
+            gridView.style.display = 'block';
+            btnTable.classList.remove('active');
+            btnGrid.classList.add('active');
+            localStorage.setItem('customer_directory_view', 'grid');
+        } else {
+            gridView.style.display = 'none';
+            tableView.style.display = 'block';
+            btnGrid.classList.remove('active');
+            btnTable.classList.add('active');
+            localStorage.setItem('customer_directory_view', 'table');
+        }
+    }
+
+    // Load saved view preference on startup
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedView = localStorage.getItem('customer_directory_view');
+        if (savedView === 'grid') {
+            switchView('grid');
+        }
+    });
+
+    // Delete Modal controls
+    function triggerDeleteModal(btnElement, optionalUrl) {
+        let customerName = btnElement;
+        let deleteUrl = optionalUrl;
+        if (typeof btnElement === 'object' && btnElement !== null && btnElement.getAttribute) {
+            customerName = btnElement.getAttribute('data-name');
+            deleteUrl = btnElement.getAttribute('data-url');
+        }
         document.getElementById('modalTargetName').textContent = customerName;
         document.getElementById('modalConfirmBtn').href = deleteUrl;
         document.getElementById('deleteModal').classList.add('active');
@@ -185,7 +343,6 @@
         document.getElementById('deleteModal').classList.remove('active');
     }
 
-    // Close modal on Escape key press or backdrop click
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeDeleteModal();
     });

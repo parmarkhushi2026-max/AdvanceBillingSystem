@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Sum, Q
 from .models import UserProfile, Product, Invoice, InvoiceItem, OTPToken, Customer
-from .forms import AdminLoginForm, DistributorLoginForm, ForgotPasswordForm, VerifyOTPForm, ResetPasswordForm, DistributorRegistrationForm, DistributorProfileForm, CustomerForm
+from .forms import AdminLoginForm, DistributorLoginForm, ForgotPasswordForm, VerifyOTPForm, ResetPasswordForm, DistributorRegistrationForm, DistributorProfileForm, CustomerForm, ProductForm
 from .decorators import admin_required, distributor_required
 
 
@@ -48,12 +48,12 @@ def initialize_default_users():
     # Sample Products
     if Product.objects.count() == 0:
         Product.objects.bulk_create([
-            Product(name='Wireless Barcode Scanner Pro', category='Hardware', price=Decimal('2499.00'), tax_rate=18.00, stock=45),
-            Product(name='Thermal Receipt Printer 80mm', category='Hardware', price=Decimal('4890.00'), tax_rate=18.00, stock=30),
-            Product(name='Advance POS Touch Terminal', category='Hardware', price=Decimal('18500.00'), tax_rate=18.00, stock=12),
-            Product(name='Billing Software Annual License', category='Software', price=Decimal('5999.00'), tax_rate=18.00, stock=999),
-            Product(name='Thermal Paper Rolls (Box of 50)', category='Supplies', price=Decimal('850.00'), tax_rate=12.00, stock=150),
-            Product(name='QR Payment Display Stand', category='Accessories', price=Decimal('450.00'), tax_rate=18.00, stock=80),
+            Product(name='Wireless Barcode Scanner Pro', sku='HW-SCN-01', category='Hardware', price=Decimal('2499.00'), gst_rate=18.00, hsn_code='847160', unit='Pcs', stock=45),
+            Product(name='Thermal Receipt Printer 80mm', sku='HW-PRN-02', category='Hardware', price=Decimal('4890.00'), gst_rate=18.00, hsn_code='844332', unit='Pcs', stock=30),
+            Product(name='Advance POS Touch Terminal', sku='HW-POS-03', category='Hardware', price=Decimal('18500.00'), gst_rate=18.00, hsn_code='847130', unit='Pcs', stock=12),
+            Product(name='Billing Software Annual License', sku='SW-LIC-01', category='Software', price=Decimal('5999.00'), gst_rate=18.00, hsn_code='997331', unit='License', stock=999),
+            Product(name='Thermal Paper Rolls (Box of 50)', sku='SUP-PAP-01', category='Supplies', price=Decimal('850.00'), gst_rate=12.00, hsn_code='482340', unit='Box', stock=150),
+            Product(name='QR Payment Display Stand', sku='ACC-STD-01', category='Accessories', price=Decimal('450.00'), gst_rate=18.00, hsn_code='392690', unit='Pcs', stock=80),
         ])
 
 # 1. Landing Page / Portal Selector
@@ -648,7 +648,100 @@ def csrf_failure_view(request, reason=""):
 
 
 
+# 18. Product Management: List Products
+@login_required
+def product_list_view(request):
+    initialize_default_users()
+    query = request.GET.get('q', '').strip()
+    category_filter = request.GET.get('category', '').strip()
+    
+    products = Product.objects.all().order_by('-id')
+    
+    if query:
+        products = products.filter(
+            Q(name__icontains=query) |
+            Q(sku__icontains=query) |
+            Q(hsn_code__icontains=query)
+        )
+    
+    if category_filter:
+        products = products.filter(category__iexact=category_filter)
+        
+    categories = Product.objects.values_list('category', flat=True).distinct()
+
+    context = {
+        'products': products,
+        'query': query,
+        'category_filter': category_filter,
+        'categories': [c for c in categories if c],
+        'total_count': products.count(),
+        'role': 'Admin' if (request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')) else 'Distributor',
+    }
+    return render(request, 'billing/product_list.html', context)
 
 
+# 19. Product Management: Add Product
+@login_required
+def add_product_view(request):
+    initialize_default_users()
+    if request.method == 'POST':
+        form = ProductForm(request.POST)
+        if form.is_valid():
+            product = form.save(commit=False)
+            product.created_by = request.user
+            product.save()
+            messages.success(request, f"🎉 Product '{product.name}' added successfully to inventory!")
+            return redirect('product_list')
+        else:
+            for field, errors in form.errors.items():
+                for err in errors:
+                    messages.error(request, f"{field.replace('_', ' ').title()}: {err}")
+    else:
+        form = ProductForm()
+
+    context = {
+        'form': form,
+        'role': 'Admin' if (request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')) else 'Distributor',
+    }
+    return render(request, 'billing/add_product.html', context)
+
+
+# 20. Product Management: Edit Product
+@login_required
+def edit_product_view(request, product_id):
+    initialize_default_users()
+    product = get_object_or_404(Product, pk=product_id)
+
+    if request.method == 'POST':
+        form = ProductForm(request.POST, instance=product)
+        if form.is_valid():
+            product = form.save()
+            messages.success(request, f"🎉 Product '{product.name}' updated successfully!")
+            return redirect('product_list')
+        else:
+            for field, errors in form.errors.items():
+                for err in errors:
+                    messages.error(request, f"{field.replace('_', ' ').title()}: {err}")
+    else:
+        form = ProductForm(instance=product)
+
+    context = {
+        'form': form,
+        'product': product,
+        'is_edit': True,
+        'role': 'Admin' if (request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')) else 'Distributor',
+    }
+    return render(request, 'billing/add_product.html', context)
+
+
+# 21. Product Management: Delete Product
+@login_required
+def delete_product_view(request, product_id):
+    initialize_default_users()
+    product = get_object_or_404(Product, pk=product_id)
+    name = product.name
+    product.delete()
+    messages.success(request, f"🗑️ Product '{name}' deleted successfully from inventory.")
+    return redirect('product_list')
 
 

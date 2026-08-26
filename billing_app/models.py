@@ -17,10 +17,25 @@ class UserProfile(models.Model):
 
 class Product(models.Model):
     name = models.CharField(max_length=150)
+    sku = models.CharField(max_length=50, blank=True, null=True, unique=True, help_text='Stock Keeping Unit / Product Barcode')
     category = models.CharField(max_length=100, default='General')
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=18.00, help_text='Tax % (GST/VAT)')
     stock = models.PositiveIntegerField(default=100)
+    gst_rate = models.DecimalField(max_digits=5, decimal_places=2, default=18.00, help_text='GST Rate % (e.g. 0, 5, 12, 18, 28)')
+    hsn_code = models.CharField(max_length=20, blank=True, null=True, help_text='HSN / SAC Code')
+    unit = models.CharField(max_length=20, default='Pcs', help_text='Measurement unit (Pcs, Kg, Box, Mtr, Ltr, set)')
+    description = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def tax_rate(self):
+        return self.gst_rate
+
+    @tax_rate.setter
+    def tax_rate(self, value):
+        self.gst_rate = value
 
     def __str__(self):
         return f"{self.name} - ₹{self.price}"

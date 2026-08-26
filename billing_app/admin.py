@@ -26,9 +26,9 @@ class UserProfileAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category', 'price', 'tax_rate', 'stock')
-    list_filter = ('category',)
-    search_fields = ('name',)
+    list_display = ('name', 'sku', 'category', 'price', 'gst_rate', 'hsn_code', 'stock', 'unit', 'created_by')
+    list_filter = ('category', 'gst_rate', 'created_at')
+    search_fields = ('name', 'sku', 'hsn_code')
 
 @admin.register(OTPToken)
 class OTPTokenAdmin(admin.ModelAdmin):

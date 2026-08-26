@@ -536,9 +536,30 @@ class CustomerForm(forms.Form):
         customer.save()
         return customer
 
+from .models import Product
 
+class ProductForm(forms.ModelForm):
+    """Form to add or update a Product."""
+    class Meta:
+        model = Product
+        fields = ['name', 'sku', 'category', 'price', 'gst_rate', 'hsn_code', 'stock', 'unit', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Wireless Barcode Scanner Pro', 'autofocus': True}),
+            'sku': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'SKU / Barcode (Optional)'}),
+            'category': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Hardware, Software, etc.'}),
+            'price': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.01'}),
+            'gst_rate': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.01'}),
+            'hsn_code': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'HSN / SAC Code'}),
+            'stock': forms.NumberInput(attrs={'class': 'form-input'}),
+            'unit': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Pcs, Kg, Box'}),
+            'description': forms.Textarea(attrs={'class': 'form-input', 'rows': 3, 'placeholder': 'Product description...'}),
+        }
 
-
+    def clean_name(self):
+        name = self.cleaned_data.get('name', '').strip()
+        if len(name) < 2:
+            raise ValidationError("Product Name must be at least 2 characters long.")
+        return name
 
 
 

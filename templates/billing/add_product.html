@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}{% if is_edit %}Edit{% else %}Add{% endif %} Product - Advance Billing{% endblock %}
+
+{% block content %}
+<div class="page-header mb-20 flex-between align-center">
+    <div class="header-left">
+        <a href="{% url 'product_list' %}" class="btn btn-secondary btn-small mb-10" style="display: inline-block;">
+            <i class="fa-solid fa-arrow-left"></i> Back to Inventory
+        </a>
+        <h1 class="page-title">
+            <i class="fa-solid {% if is_edit %}fa-pen-to-square{% else %}fa-plus-circle{% endif %}"></i> 
+            {% if is_edit %}Edit Product: {{ product.name }}{% else %}Add New Product{% endif %}
+        </h1>
+        <p class="text-muted">Enter product details for billing and inventory management.</p>
+    </div>
+</div>
+
+<div class="card p-20" style="max-width: 800px; margin: 0 auto;">
+    <form method="POST" action="" class="form-container">
+        {% csrf_token %}
+        
+        <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <!-- Name -->
+            <div class="form-group" style="grid-column: span 2;">
+                <label for="{{ form.name.id_for_label }}" class="form-label">Product Name <span class="text-danger">*</span></label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                <div class="error-text text-danger text-small mt-5">{{ form.name.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- SKU & Category -->
+            <div class="form-group">
+                <label for="{{ form.sku.id_for_label }}" class="form-label">SKU / Item Code</label>
+                {{ form.sku }}
+                {% if form.sku.errors %}
+                <div class="error-text text-danger text-small mt-5">{{ form.sku.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.category.id_for_label }}" class="form-label">Category <span class="text-danger">*</span></label>
+                {{ form.category }}
+                {% if form.category.errors %}
+                <div class="error-text text-danger text-small mt-5">{{ form.category.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Price & GST -->
+            <div class="form-group">
+                <label for="{{ form.price.id_for_label }}" class="form-label">Unit Price (₹) <span class="text-danger">*</span></label>
+                {{ form.price }}
+                {% if form.price.errors %}
+                <div class="error-text text-danger text-small mt-5">{{ form.price.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.gst_rate.id_for_label }}" class="form-label">GST Rate (%) <span class="text-danger">*</span></label>
+                {{ form.gst_rate }}
+                {% if form.gst_rate.errors %}
+                <div class="error-text text-danger text-small mt-5">{{ form.gst_rate.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Stock & Unit -->
+            <div class="form-group">
+                <label for="{{ form.stock.id_for_label }}" class="form-label">Current Stock <span class="text-danger">*</span></label>
+                {{ form.stock }}
+                {% if form.stock.errors %}
+                <div class="error-text text-danger text-small mt-5">{{ form.stock.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.unit.id_for_label }}" class="form-label">Measurement Unit <span class="text-danger">*</span></label>
+                {{ form.unit }}
+                {% if form.unit.errors %}
+                <div class="error-text text-danger text-small mt-5">{{ form.unit.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- HSN Code -->
+            <div class="form-group" style="grid-column: span 2;">
+                <label for="{{ form.hsn_code.id_for_label }}" class="form-label">HSN / SAC Code</label>
+                {{ form.hsn_code }}
+                <div class="text-muted text-small mt-5">Optional. Required for GST compliance on B2B invoices.</div>
+                {% if form.hsn_code.errors %}
+                <div class="error-text text-danger text-small mt-5">{{ form.hsn_code.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Description -->
+            <div class="form-group" style="grid-column: span 2;">
+                <label for="{{ form.description.id_for_label }}" class="form-label">Description (Optional)</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                <div class="error-text text-danger text-small mt-5">{{ form.description.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-actions mt-20 pt-20" style="border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 15px;">
+            <a href="{% url 'product_list' %}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-save"></i> 
+                {% if is_edit %}Update Product{% else %}Save Product{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+.form-label { display: block; margin-bottom: 8px; font-weight: 500; color: #374151; }
+.form-input { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; transition: border-color 0.2s; }
+.form-input:focus { border-color: #6366f1; outline: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+.text-danger { color: #dc2626; }
+@media (max-width: 640px) {
+    .form-grid { grid-template-columns: 1fr !important; }
+    .form-group { grid-column: span 1 !important; }
+}
+</style>
+{% endblock %}
