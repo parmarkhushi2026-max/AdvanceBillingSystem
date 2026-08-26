@@ -547,10 +547,10 @@ class ProductForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Wireless Barcode Scanner Pro', 'autofocus': True}),
             'sku': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'SKU / Barcode (Optional)'}),
             'category': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Hardware, Software, etc.'}),
-            'price': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.01'}),
-            'gst_rate': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.01'}),
+            'price': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.01', 'min': '0.01'}),
+            'gst_rate': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.01', 'min': '0.00'}),
             'hsn_code': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'HSN / SAC Code'}),
-            'stock': forms.NumberInput(attrs={'class': 'form-input'}),
+            'stock': forms.NumberInput(attrs={'class': 'form-input', 'min': '0', 'step': '1'}),
             'unit': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Pcs, Kg, Box'}),
             'description': forms.Textarea(attrs={'class': 'form-input', 'rows': 3, 'placeholder': 'Product description...'}),
         }
@@ -560,6 +560,18 @@ class ProductForm(forms.ModelForm):
         if len(name) < 2:
             raise ValidationError("Product Name must be at least 2 characters long.")
         return name
+
+    def clean_price(self):
+        price = self.cleaned_data.get('price')
+        if price is not None and price <= 0:
+            raise ValidationError("Price must be greater than 0.")
+        return price
+
+    def clean_stock(self):
+        stock = self.cleaned_data.get('stock')
+        if stock is not None and stock < 0:
+            raise ValidationError("Stock cannot be negative.")
+        return stock
 
 
 
