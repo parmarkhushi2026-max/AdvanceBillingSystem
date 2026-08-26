@@ -103,8 +103,26 @@
         </table>
     </div>
     {% if total_count > 0 %}
-    <div class="card-footer p-15 text-small text-muted">
-        Showing {{ products|length }} of {{ total_count }} total products.
+    <div class="card-footer flex-between align-center p-15">
+        <div class="text-small text-muted">
+            Showing page {{ products.number }} of {{ products.paginator.num_pages }} ({{ total_count }} total products)
+        </div>
+        
+        {% if products.has_other_pages %}
+        <div class="pagination flex-start gap-10">
+            {% if products.has_previous %}
+                <a href="?page={{ products.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}" class="btn btn-secondary btn-small">Previous</a>
+            {% else %}
+                <button class="btn btn-secondary btn-small" disabled>Previous</button>
+            {% endif %}
+            
+            {% if products.has_next %}
+                <a href="?page={{ products.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}" class="btn btn-secondary btn-small">Next</a>
+            {% else %}
+                <button class="btn btn-secondary btn-small" disabled>Next</button>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 </div>

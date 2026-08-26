@@ -10,6 +10,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Sum, Q
+from django.core.paginator import Paginator
 from .models import UserProfile, Product, Invoice, InvoiceItem, OTPToken, Customer
 from .forms import AdminLoginForm, DistributorLoginForm, ForgotPasswordForm, VerifyOTPForm, ResetPasswordForm, DistributorRegistrationForm, DistributorProfileForm, CustomerForm, ProductForm
 from .decorators import admin_required, distributor_required
@@ -669,8 +670,13 @@ def product_list_view(request):
         
     categories = Product.objects.values_list('category', flat=True).distinct()
 
+    # Pagination: 10 products per page
+    paginator = Paginator(products, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     context = {
-        'products': products,
+        'products': page_obj,
         'query': query,
         'category_filter': category_filter,
         'categories': [c for c in categories if c],

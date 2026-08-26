@@ -1,123 +1,178 @@
 {% extends 'base.html' %}
-{% block title %}{% if is_edit %}Edit{% else %}Add{% endif %} Product - Advance Billing{% endblock %}
+
+{% block title %}{% if is_edit %}Edit Product - {{ product.name }}{% else %}Add New Product{% endif %} - Advance Billing System{% endblock %}
 
 {% block content %}
-<div class="page-header mb-20 flex-between align-center">
-    <div class="header-left">
-        <a href="{% url 'product_list' %}" class="btn btn-secondary btn-small mb-10" style="display: inline-block;">
-            <i class="fa-solid fa-arrow-left"></i> Back to Inventory
-        </a>
+<div class="page-header">
+    <div>
         <h1 class="page-title">
-            <i class="fa-solid {% if is_edit %}fa-pen-to-square{% else %}fa-plus-circle{% endif %}"></i> 
-            {% if is_edit %}Edit Product: {{ product.name }}{% else %}Add New Product{% endif %}
+            {% if is_edit %}
+                <i class="fa-solid fa-pen-to-square"></i> Edit Product Details
+            {% else %}
+                <i class="fa-solid fa-box-open"></i> Add New Product
+            {% endif %}
         </h1>
-        <p class="text-muted">Enter product details for billing and inventory management.</p>
+        <p class="page-subtitle">
+            {% if is_edit %}
+                Modify stock, pricing, and category for {{ product.name }}.
+            {% else %}
+                Register a new product or service into your inventory catalog.
+            {% endif %}
+        </p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'product_list' %}" class="btn-secondary-action">
+            <i class="fa-solid fa-boxes-stacked"></i> View Inventory
+        </a>
+        <a href="{% url 'distributor_dashboard' %}" class="btn-secondary-action">
+            <i class="fa-solid fa-arrow-left"></i> Dashboard
+        </a>
     </div>
 </div>
 
-<div class="card p-20" style="max-width: 800px; margin: 0 auto;">
-    <form method="POST" action="" class="form-container">
-        {% csrf_token %}
-        
-        <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <!-- Name -->
-            <div class="form-group" style="grid-column: span 2;">
-                <label for="{{ form.name.id_for_label }}" class="form-label">Product Name <span class="text-danger">*</span></label>
-                {{ form.name }}
-                {% if form.name.errors %}
-                <div class="error-text text-danger text-small mt-5">{{ form.name.errors.0 }}</div>
-                {% endif %}
+<div class="auth-wrapper" style="min-height: auto; padding: 1rem 0;">
+    <div class="auth-card register-card">
+        <div class="auth-card-header">
+            <div class="auth-role-badge distributor">
+                <i class="fa-solid fa-tags"></i>
+                <span>Product Catalog</span>
             </div>
-
-            <!-- SKU & Category -->
-            <div class="form-group">
-                <label for="{{ form.sku.id_for_label }}" class="form-label">SKU / Item Code</label>
-                {{ form.sku }}
-                {% if form.sku.errors %}
-                <div class="error-text text-danger text-small mt-5">{{ form.sku.errors.0 }}</div>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-                <label for="{{ form.category.id_for_label }}" class="form-label">Category <span class="text-danger">*</span></label>
-                {{ form.category }}
-                {% if form.category.errors %}
-                <div class="error-text text-danger text-small mt-5">{{ form.category.errors.0 }}</div>
-                {% endif %}
-            </div>
-
-            <!-- Price & GST -->
-            <div class="form-group">
-                <label for="{{ form.price.id_for_label }}" class="form-label">Unit Price (₹) <span class="text-danger">*</span></label>
-                {{ form.price }}
-                {% if form.price.errors %}
-                <div class="error-text text-danger text-small mt-5">{{ form.price.errors.0 }}</div>
-                {% endif %}
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.gst_rate.id_for_label }}" class="form-label">GST Rate (%) <span class="text-danger">*</span></label>
-                {{ form.gst_rate }}
-                {% if form.gst_rate.errors %}
-                <div class="error-text text-danger text-small mt-5">{{ form.gst_rate.errors.0 }}</div>
-                {% endif %}
-            </div>
-
-            <!-- Stock & Unit -->
-            <div class="form-group">
-                <label for="{{ form.stock.id_for_label }}" class="form-label">Current Stock <span class="text-danger">*</span></label>
-                {{ form.stock }}
-                {% if form.stock.errors %}
-                <div class="error-text text-danger text-small mt-5">{{ form.stock.errors.0 }}</div>
-                {% endif %}
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.unit.id_for_label }}" class="form-label">Measurement Unit <span class="text-danger">*</span></label>
-                {{ form.unit }}
-                {% if form.unit.errors %}
-                <div class="error-text text-danger text-small mt-5">{{ form.unit.errors.0 }}</div>
-                {% endif %}
-            </div>
-
-            <!-- HSN Code -->
-            <div class="form-group" style="grid-column: span 2;">
-                <label for="{{ form.hsn_code.id_for_label }}" class="form-label">HSN / SAC Code</label>
-                {{ form.hsn_code }}
-                <div class="text-muted text-small mt-5">Optional. Required for GST compliance on B2B invoices.</div>
-                {% if form.hsn_code.errors %}
-                <div class="error-text text-danger text-small mt-5">{{ form.hsn_code.errors.0 }}</div>
-                {% endif %}
-            </div>
-
-            <!-- Description -->
-            <div class="form-group" style="grid-column: span 2;">
-                <label for="{{ form.description.id_for_label }}" class="form-label">Description (Optional)</label>
-                {{ form.description }}
-                {% if form.description.errors %}
-                <div class="error-text text-danger text-small mt-5">{{ form.description.errors.0 }}</div>
-                {% endif %}
-            </div>
+            <h2 class="auth-title">{% if is_edit %}Update Product{% else %}Product Information{% endif %}</h2>
+            <p class="auth-subtitle">Enter product pricing, stock availability, and GST classification.</p>
         </div>
 
-        <div class="form-actions mt-20 pt-20" style="border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 15px;">
-            <a href="{% url 'product_list' %}" class="btn btn-secondary">Cancel</a>
-            <button type="submit" class="btn btn-primary">
-                <i class="fa-solid fa-save"></i> 
-                {% if is_edit %}Update Product{% else %}Save Product{% endif %}
+        <form method="POST" action="{% if is_edit %}{% url 'edit_product' product.id %}{% else %}{% url 'add_product' %}{% endif %}" novalidate>
+            {% csrf_token %}
+
+            <div class="form-row">
+                <!-- Product Name -->
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">Product Name <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-box"></i>
+                        {{ form.name }}
+                    </div>
+                    {% if form.name.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- SKU -->
+                <div class="form-group">
+                    <label for="{{ form.sku.id_for_label }}" class="form-label">SKU / Barcode (Optional)</label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-barcode"></i>
+                        {{ form.sku }}
+                    </div>
+                    {% if form.sku.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.sku.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <!-- Category -->
+                <div class="form-group">
+                    <label for="{{ form.category.id_for_label }}" class="form-label">Category <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-layer-group"></i>
+                        {{ form.category }}
+                    </div>
+                    {% if form.category.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.category.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Price -->
+                <div class="form-group">
+                    <label for="{{ form.price.id_for_label }}" class="form-label">Unit Price (₹) <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-indian-rupee-sign"></i>
+                        {{ form.price }}
+                    </div>
+                    {% if form.price.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.price.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <!-- GST Rate -->
+                <div class="form-group">
+                    <label for="{{ form.gst_rate.id_for_label }}" class="form-label">GST Rate (%) <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-percent"></i>
+                        {{ form.gst_rate }}
+                    </div>
+                    {% if form.gst_rate.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.gst_rate.errors.0 }}</div>
+                    {% else %}
+                        <div class="field-hint-text">E.g., 0, 5, 12, 18, 28</div>
+                    {% endif %}
+                </div>
+
+                <!-- HSN Code -->
+                <div class="form-group">
+                    <label for="{{ form.hsn_code.id_for_label }}" class="form-label">HSN / SAC Code (Optional)</label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                        {{ form.hsn_code }}
+                    </div>
+                    {% if form.hsn_code.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.hsn_code.errors.0 }}</div>
+                    {% else %}
+                        <div class="field-hint-text">Required for B2B GST compliance</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <!-- Stock -->
+                <div class="form-group">
+                    <label for="{{ form.stock.id_for_label }}" class="form-label">Current Stock <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-cubes"></i>
+                        {{ form.stock }}
+                    </div>
+                    {% if form.stock.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.stock.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Unit -->
+                <div class="form-group">
+                    <label for="{{ form.unit.id_for_label }}" class="form-label">Measurement Unit <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-scale-balanced"></i>
+                        {{ form.unit }}
+                    </div>
+                    {% if form.unit.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.unit.errors.0 }}</div>
+                    {% else %}
+                        <div class="field-hint-text">E.g., Pcs, Kg, Box</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <!-- Description -->
+                <div class="form-group" style="width: 100%;">
+                    <label for="{{ form.description.id_for_label }}" class="form-label">Description (Optional)</label>
+                    <div class="input-icon-group" style="align-items: flex-start;">
+                        <i class="fa-solid fa-align-left" style="margin-top: 14px;"></i>
+                        {{ form.description }}
+                    </div>
+                    {% if form.description.errors %}
+                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.description.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit-auth btn-submit-emerald mt-4">
+                <span>{% if is_edit %}Update Product Details{% else %}Save Product & Add to Inventory{% endif %}</span>
+                <i class="fa-solid fa-box-check"></i>
             </button>
-        </div>
-    </form>
+        </form>
+    </div>
 </div>
-
-<style>
-.form-label { display: block; margin-bottom: 8px; font-weight: 500; color: #374151; }
-.form-input { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; transition: border-color 0.2s; }
-.form-input:focus { border-color: #6366f1; outline: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
-.text-danger { color: #dc2626; }
-@media (max-width: 640px) {
-    .form-grid { grid-template-columns: 1fr !important; }
-    .form-group { grid-column: span 1 !important; }
-}
-</style>
 {% endblock %}
