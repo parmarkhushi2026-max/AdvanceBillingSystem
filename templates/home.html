@@ -1,46 +1,402 @@
 {% extends 'base.html' %}
 
-{% block title %}Advance Billing System with QR - Portal Access{% endblock %}
+{% block title %}Advance Billing System - Modern QR POS & Invoicing{% endblock %}
 
 {% block content %}
-<section class="hero-section">
-    <h1 class="hero-title">
-        Next-Gen <span class="gradient-text">Billing & QR POS</span> System
-    </h1>
-    <p class="hero-subtitle">
-        High-performance invoicing with real-time UPI QR generation, multi-role access control, and distributor ledger management.
-    </p>
+<!-- Modern Landing Page Styles -->
+<style>
+    .landing-page {
+        margin: -2rem -1.5rem; /* Negate the app-container padding */
+        font-family: var(--font-primary);
+    }
+    
+    /* Hero Section */
+    .hero-section {
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+        color: white;
+        padding: 6rem 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-bg-glow {
+        position: absolute;
+        top: -20%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 600px;
+        height: 600px;
+        background: radial-gradient(circle, rgba(79, 70, 229, 0.4) 0%, rgba(0, 0, 0, 0) 70%);
+        z-index: 0;
+    }
+    
+    .hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .hero-badge {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 6px 16px;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #38bdf8;
+        margin-bottom: 1.5rem;
+        backdrop-filter: blur(10px);
+    }
+    
+    .hero-title {
+        font-size: 4rem;
+        font-weight: 800;
+        line-height: 1.1;
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.03em;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.25rem;
+        color: #94a3b8;
+        max-width: 650px;
+        margin: 0 auto 3rem auto;
+        line-height: 1.6;
+    }
+    
+    .gradient-text {
+        background: linear-gradient(to right, #60a5fa, #a78bfa, #f472b6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .hero-actions {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn-hero {
+        padding: 14px 28px;
+        border-radius: var(--radius-lg);
+        font-weight: 600;
+        font-size: 1.1rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-hero-primary {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.5);
+    }
+    
+    .btn-hero-primary:hover {
+        background: var(--primary-hover);
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px -5px rgba(79, 70, 229, 0.6);
+    }
+    
+    .btn-hero-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+    }
+    
+    .btn-hero-secondary:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    /* Features Section */
+    .features-section {
+        padding: 5rem 2rem;
+        background: var(--bg-main);
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .section-header {
+        text-align: center;
+        margin-bottom: 4rem;
+    }
+    
+    .section-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 1rem;
+    }
+    
+    .section-desc {
+        font-size: 1.1rem;
+        color: var(--text-muted);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+    }
+    
+    .feature-card {
+        background: white;
+        border-radius: var(--radius-xl);
+        padding: 2.5rem 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .feature-card:hover {
+        box-shadow: var(--shadow-xl);
+        transform: translateY(-5px);
+        border-color: var(--primary-light);
+    }
+    
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .icon-blue { background: #eff6ff; color: #3b82f6; }
+    .icon-emerald { background: #ecfdf5; color: #10b981; }
+    .icon-purple { background: #faf5ff; color: #a855f7; }
+    .icon-amber { background: #fffbeb; color: #f59e0b; }
+    
+    .feature-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: var(--text-main);
+    }
+    
+    .feature-text {
+        color: var(--text-muted);
+        line-height: 1.6;
+    }
+    
+    /* How it works */
+    .how-it-works {
+        background: white;
+        padding: 5rem 2rem;
+        border-top: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .steps-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 2rem;
+        position: relative;
+    }
+    
+    .step-item {
+        flex: 1;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .step-number {
+        width: 50px;
+        height: 50px;
+        background: var(--primary);
+        color: white;
+        font-size: 1.5rem;
+        font-weight: 700;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem auto;
+        box-shadow: 0 0 0 8px #eef2ff;
+    }
+    
+    .step-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .step-text {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+    }
+    
+    /* CTA Section */
+    .cta-section {
+        background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+        padding: 5rem 2rem;
+        text-align: center;
+        color: white;
+    }
+    
+    .cta-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+    
+    /* Footer */
+    .landing-footer {
+        background: #0f172a;
+        color: #94a3b8;
+        padding: 3rem 2rem;
+        text-align: center;
+    }
+    
+    .footer-logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .hero-title { font-size: 2.5rem; }
+        .hero-actions { flex-direction: column; }
+        .steps-container { flex-direction: column; gap: 4rem; }
+    }
+</style>
 
-    <div class="portal-grid">
-        <!-- Admin Portal Card -->
-        <div class="portal-card admin-portal">
-            <div class="portal-icon-wrapper">
-                <i class="fa-solid fa-shield-halved"></i>
-            </div>
-            <h2 class="portal-title">Administrator Portal</h2>
-            <p class="portal-desc">
-                Centralized oversight, system-wide sales analytics, distributor network management, and tax auditing.
+<div class="landing-page">
+    
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-bg-glow"></div>
+        <div class="hero-content">
+            <div class="hero-badge"><i class="fa-solid fa-bolt text-warning"></i> v2.0 is Live with Dynamic UPI QR</div>
+            <h1 class="hero-title">
+                Next-Gen <span class="gradient-text">Billing & QR POS</span> System
+            </h1>
+            <p class="hero-subtitle">
+                Supercharge your wholesale or retail business. Create invoices in seconds, generate dynamic UPI payment QRs, and manage your product inventory in one seamless portal.
             </p>
-            <a href="{% url 'admin_login' %}" class="btn-portal btn-portal-admin">
-                <span>Access Admin Portal</span>
-                <i class="fa-solid fa-arrow-right"></i>
-            </a>
+            <div class="hero-actions">
+                <a href="{% url 'distributor_login' %}" class="btn-hero btn-hero-primary">
+                    <i class="fa-solid fa-store"></i> Distributor Login
+                </a>
+                <a href="{% url 'admin_login' %}" class="btn-hero btn-hero-secondary">
+                    <i class="fa-solid fa-shield-halved"></i> Admin Portal
+                </a>
+            </div>
         </div>
+    </section>
 
-        <!-- Distributor Portal Card -->
-        <div class="portal-card distributor-portal">
-            <div class="portal-icon-wrapper">
-                <i class="fa-solid fa-store"></i>
-            </div>
-            <h2 class="portal-title">Distributor Portal</h2>
-            <p class="portal-desc">
-                Point-of-Sale billing, instant dynamic UPI QR code generator, customer invoice receipts, and inventory tracking.
-            </p>
-            <a href="{% url 'distributor_login' %}" class="btn-portal btn-portal-dist">
-                <span>Access Distributor Portal</span>
-                <i class="fa-solid fa-arrow-right"></i>
-            </a>
+    <!-- Features Section -->
+    <section class="features-section">
+        <div class="section-header">
+            <h2 class="section-title">Everything you need to scale</h2>
+            <p class="section-desc">We built this platform to handle the heavy lifting so you can focus on growing your distribution network.</p>
         </div>
-    </div>
-</section>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon icon-blue">
+                    <i class="fa-solid fa-qrcode"></i>
+                </div>
+                <h3 class="feature-title">Dynamic UPI QR</h3>
+                <p class="feature-text">Automatically generate a unique UPI QR code on every invoice. Customers scan and pay the exact amount instantly. No more cash counting.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon icon-emerald">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+                <h3 class="feature-title">Smart Inventory</h3>
+                <p class="feature-text">Keep track of SKUs, stock levels, and HSN codes. Get alerted when stock is low and automatically calculate GST on a per-product basis.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon icon-purple">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <h3 class="feature-title">Customer CRM</h3>
+                <p class="feature-text">Maintain a directory of all your buyers. Track their purchase history, contact details, and GSTIN numbers for seamless B2B transactions.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon icon-amber">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <h3 class="feature-title">Admin Ledger</h3>
+                <p class="feature-text">Administrators get a bird's-eye view of all distributors, sales volumes, and platform metrics with beautiful charts and data tables.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works">
+        <div class="section-header">
+            <h2 class="section-title">How it works</h2>
+            <p class="section-desc">Get started in three simple steps</p>
+        </div>
+        
+        <div class="steps-container">
+            <div class="step-item">
+                <div class="step-number">1</div>
+                <h3 class="step-title">Register Details</h3>
+                <p class="step-text">Sign up as a distributor and securely link your Merchant UPI ID to start accepting payments.</p>
+            </div>
+            <div class="step-item">
+                <div class="step-number">2</div>
+                <h3 class="step-title">Add Catalog</h3>
+                <p class="step-text">Populate your inventory with products, SKUs, and applicable GST rates.</p>
+            </div>
+            <div class="step-item">
+                <div class="step-number">3</div>
+                <h3 class="step-title">Bill & Get Paid</h3>
+                <p class="step-text">Select a customer, add products, and hand them a professional invoice with an embedded payment QR.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <h2 class="cta-title">Ready to modernize your billing?</h2>
+        <p style="font-size: 1.2rem; margin-bottom: 2rem; opacity: 0.9;">Join the ecosystem of next-gen distributors today.</p>
+        <a href="{% url 'distributor_login' %}" class="btn-hero" style="background: white; color: #4f46e5; box-shadow: 0 10px 20px rgba(0,0,0,0.15);">
+            Get Started Now <i class="fa-solid fa-arrow-right"></i>
+        </a>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+        <div class="footer-logo">
+            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-solid fa-file-invoice-dollar" style="font-size: 1rem;"></i>
+            </div>
+            Advance Billing
+        </div>
+        <p>&copy; 2026 Advance Billing System. All rights reserved.</p>
+        <p style="font-size: 0.85rem; margin-top: 10px; opacity: 0.7;">Powered by Django & Modern Web UI</p>
+    </footer>
+
+</div>
 {% endblock %}
