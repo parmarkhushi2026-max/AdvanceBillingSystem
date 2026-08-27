@@ -288,9 +288,12 @@
         </p>
         <div class="modal-actions">
             <button type="button" class="btn-modal-cancel" onclick="closeDeleteModal()">Cancel</button>
-            <a href="#" id="modalConfirmBtn" class="btn-danger-confirm">
-                <i class="fa-solid fa-trash"></i> Delete Profile
-            </a>
+            <form id="deleteCustomerForm" method="POST" action="" style="margin: 0; display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn-danger-confirm" style="border: none; cursor: pointer;">
+                    <i class="fa-solid fa-trash"></i> Delete Profile
+                </button>
+            </form>
         </div>
     </div>
 </div>
@@ -335,7 +338,7 @@
             deleteUrl = btnElement.getAttribute('data-url');
         }
         document.getElementById('modalTargetName').textContent = customerName;
-        document.getElementById('modalConfirmBtn').href = deleteUrl;
+        document.getElementById('deleteCustomerForm').action = deleteUrl;
         document.getElementById('deleteModal').classList.add('active');
     }
 

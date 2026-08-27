@@ -139,12 +139,9 @@
                             <a href="{% url 'edit_product' product.id %}" class="btn-secondary-action" style="padding: 6px 12px; font-size: 0.85rem;" title="Edit Product">
                                 <i class="fa-solid fa-pen-to-square"></i> Edit
                             </a>
-                            <form action="{% url 'delete_product' product.id %}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this product?');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-secondary-action" style="padding: 6px 12px; font-size: 0.85rem; color: var(--accent-rose); border-color: #fecdd3;" title="Delete Product">
-                                    <i class="fa-solid fa-trash"></i> Delete
-                                </button>
-                            </form>
+                            <button type="button" data-name="{{ product.name }}" data-url="{% url 'delete_product' product.id %}" onclick="triggerDeleteProductModal(this)" class="btn-secondary-action" style="padding: 6px 12px; font-size: 0.85rem; color: var(--accent-rose); border-color: #fecdd3;" title="Delete Product">
+                                <i class="fa-solid fa-trash"></i> Delete
+                            </button>
                         </div>
                     </td>
                 </tr>
@@ -199,4 +196,53 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Custom Confirmation Modal for Product Delete -->
+<div class="modal-overlay" id="deleteProductModal">
+    <div class="modal-card">
+        <div class="modal-icon-danger">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 class="modal-title">Delete Product from Inventory?</h3>
+        <p class="modal-body-text">
+            Are you sure you want to delete <strong id="modalProductTargetName" style="color: var(--secondary);">Product</strong>?
+            <br><br>
+            <span style="color: #e11d48; font-size: 0.85rem;">⚠️ This product item will be permanently removed from your inventory catalog.</span>
+        </p>
+        <div class="modal-actions">
+            <button type="button" class="btn-modal-cancel" onclick="closeDeleteProductModal()">Cancel</button>
+            <form id="deleteProductForm" method="POST" action="" style="margin: 0; display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn-danger-confirm" style="border: none; cursor: pointer;">
+                    <i class="fa-solid fa-trash"></i> Delete Product
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function triggerDeleteProductModal(btnElement) {
+        const productName = btnElement.getAttribute('data-name');
+        const deleteUrl = btnElement.getAttribute('data-url');
+        document.getElementById('modalProductTargetName').textContent = productName;
+        document.getElementById('deleteProductForm').action = deleteUrl;
+        document.getElementById('deleteProductModal').classList.add('active');
+    }
+
+    function closeDeleteProductModal() {
+        document.getElementById('deleteProductModal').classList.remove('active');
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeDeleteProductModal();
+    });
+
+    const modalProductOverlay = document.getElementById('deleteProductModal');
+    if (modalProductOverlay) {
+        modalProductOverlay.addEventListener('click', function(e) {
+            if (e.target === this) closeDeleteProductModal();
+        });
+    }
+</script>
 {% endblock %}

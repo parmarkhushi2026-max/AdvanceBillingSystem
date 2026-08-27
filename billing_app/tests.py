@@ -84,3 +84,13 @@ class ProductUpdateTestCase(TestCase):
         self.assertEqual(response.status_code, 200) # Re-renders form with error
         self.product.refresh_from_db()
         self.assertEqual(self.product.sku, 'SCAN-001') # Unchanged
+
+    def test_delete_product_with_success_message(self):
+        product_id = self.product.id
+        product_name = self.product.name
+        response = self.client.post(reverse('delete_product', args=[product_id]), follow=True)
+        self.assertRedirects(response, reverse('product_list'))
+        self.assertFalse(Product.objects.filter(id=product_id).exists())
+        # Check success message in response context/content
+        self.assertContains(response, f"Product &#x27;{product_name}&#x27; deleted successfully")
+
