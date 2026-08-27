@@ -557,6 +557,20 @@ class ProductForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-input', 'rows': 3, 'placeholder': 'Product description...'}),
         }
 
+    def clean_sku(self):
+        sku = self.cleaned_data.get('sku')
+        if sku:
+            sku = sku.strip()
+            if not sku:
+                return None
+            qs = Product.objects.filter(sku__iexact=sku)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise ValidationError(f"A product with SKU '{sku}' already exists.")
+            return sku
+        return None
+
     def clean_name(self):
         name = self.cleaned_data.get('name', '').strip()
         if len(name) < 2:
@@ -574,6 +588,7 @@ class ProductForm(forms.ModelForm):
         if stock is not None and stock < 0:
             raise ValidationError("Stock cannot be negative.")
         return stock
+
 
 
 
