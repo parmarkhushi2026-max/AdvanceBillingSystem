@@ -94,3 +94,63 @@ class ProductUpdateTestCase(TestCase):
         # Check success message in response context/content
         self.assertContains(response, f"Product &#x27;{product_name}&#x27; deleted successfully")
 
+
+from billing_app.models import Customer, Invoice, InvoiceItem
+import json
+
+class InvoiceRelationsTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='distributor1', password='password123')
+        self.client.login(username='distributor1', password='password123')
+
+        self.customer = Customer.objects.create(
+            name='Acme Retailers',
+            phone='9876543210',
+            email='acme@example.com',
+            city='Mumbai',
+            created_by=self.user
+        )
+
+        self.product = Product.objects.create(
+            name='Thermal Printer 80mm',
+            sku='PRN-80',
+            price=3200.00,
+            gst_rate=18.00,
+            stock=20,
+            created_by=self.user
+        )
+
+    def test_create_invoice_establishes_fk_relations(self):
+        items_payload = json.dumps([{
+            'name': 'Thermal Printer 80mm',
+            'qty': 2,
+            'price': '3200.00',
+            'tax': '18.00'
+        }])
+
+        post_data = {
+            'customer_name': 'Acme Retailers',
+            'customer_phone': '9876543210',
+            'payment_method': 'UPI QR Code',
+            'notes': 'Test invoice generation',
+            'items_data': items_payload
+        }
+
+        response = self.client.post(reverse('create_invoice'), post_data)
+        self.assertEqual(response.status_code, 302)
+
+        invoice = Invoice.objects.first()
+        self.assertIsNotNone(invoice)
+        self.assertEqual(invoice.customer, self.customer)
+        self.assertEqual(invoice.customer_ref, self.customer)
+        self.assertEqual(invoice.distributor, self.user)
+
+        items = invoice.items.all()
+        self.assertEqual(items.count(), 1)
+        item = items.first()
+        self.assertEqual(item.product, self.product)
+        self.assertEqual(item.product_name, 'Thermal Printer 80mm')
+        self.assertEqual(item.quantity, 2)
+
+

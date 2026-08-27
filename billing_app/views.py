@@ -214,6 +214,7 @@ def create_invoice_view(request):
         invoice = Invoice.objects.create(
             invoice_number=inv_number,
             distributor=request.user,
+            customer=customer_obj,
             customer_ref=customer_obj,
             customer_name=customer_name,
             customer_phone=customer_phone,
@@ -227,6 +228,7 @@ def create_invoice_view(request):
 
         for item in items_data:
             p_name = str(item.get('name', 'Product')).strip() or 'Product'
+            product_obj = Product.objects.filter(name__iexact=p_name).first()
             
             try:
                 p_qty = max(1, int(item.get('qty', 1)))
@@ -252,6 +254,7 @@ def create_invoice_view(request):
 
             InvoiceItem.objects.create(
                 invoice=invoice,
+                product=product_obj,
                 product_name=p_name,
                 quantity=p_qty,
                 unit_price=p_price,
