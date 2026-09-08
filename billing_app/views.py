@@ -9,7 +9,9 @@ from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Sum, Q
+from django.db.models import Sum, Count, Q
+from django.utils import timezone
+from datetime import timedelta
 from django.core.paginator import Paginator
 from .models import UserProfile, Product, Invoice, InvoiceItem, OTPToken, Customer
 from .forms import AdminLoginForm, DistributorLoginForm, ForgotPasswordForm, VerifyOTPForm, ResetPasswordForm, DistributorRegistrationForm, DistributorProfileForm, CustomerForm, ProductForm
@@ -124,6 +126,98 @@ def user_logout(request):
         messages.info(request, 'You have been securely logged out.')
     return redirect('portal_select')
 
+# Dashboard Charts Data Preparation Helper
+def prepare_dashboard_charts(queryset=None, is_distributor=False, distributor_user=None):
+    if queryset is None:
+        queryset = Invoice.objects.all()
+    
+    today = timezone.now().date()
+    latest_inv = queryset.order_by('-created_at').first()
+    
+    # Anchor 7-day window: if latest activity is older than 6 days, anchor to latest invoice date so data shows immediately
+    if latest_inv and (today - latest_inv.created_at.date()).days > 6:
+        end_date = latest_inv.created_at.date()
+    else:
+        end_date = today
+
+    chart_dates = []
+    chart_revenue = []
+    chart_invoices = []
+    
+    for i in reversed(range(7)):
+        d = end_date - timedelta(days=i)
+        chart_dates.append(d.strftime('%d %b'))
+        day_qs = queryset.filter(created_at__date=d)
+        day_rev = day_qs.filter(payment_status='PAID').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+        day_count = day_qs.count()
+        chart_revenue.append(float(day_rev))
+        chart_invoices.append(day_count)
+    
+    # Payment Method Breakdown
+    pm_stats = queryset.values('payment_method').annotate(count=Count('id'), total=Sum('grand_total')).order_by('-total')
+    payment_labels = [p['payment_method'] or 'UPI QR Code' for p in pm_stats]
+    payment_data = [float(p['total'] or 0) for p in pm_stats]
+    payment_counts = [p['count'] for p in pm_stats]
+
+    if not payment_labels:
+        payment_labels = ['UPI QR Code']
+        payment_data = [0]
+        payment_counts = [0]
+
+    # Top Selling Products
+    if is_distributor and distributor_user:
+        items_qs = InvoiceItem.objects.filter(invoice__distributor=distributor_user)
+    else:
+        items_qs = InvoiceItem.objects.all()
+        
+    top_items = items_qs.values('product_name').annotate(sales=Sum('total'), qty=Sum('quantity')).order_by('-sales')[:5]
+    top_products_labels = [p['product_name'] for p in top_items]
+    top_products_sales = [float(p['sales'] or 0) for p in top_items]
+    top_products_qty = [p['qty'] for p in top_items]
+
+    if not top_products_labels:
+        cat_products = Product.objects.all()[:5]
+        top_products_labels = [p.name for p in cat_products]
+        top_products_sales = [float(p.price) for p in cat_products]
+        top_products_qty = [0 for _ in cat_products]
+
+    # Category Breakdown
+    cat_items = items_qs.values('product__category').annotate(sales=Sum('total'), qty=Sum('quantity')).order_by('-sales')
+    category_labels = []
+    category_data = []
+    for c in cat_items:
+        c_name = c['product__category'] or 'General'
+        if c_name not in category_labels:
+            category_labels.append(c_name)
+            category_data.append(float(c['sales'] or 0))
+
+    if not category_labels:
+        all_cats = list(Product.objects.values_list('category', flat=True).distinct())
+        category_labels = all_cats if all_cats else ['Hardware', 'Software', 'Supplies']
+        category_data = [0] * len(category_labels)
+
+    # Calculate summary metrics for charts
+    total_chart_rev = sum(chart_revenue)
+    total_chart_inv = sum(chart_invoices)
+
+    return {
+        'chart_dates_json': json.dumps(chart_dates),
+        'chart_revenue_json': json.dumps(chart_revenue),
+        'chart_invoices_json': json.dumps(chart_invoices),
+        'payment_labels_json': json.dumps(payment_labels),
+        'payment_data_json': json.dumps(payment_data),
+        'payment_counts_json': json.dumps(payment_counts),
+        'top_products_labels_json': json.dumps(top_products_labels),
+        'top_products_sales_json': json.dumps(top_products_sales),
+        'top_products_qty_json': json.dumps(top_products_qty),
+        'category_labels_json': json.dumps(category_labels),
+        'category_data_json': json.dumps(category_data),
+        'chart_window_label': f"{chart_dates[0]} - {chart_dates[-1]}",
+        'chart_period_revenue': total_chart_rev,
+        'chart_period_invoices': total_chart_inv,
+    }
+
+
 # 5. Admin Dashboard (Protected by @admin_required)
 @admin_required
 def admin_dashboard_view(request):
@@ -136,6 +230,9 @@ def admin_dashboard_view(request):
     recent_invoices = Invoice.objects.all().order_by('-created_at')[:10]
     distributors = UserProfile.objects.filter(role='DISTRIBUTOR').select_related('user')
 
+    # Prepare visual charts data
+    charts_data = prepare_dashboard_charts(Invoice.objects.all(), is_distributor=False)
+
     context = {
         'total_invoices': total_invoices,
         'total_revenue': total_revenue,
@@ -144,6 +241,7 @@ def admin_dashboard_view(request):
         'recent_invoices': recent_invoices,
         'distributors': distributors,
         'role': 'Admin',
+        **charts_data,
     }
     return render(request, 'dashboard/admin_dashboard.html', context)
 
@@ -164,6 +262,9 @@ def distributor_dashboard_view(request):
     my_invoice_count = my_invoices.count()
     products = Product.objects.all()
 
+    # Prepare distributor-specific visual charts data
+    charts_data = prepare_dashboard_charts(my_invoices, is_distributor=True, distributor_user=distributor)
+
     context = {
         'invoices': my_invoices[:8],
         'total_revenue': my_revenue,
@@ -173,6 +274,7 @@ def distributor_dashboard_view(request):
         'business_name': business_name,
         'products': products,
         'role': 'Distributor',
+        **charts_data,
     }
     return render(request, 'dashboard/distributor_dashboard.html', context)
 

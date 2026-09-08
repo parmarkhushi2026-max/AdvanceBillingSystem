@@ -48,6 +48,85 @@
     </div>
 </div>
 
+<!-- ================= Visual Analytics & Charts ================= -->
+<div class="charts-section">
+    <!-- Primary Row: Collections Trend & Payment Share -->
+    <div class="charts-grid-primary">
+        <!-- Collection Trend Chart -->
+        <div class="chart-card">
+            <div class="chart-card-header">
+                <div>
+                    <div class="chart-card-title">
+                        <i class="fa-solid fa-chart-area" style="color: #10b981;"></i>
+                        <span>My Collection & Sales Activity</span>
+                    </div>
+                    <div class="chart-card-subtitle">Daily revenue collected and bills issued</div>
+                </div>
+                <span class="chart-badge emerald">
+                    <i class="fa-regular fa-calendar-check"></i> {{ chart_window_label }}
+                </span>
+            </div>
+
+            <div class="chart-canvas-wrap">
+                <canvas id="distRevenueChart"></canvas>
+            </div>
+
+            <div class="chart-meta-strip">
+                <div class="chart-meta-item">
+                    <i class="fa-solid fa-circle-dot" style="color: #10b981;"></i>
+                    <span>Period Collection: <strong>₹{{ chart_period_revenue|floatformat:2 }}</strong></span>
+                </div>
+                <div class="chart-meta-item">
+                    <i class="fa-solid fa-file-invoice" style="color: #4f46e5;"></i>
+                    <span>Bills Issued: <strong>{{ chart_period_invoices }}</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Distribution -->
+        <div class="chart-card">
+            <div class="chart-card-header">
+                <div>
+                    <div class="chart-card-title">
+                        <i class="fa-solid fa-qrcode" style="color: #06b6d4;"></i>
+                        <span>Payment Modes</span>
+                    </div>
+                    <div class="chart-card-subtitle">QR vs Offline settlement share</div>
+                </div>
+                <span class="chart-badge cyan">
+                    <i class="fa-solid fa-shield-halved"></i> Verified
+                </span>
+            </div>
+
+            <div class="chart-canvas-wrap">
+                <canvas id="distPaymentChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Row: Top Billed Products -->
+    <div class="charts-grid-secondary" style="grid-template-columns: 1fr;">
+        <div class="chart-card">
+            <div class="chart-card-header">
+                <div>
+                    <div class="chart-card-title">
+                        <i class="fa-solid fa-boxes-packing" style="color: #f59e0b;"></i>
+                        <span>My Top Billed Inventory Items</span>
+                    </div>
+                    <div class="chart-card-subtitle">Fastest moving stock items by gross billing value</div>
+                </div>
+                <span class="chart-badge amber">
+                    <i class="fa-solid fa-trophy"></i> Top Demand
+                </span>
+            </div>
+
+            <div class="chart-canvas-wrap" style="min-height: 240px; max-height: 270px;">
+                <canvas id="distTopProductsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- My Recent Invoices -->
 <div class="dashboard-card">
     <div class="card-header-clean">
@@ -104,3 +183,234 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    Chart.defaults.font.family = "'Plus Jakarta Sans', -apple-system, sans-serif";
+    Chart.defaults.color = '#64748b';
+
+    const chartDates = {{ chart_dates_json|safe }};
+    const chartRevenue = {{ chart_revenue_json|safe }};
+    const chartInvoices = {{ chart_invoices_json|safe }};
+
+    const paymentLabels = {{ payment_labels_json|safe }};
+    const paymentData = {{ payment_data_json|safe }};
+
+    const topProductsLabels = {{ top_products_labels_json|safe }};
+    const topProductsSales = {{ top_products_sales_json|safe }};
+
+    const formatINR = (val) => '₹' + Number(val).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+
+    // ─────────────────────────────────────────────────────────────
+    // Chart 1: Distributor Revenue & Billing (Dual Axis)
+    // ─────────────────────────────────────────────────────────────
+    const ctxRevenue = document.getElementById('distRevenueChart');
+    if (ctxRevenue) {
+        const chartCtx = ctxRevenue.getContext('2d');
+        const gradientRev = chartCtx.createLinearGradient(0, 0, 0, 260);
+        gradientRev.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+        gradientRev.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
+
+        new Chart(ctxRevenue, {
+            type: 'line',
+            data: {
+                labels: chartDates,
+                datasets: [
+                    {
+                        label: 'Collections (₹)',
+                        data: chartRevenue,
+                        borderColor: '#10b981',
+                        backgroundColor: gradientRev,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
+                        fill: true,
+                        tension: 0.35,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Bills Issued',
+                        data: chartInvoices,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.75)',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        type: 'bar',
+                        barThickness: 16,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        align: 'end',
+                        labels: {
+                            usePointStyle: true,
+                            boxWidth: 8,
+                            padding: 15,
+                            font: { weight: '600', size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleColor: '#ffffff',
+                        bodyColor: '#e2e8f0',
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                if (context.dataset.label.includes('Collections')) {
+                                    return ' Collected: ' + formatINR(context.raw);
+                                }
+                                return ' Invoices: ' + context.raw;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: { color: '#f1f5f9' },
+                        ticks: {
+                            callback: (v) => '₹' + v
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        ticks: {
+                            stepSize: 1,
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Chart 2: Distributor Payment Method (Doughnut)
+    // ─────────────────────────────────────────────────────────────
+    const ctxPayment = document.getElementById('distPaymentChart');
+    if (ctxPayment) {
+        new Chart(ctxPayment, {
+            type: 'doughnut',
+            data: {
+                labels: paymentLabels,
+                datasets: [{
+                    data: paymentData,
+                    backgroundColor: [
+                        '#06b6d4',
+                        '#10b981',
+                        '#4f46e5',
+                        '#f59e0b',
+                        '#ec4899'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 16,
+                            font: { size: 11.5, weight: '600' }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: (ctx) => ' ' + ctx.label + ': ' + formatINR(ctx.raw)
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Chart 3: Distributor Top Products (Horizontal Bar)
+    // ─────────────────────────────────────────────────────────────
+    const ctxProducts = document.getElementById('distTopProductsChart');
+    if (ctxProducts) {
+        new Chart(ctxProducts, {
+            type: 'bar',
+            data: {
+                labels: topProductsLabels,
+                datasets: [{
+                    label: 'Gross Sales',
+                    data: topProductsSales,
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.85)',
+                        'rgba(79, 70, 229, 0.85)',
+                        'rgba(245, 158, 11, 0.85)',
+                        'rgba(6, 182, 212, 0.85)',
+                        'rgba(236, 72, 153, 0.85)'
+                    ],
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    barThickness: 20
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        padding: 10,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: (ctx) => ' Billed: ' + formatINR(ctx.raw)
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: '#f1f5f9' },
+                        ticks: { callback: (v) => '₹' + v }
+                    },
+                    y: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+
