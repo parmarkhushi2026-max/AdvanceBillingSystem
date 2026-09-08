@@ -1,400 +1,1858 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Advance Billing System - Modern QR POS & Invoicing{% endblock %}
+{% block title %}MyQuickBill™ - Best GST Billing Software & Cloud CRM in India (2026){% endblock %}
+
+{% block unauth_header %}{% endblock %}
+
+{% block main_container_style %}max-width: 100%; margin: 0; padding: 0;{% endblock %}
 
 {% block content %}
-<!-- Modern Landing Page Styles -->
 <style>
-    .landing-page {
-        margin: -2rem -1.5rem; /* Negate the app-container padding */
-        font-family: var(--font-primary);
+    /* ==========================================================================
+       MYQUICKBILL™ ENTERPRISE DESIGN SYSTEM (2026 EDITION)
+       Source inspired: https://www.myquickbill.com/
+       Palette: Deep Navy (#0c1b3a) / Royal Blue (#1a56db) / Emerald (#059669) / Amber (#d97706)
+       ========================================================================== */
+    :root {
+        --mqb-navy: #0c1b3a;
+        --mqb-navy-mid: #142040;
+        --mqb-navy-light: #1a2d55;
+        --mqb-blue: #1a56db;
+        --mqb-blue-bright: #3b82f6;
+        --mqb-blue-glow: #60a5fa;
+        --mqb-emerald: #059669;
+        --mqb-emerald-light: #34d399;
+        --mqb-amber: #d97706;
+        --mqb-amber-light: #fbbf24;
+        --mqb-rose: #e11d48;
+        --mqb-violet: #7c3aed;
+        --mqb-surface: #f8fafd;
+        --mqb-surface-warm: #fefcf9;
+        --mqb-text-primary: #0f172a;
+        --mqb-text-secondary: #475569;
+        --mqb-text-muted: #94a3b8;
+        --mqb-border: #e2e8f0;
+        --mqb-border-light: #f1f5f9;
+        --mqb-radius-sm: 8px;
+        --mqb-radius-md: 14px;
+        --mqb-radius-lg: 20px;
+        --mqb-radius-xl: 28px;
+        --mqb-shadow-sm: 0 1px 3px rgba(15, 23, 42, .06);
+        --mqb-shadow-md: 0 4px 16px rgba(15, 23, 42, .08);
+        --mqb-shadow-lg: 0 12px 40px rgba(15, 23, 42, .12);
+        --mqb-shadow-xl: 0 20px 60px rgba(15, 23, 42, .16);
     }
-    
-    /* Hero Section */
-    .hero-section {
-        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-        color: white;
-        padding: 6rem 2rem;
-        text-align: center;
+
+    body {
+        background: var(--mqb-surface);
+        color: var(--mqb-text-primary);
+        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        overflow-x: hidden;
+    }
+
+    .mqb-wrapper {
+        background: #ffffff;
+        color: var(--mqb-text-primary);
+        position: relative;
+    }
+
+    /* Top Utility Announcement Bar */
+    .top-promo-bar {
+        background: linear-gradient(90deg, #0c1b3a 0%, #1e3a8a 50%, #059669 100%);
+        color: #ffffff;
+        padding: 6px 1rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .promo-container {
+        max-width: 1280px;
+        margin: 0 auto;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .promo-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .promo-iso-badge {
+        background: rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 1px 8px;
+        border-radius: 4px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+    }
+
+    .promo-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 0.78rem;
+    }
+
+    .promo-right a {
+        color: #67e8f9;
+        text-decoration: none;
+        font-weight: 700;
+    }
+
+    /* Main Sticky Navigation Bar */
+    .main-mqb-nav {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--mqb-border);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        padding: 0.65rem 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .nav-content-wrap {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .mqb-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none !important;
+        padding: 4px 10px;
+        border-radius: 12px;
+        transition: all 0.2s;
+    }
+
+    .mqb-logo-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #1a56db 0%, #059669 100%);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        font-size: 1.25rem;
+        box-shadow: 0 4px 12px rgba(26, 86, 219, 0.25);
+    }
+
+    .mqb-brand-text {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.15;
+    }
+
+    .mqb-brand-title {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--mqb-navy);
+        letter-spacing: -0.02em;
+    }
+
+    .mqb-brand-sub {
+        font-size: 0.62rem;
+        font-weight: 700;
+        color: var(--mqb-emerald);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .nav-links-cluster {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .nav-cluster-item {
+        color: var(--mqb-text-secondary);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: color 0.2s;
+    }
+
+    .nav-cluster-item:hover {
+        color: var(--mqb-blue);
+    }
+
+    .nav-action-btns {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-portal-outline {
+        border: 1.5px solid var(--mqb-border);
+        background: #ffffff;
+        color: var(--mqb-text-secondary);
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.88rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+
+    .btn-portal-outline:hover {
+        border-color: var(--mqb-blue);
+        color: var(--mqb-blue);
+        background: rgba(26, 86, 219, 0.04);
+    }
+
+    .btn-trial-action {
+        background: var(--mqb-blue);
+        color: #ffffff;
+        border: 1px solid #1e40af;
+        padding: 9px 20px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.88rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 4px 14px rgba(26, 86, 219, 0.3);
+        transition: all 0.2s;
+    }
+
+    .btn-trial-action:hover {
+        background: #1e40af;
+        color: #ffffff;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(26, 86, 219, 0.4);
+    }
+
+    /* HERO SECTION (MYQUICKBILL STYLE) */
+    .mqb-hero {
+        background: linear-gradient(180deg, #0c1b3a 0%, #142040 100%);
+        color: #ffffff;
+        padding: 5.5rem 1.5rem 6.5rem 1.5rem;
         position: relative;
         overflow: hidden;
     }
-    
-    .hero-bg-glow {
+
+    .hero-glow-fx {
         position: absolute;
-        top: -20%;
+        top: -100px;
         left: 50%;
         transform: translateX(-50%);
-        width: 600px;
-        height: 600px;
-        background: radial-gradient(circle, rgba(79, 70, 229, 0.4) 0%, rgba(0, 0, 0, 0) 70%);
-        z-index: 0;
+        width: 900px;
+        height: 500px;
+        background: radial-gradient(circle, rgba(26, 86, 219, 0.25) 0%, rgba(5, 150, 105, 0.1) 40%, rgba(12, 27, 58, 0) 70%);
+        filter: blur(60px);
+        pointer-events: none;
     }
-    
-    .hero-content {
+
+    .hero-grid-mqb {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 3.5rem;
+        align-items: center;
         position: relative;
         z-index: 1;
-        max-width: 900px;
-        margin: 0 auto;
     }
-    
-    .hero-badge {
-        display: inline-block;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+
+    .hero-pill-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.16);
         padding: 6px 16px;
-        border-radius: 50px;
-        font-size: 0.85rem;
-        font-weight: 600;
+        border-radius: 30px;
+        font-size: 0.82rem;
+        font-weight: 700;
         color: #38bdf8;
         margin-bottom: 1.5rem;
         backdrop-filter: blur(10px);
     }
-    
-    .hero-title {
-        font-size: 4rem;
+
+    .hero-h1-title {
+        font-size: 3.3rem;
         font-weight: 800;
-        line-height: 1.1;
-        margin-bottom: 1.5rem;
+        line-height: 1.15;
         letter-spacing: -0.03em;
+        margin-bottom: 1.25rem;
+        color: #ffffff;
     }
-    
-    .hero-subtitle {
-        font-size: 1.25rem;
-        color: #94a3b8;
-        max-width: 650px;
-        margin: 0 auto 3rem auto;
-        line-height: 1.6;
+
+    .hero-h1-gradient {
+        background: linear-gradient(135deg, #60a5fa 0%, #34d399 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
-    
-    .sky-blue-text {
-        color: #38bdf8;
+
+    .hero-p-desc {
+        font-size: 1.12rem;
+        color: #cbd5e1;
+        line-height: 1.65;
+        margin-bottom: 2.25rem;
+        max-width: 580px;
     }
-    
-    .hero-actions {
+
+    .hero-btn-cluster {
         display: flex;
-        justify-content: center;
-        gap: 1.5rem;
+        gap: 1.25rem;
+        margin-bottom: 2.5rem;
         flex-wrap: wrap;
     }
-    
-    .btn-hero {
+
+    .btn-hero-main {
+        background: linear-gradient(135deg, #1a56db 0%, #2563eb 100%);
+        color: #ffffff;
         padding: 14px 28px;
-        border-radius: var(--radius-lg);
-        font-weight: 600;
-        font-size: 1.1rem;
+        border-radius: 10px;
+        font-size: 1.05rem;
+        font-weight: 700;
         text-decoration: none;
         display: inline-flex;
         align-items: center;
         gap: 10px;
-        transition: all 0.3s ease;
+        box-shadow: 0 6px 20px rgba(26, 86, 219, 0.4);
+        transition: all 0.25s;
     }
-    
-    .btn-hero-primary {
-        background: var(--primary);
-        color: white;
-        box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.5);
-    }
-    
-    .btn-hero-primary:hover {
-        background: var(--primary-hover);
+
+    .btn-hero-main:hover {
+        background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
         transform: translateY(-2px);
-        box-shadow: 0 15px 30px -5px rgba(79, 70, 229, 0.6);
+        box-shadow: 0 10px 25px rgba(26, 86, 219, 0.5);
+        color: #ffffff;
     }
-    
-    .btn-hero-secondary {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-    }
-    
-    .btn-hero-secondary:hover {
-        background: rgba(255, 255, 255, 0.2);
-        transform: translateY(-2px);
-    }
-    
-    /* Features Section */
-    .features-section {
-        padding: 5rem 2rem;
-        background: var(--bg-main);
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    
-    .section-header {
-        text-align: center;
-        margin-bottom: 4rem;
-    }
-    
-    .section-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: var(--text-main);
-        margin-bottom: 1rem;
-    }
-    
-    .section-desc {
-        font-size: 1.1rem;
-        color: var(--text-muted);
-        max-width: 600px;
-        margin: 0 auto;
-    }
-    
-    .features-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 2rem;
-    }
-    
-    .feature-card {
-        background: white;
-        border-radius: var(--radius-xl);
-        padding: 2.5rem 2rem;
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border-color);
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .feature-card:hover {
-        box-shadow: var(--shadow-xl);
-        transform: translateY(-5px);
-        border-color: var(--primary-light);
-    }
-    
-    .feature-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 16px;
-        display: flex;
+
+    .btn-hero-glass {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1.5px solid rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+        padding: 14px 26px;
+        border-radius: 10px;
+        font-size: 1.05rem;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
         align-items: center;
-        justify-content: center;
-        font-size: 1.8rem;
-        margin-bottom: 1.5rem;
+        gap: 8px;
+        backdrop-filter: blur(10px);
+        transition: all 0.25s;
     }
-    
-    .icon-blue { background: #eff6ff; color: #3b82f6; }
-    .icon-emerald { background: #ecfdf5; color: #10b981; }
-    .icon-purple { background: #faf5ff; color: #a855f7; }
-    .icon-amber { background: #fffbeb; color: #f59e0b; }
-    
-    .feature-title {
-        font-size: 1.25rem;
-        font-weight: 700;
-        margin-bottom: 1rem;
-        color: var(--text-main);
+
+    .btn-hero-glass:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.35);
+        color: #ffffff;
     }
-    
-    .feature-text {
-        color: var(--text-muted);
-        line-height: 1.6;
+
+    .hero-trust-bar {
+        display: flex;
+        gap: 2.25rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 1.5rem;
     }
-    
-    /* How it works */
-    .how-it-works {
-        background: white;
-        padding: 5rem 2rem;
-        border-top: 1px solid var(--border-color);
-        border-bottom: 1px solid var(--border-color);
+
+    .trust-stat-title {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #ffffff;
     }
-    
-    .steps-container {
-        max-width: 1000px;
-        margin: 0 auto;
+
+    .trust-stat-sub {
+        font-size: 0.8rem;
+        color: #94a3b8;
+    }
+
+    /* Hero Right: Live Interactive Card Mockup */
+    .hero-mock-card {
+        background: #ffffff;
+        border-radius: 16px;
+        color: var(--mqb-text-primary);
+        padding: 1.5rem;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        font-size: 0.85rem;
+    }
+
+    .mock-header {
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
-        gap: 2rem;
-        position: relative;
+        align-items: center;
+        border-bottom: 2px solid #2563eb;
+        padding-bottom: 0.85rem;
+        margin-bottom: 1rem;
     }
-    
-    .step-item {
-        flex: 1;
-        text-align: center;
-        position: relative;
-        z-index: 1;
+
+    .mock-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
     }
-    
-    .step-number {
-        width: 50px;
-        height: 50px;
-        background: var(--primary);
-        color: white;
-        font-size: 1.5rem;
+
+    .mock-table th {
+        background: #f1f5f9;
+        padding: 6px 8px;
+        font-size: 0.72rem;
+        text-align: left;
         font-weight: 700;
-        border-radius: 50%;
+        color: #475569;
+    }
+
+    .mock-table td {
+        padding: 8px;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.78rem;
+    }
+
+    .mock-qr-footer {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px;
         display: flex;
         align-items: center;
-        justify-content: center;
-        margin: 0 auto 1.5rem auto;
-        box-shadow: 0 0 0 8px #eef2ff;
+        justify-content: space-between;
     }
-    
-    .step-title {
-        font-size: 1.2rem;
+
+    /* METRICS STRIP */
+    .mqb-metrics-strip {
+        background: #ffffff;
+        border-bottom: 1px solid var(--mqb-border);
+        padding: 3rem 1.5rem;
+    }
+
+    .metrics-container {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2rem;
+        text-align: center;
+    }
+
+    .metric-big-num {
+        font-size: 2.3rem;
+        font-weight: 800;
+        color: var(--mqb-blue);
+        margin-bottom: 2px;
+        letter-spacing: -0.02em;
+    }
+
+    .metric-label-text {
+        font-size: 0.9rem;
+        color: var(--mqb-text-secondary);
+        font-weight: 600;
+    }
+
+    /* STEP BY STEP WORKFLOW WITH SIDE SMARTPHONE */
+    .mqb-workflow-section {
+        background: #ffffff;
+        border-top: 1px solid var(--mqb-border);
+        border-bottom: 1px solid var(--mqb-border);
+        padding: 5.5rem 1.5rem;
+    }
+
+    .workflow-container {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 4rem;
+        align-items: center;
+    }
+
+    .section-tag-pill {
+        font-size: 0.8rem;
         font-weight: 700;
+        color: var(--mqb-blue);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
         margin-bottom: 0.5rem;
     }
-    
-    .step-text {
-        color: var(--text-muted);
-        font-size: 0.95rem;
-    }
-    
-    /* CTA Section */
-    .cta-section {
-        background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
-        padding: 5rem 2rem;
-        text-align: center;
-        color: white;
-    }
-    
-    .cta-title {
-        font-size: 2.5rem;
+
+    .section-h2-title {
+        font-size: 2.4rem;
         font-weight: 800;
-        margin-bottom: 1rem;
+        color: var(--mqb-navy);
+        letter-spacing: -0.025em;
+        margin-bottom: 0.85rem;
     }
-    
-    /* Footer */
-    .landing-footer {
-        background: #0f172a;
-        color: #94a3b8;
-        padding: 3rem 2rem;
-        text-align: center;
+
+    .section-p-sub {
+        font-size: 1.05rem;
+        color: var(--mqb-text-secondary);
+        line-height: 1.6;
+        margin-bottom: 2.5rem;
     }
-    
-    .footer-logo {
+
+    .step-flow-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .step-item-card {
+        background: #ffffff;
+        border: 1.5px solid var(--mqb-border);
+        border-radius: 14px;
+        padding: 1.35rem 1.5rem;
+        cursor: pointer;
+        transition: all 0.25s;
+        display: flex;
+        gap: 1.25rem;
+        align-items: flex-start;
+    }
+
+    .step-item-card:hover {
+        border-color: #93c5fd;
+        background: #f8fafc;
+        transform: translateX(4px);
+    }
+
+    .step-item-card.active {
+        border-color: var(--mqb-blue);
+        background: #eff6ff;
+        border-left: 5px solid var(--mqb-blue);
+        box-shadow: 0 4px 12px rgba(26, 86, 219, 0.08);
+    }
+
+    .step-item-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 1.2rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 10px;
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: white;
-        margin-bottom: 1rem;
+        flex-shrink: 0;
+        transition: all 0.2s;
     }
-    
-    @media (max-width: 768px) {
-        .hero-title { font-size: 2.5rem; }
-        .hero-actions { flex-direction: column; }
-        .steps-container { flex-direction: column; gap: 4rem; }
+
+    .step-item-card.active .step-item-icon {
+        background: var(--mqb-blue);
+        color: #ffffff;
+        box-shadow: 0 4px 10px rgba(26, 86, 219, 0.3);
+    }
+
+    /* Smartphone Mockup Frame */
+    .smartphone-wrapper {
+        display: flex;
+        justify-content: center;
+        position: relative;
+    }
+
+    .phone-body-frame {
+        width: 320px;
+        height: 620px;
+        background: #0f172a;
+        border-radius: 46px;
+        padding: 12px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 4px #334155;
+        position: relative;
+    }
+
+    .phone-notch-pill {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90px;
+        height: 20px;
+        background: #0f172a;
+        border-radius: 20px;
+        z-index: 20;
+    }
+
+    .phone-inner-screen {
+        width: 100%;
+        height: 100%;
+        background: #f8fafc;
+        border-radius: 36px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .phone-top-bar {
+        height: 38px;
+        padding: 10px 18px 0 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #0f172a;
+        background: #ffffff;
+    }
+
+    .screen-panel {
+        display: none;
+        flex: 1;
+        padding: 12px 14px;
+        overflow-y: auto;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .screen-panel.active-panel {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* CORE FEATURES (MYQUICKBILL STYLE) */
+    .mqb-features-section {
+        padding: 5.5rem 1.5rem;
+        background: #f8fafc;
+    }
+
+    .feat-grid-3col {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2rem;
+    }
+
+    .feat-card-clean {
+        background: #ffffff;
+        border: 1px solid var(--mqb-border);
+        border-radius: 14px;
+        padding: 2rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+        transition: all 0.25s;
+    }
+
+    .feat-card-clean:hover {
+        border-color: #93c5fd;
+        box-shadow: 0 8px 24px rgba(26, 86, 219, 0.08);
+        transform: translateY(-3px);
+    }
+
+    .feat-card-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.35rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .icon-blue-mqb { background: #eff6ff; color: #1a56db; }
+    .icon-green-mqb { background: #f0fdf4; color: #059669; }
+    .icon-purple-mqb { background: #faf5ff; color: #7c3aed; }
+    .icon-amber-mqb { background: #fffbeb; color: #d97706; }
+    .icon-cyan-mqb { background: #ecfeff; color: #0891b2; }
+    .icon-rose-mqb { background: #fff1f2; color: #e11d48; }
+
+    /* BUSINESS TYPES GRID (MYQUICKBILL STYLE) */
+    .mqb-biz-section {
+        background: #ffffff;
+        border-top: 1px solid var(--mqb-border);
+        border-bottom: 1px solid var(--mqb-border);
+        padding: 5.5rem 1.5rem;
+    }
+
+    .biz-grid-4col {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+    }
+
+    .biz-box-item {
+        background: #f8fafc;
+        border: 1.5px solid var(--mqb-border);
+        border-radius: 14px;
+        padding: 1.75rem 1.25rem;
+        text-align: center;
+        transition: all 0.25s;
+    }
+
+    .biz-box-item:hover {
+        background: #ffffff;
+        border-color: var(--mqb-blue);
+        box-shadow: 0 6px 20px rgba(26, 86, 219, 0.08);
+        transform: translateY(-4px);
+    }
+
+    .biz-box-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: #ffffff;
+        border: 1px solid var(--mqb-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        margin: 0 auto 1rem auto;
+        color: var(--mqb-blue);
+    }
+
+    /* PRICING SECTION (MYQUICKBILL STYLE) */
+    .mqb-pricing-section {
+        padding: 5.5rem 1.5rem;
+        background: #f8fafc;
+    }
+
+    .pricing-grid-4col {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+        align-items: stretch;
+    }
+
+    .pricing-card-mqb {
+        background: #ffffff;
+        border: 1.5px solid var(--mqb-border);
+        border-radius: 16px;
+        padding: 2rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        transition: all 0.25s;
+    }
+
+    .pricing-card-mqb:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--mqb-shadow-lg);
+        border-color: var(--mqb-blue);
+    }
+
+    .pricing-card-mqb.popular {
+        border-color: var(--mqb-blue);
+        box-shadow: 0 8px 30px rgba(26, 86, 219, 0.12);
+    }
+
+    .popular-pill-badge {
+        position: absolute;
+        top: -12px;
+        right: 20px;
+        background: var(--mqb-blue);
+        color: #ffffff;
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 3px 12px;
+        border-radius: 20px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .price-figure-row {
+        margin: 1.25rem 0;
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+    }
+
+    .price-amt {
+        font-size: 2.4rem;
+        font-weight: 800;
+        color: var(--mqb-navy);
+    }
+
+    .price-period {
+        color: var(--mqb-text-muted);
+        font-size: 0.85rem;
+    }
+
+    /* COMPARISON SECTION */
+    .mqb-compare-section {
+        background: #ffffff;
+        border-top: 1px solid var(--mqb-border);
+        border-bottom: 1px solid var(--mqb-border);
+        padding: 5.5rem 1.5rem;
+    }
+
+    .compare-wrap-box {
+        max-width: 1000px;
+        margin: 0 auto;
+        border: 1px solid var(--mqb-border);
+        border-radius: 14px;
+        overflow: hidden;
+        background: #ffffff;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    }
+
+    .mqb-compare-tbl {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .mqb-compare-tbl th {
+        padding: 1.15rem 1.5rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        text-align: left;
+        background: #f8fafc;
+        border-bottom: 1px solid var(--mqb-border);
+    }
+
+    .mqb-compare-tbl td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.9rem;
+        color: var(--mqb-text-secondary);
+    }
+
+    .th-mqb-highlight, .td-mqb-highlight {
+        background: #eff6ff !important;
+        color: var(--mqb-blue) !important;
+        font-weight: 700;
+        border-left: 2px solid var(--mqb-blue);
+    }
+
+    /* ISO 9001:2015 CERTIFICATION STRIP */
+    .mqb-iso-strip {
+        background: #0c1b3a;
+        color: #ffffff;
+        padding: 4rem 1.5rem;
+    }
+
+    .iso-container-box {
+        max-width: 1100px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 2.5rem;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1.5px solid rgba(5, 150, 105, 0.3);
+        border-radius: 20px;
+        padding: 2.5rem;
+    }
+
+    .iso-badge-emblem {
+        width: 90px;
+        height: 90px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        font-weight: 900;
+        flex-shrink: 0;
+        box-shadow: 0 8px 24px rgba(5, 150, 105, 0.4);
+    }
+
+    /* FAQ ACCORDION */
+    .mqb-faq-section {
+        padding: 5.5rem 1.5rem;
+        background: #f8fafc;
+    }
+
+    .faq-accordion-box {
+        max-width: 850px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .faq-card-row {
+        background: #ffffff;
+        border: 1px solid var(--mqb-border);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .faq-header-row {
+        padding: 1.25rem 1.5rem;
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--mqb-navy);
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #ffffff;
+    }
+
+    .faq-header-row:hover {
+        background: #f8fafc;
+    }
+
+    .faq-body-content {
+        padding: 0 1.5rem 1.25rem 1.5rem;
+        color: var(--mqb-text-secondary);
+        font-size: 0.95rem;
+        line-height: 1.6;
+        display: none;
+    }
+
+    .faq-card-row.open .faq-body-content {
+        display: block;
+    }
+
+    .faq-card-row.open .faq-icon-arrow {
+        transform: rotate(180deg);
+        color: var(--mqb-blue);
+    }
+
+    .faq-icon-arrow {
+        transition: transform 0.2s;
+        color: var(--mqb-text-muted);
+    }
+
+    /* MASSIVE BOTTOM CTA */
+    .mqb-cta-banner {
+        background: linear-gradient(135deg, #0c1b3a 0%, #1a56db 100%);
+        color: #ffffff;
+        padding: 5rem 1.5rem;
+        text-align: center;
+    }
+
+    .cta-inner-wrap {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    /* ENTERPRISE FOOTER */
+    .mqb-footer {
+        background: #091224;
+        color: #94a3b8;
+        padding: 4rem 1.5rem 2rem 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    .footer-grid-4col {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        gap: 3rem;
+        margin-bottom: 3rem;
+    }
+
+    .footer-title-h5 {
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .footer-link-stack {
+        list-style: none;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .footer-link-stack a {
+        color: #94a3b8;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .footer-link-stack a:hover {
+        color: #60a5fa;
+    }
+
+    .footer-bottom-row {
+        max-width: 1280px;
+        margin: 0 auto;
+        border-top: 1px solid #1e293b;
+        padding-top: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        font-size: 0.85rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+        .hero-grid-mqb { grid-template-columns: 1fr; gap: 3rem; }
+        .hero-h1-title { font-size: 2.5rem; }
+        .metrics-container { grid-template-columns: 1fr 1fr; }
+        .workflow-container { grid-template-columns: 1fr; }
+        .feat-grid-3col { grid-template-columns: 1fr; }
+        .biz-grid-4col { grid-template-columns: 1fr 1fr; }
+        .pricing-grid-4col { grid-template-columns: 1fr 1fr; }
+        .iso-container-box { flex-direction: column; text-align: center; }
+        .footer-grid-4col { grid-template-columns: 1fr 1fr; }
+        .nav-links-cluster { display: none; }
+    }
+
+    @media (max-width: 600px) {
+        .hero-h1-title { font-size: 2.1rem; }
+        .metrics-container { grid-template-columns: 1fr; }
+        .biz-grid-4col { grid-template-columns: 1fr; }
+        .pricing-grid-4col { grid-template-columns: 1fr; }
+        .footer-grid-4col { grid-template-columns: 1fr; }
+        .hero-trust-bar { flex-direction: column; gap: 1rem; }
     }
 </style>
 
-<div class="landing-page">
-    
-    <!-- Hero Section -->
-    <section class="hero-section">
-        <div class="hero-bg-glow"></div>
-        <div class="hero-content">
-            <div class="hero-badge"><i class="fa-solid fa-bolt text-warning"></i> v2.0 is Live with Dynamic UPI QR</div>
-            <h1 class="hero-title sky-blue-text">
-                Next-Gen Billing & QR POS System
-            </h1>
-            <p class="hero-subtitle">
-                Supercharge your wholesale or retail business. Create invoices in seconds, generate dynamic UPI payment QRs, and manage your product inventory in one seamless portal.
-            </p>
-            <div class="hero-actions">
-                <a href="{% url 'distributor_login' %}" class="btn-hero btn-hero-primary">
+<div class="mqb-wrapper">
+
+    <!-- Top Announcement Bar (like MyQuickBill.com) -->
+    <div class="top-promo-bar">
+        <div class="promo-container">
+            <div class="promo-left">
+                <span class="promo-iso-badge">ISO 9001:2015 CERTIFIED</span>
+                <span>🇮🇳 #1 Cloud CRM & GST Billing Software for Indian MSMEs (2026-2027)</span>
+            </div>
+            <div class="promo-right">
+                <span><i class="fa-solid fa-headset" style="color: #6ee7b7;"></i> 24/7 Support: <strong>+91-7407895189</strong></span>
+                <a href="{% url 'distributor_login' %}">Start Free Trial &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation Bar (like MyQuickBill.com) -->
+    <nav class="main-mqb-nav">
+        <div class="nav-content-wrap">
+            <a href="/" class="mqb-brand">
+                <div class="mqb-logo-icon">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                </div>
+                <div class="mqb-brand-text">
+                    <span class="mqb-brand-title">MyQuickBill<span style="color: var(--mqb-blue);">™</span></span>
+                    <span class="mqb-brand-sub">CRM & GST Billing</span>
+                </div>
+            </a>
+
+            <div class="nav-links-cluster">
+                <a href="#features" class="nav-cluster-item">Features</a>
+                <a href="#workflow" class="nav-cluster-item">How it Works</a>
+                <a href="#business-types" class="nav-cluster-item">Businesses</a>
+                <a href="#pricing" class="nav-cluster-item">Pricing</a>
+                <a href="#comparison" class="nav-cluster-item">Why Choose Us</a>
+                <a href="#faq" class="nav-cluster-item">FAQ</a>
+            </div>
+
+            <div class="nav-action-btns">
+                <a href="{% url 'admin_login' %}" class="btn-portal-outline">
+                    <i class="fa-solid fa-shield-halved"></i> Admin Portal
+                </a>
+                <a href="{% url 'distributor_login' %}" class="btn-trial-action">
                     <i class="fa-solid fa-store"></i> Distributor Login
                 </a>
-                <a href="{% url 'admin_login' %}" class="btn-hero btn-hero-secondary">
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION (MYQUICKBILL STYLE) -->
+    <section class="mqb-hero">
+        <div class="hero-glow-fx"></div>
+
+        <div class="hero-grid-mqb">
+            <div>
+                <div class="hero-pill-badge">
+                    <i class="fa-solid fa-award text-warning"></i>
+                    <span>ISO 9001:2015 Certified • Best GST Billing Software in India 2026</span>
+                </div>
+
+                <h1 class="hero-h1-title">
+                    Best GST Billing & <span class="hero-h1-gradient">Cloud CRM Software</span> for Indian MSMEs
+                </h1>
+
+                <p class="hero-p-desc">
+                    Create 10-second GST invoices, print thermal receipts, collect instant payments with dynamic UPI QR codes, manage inventory, and file GSTR-1 seamlessly.
+                </p>
+
+                <div class="hero-btn-cluster">
+                    <a href="{% url 'distributor_login' %}" class="btn-hero-main">
+                        <i class="fa-solid fa-rocket"></i> Start 30-Day Free Trial
+                    </a>
+                    <a href="#workflow" class="btn-hero-glass">
+                        <i class="fa-solid fa-mobile-screen"></i> See Step-by-Step Flow
+                    </a>
+                </div>
+
+                <div class="hero-trust-bar">
+                    <div>
+                        <div class="trust-stat-title">⚡ &lt; 10s</div>
+                        <div class="trust-stat-sub">Invoice Creation</div>
+                    </div>
+                    <div>
+                        <div class="trust-stat-title">100%</div>
+                        <div class="trust-stat-sub">GST & HSN Ready</div>
+                    </div>
+                    <div>
+                        <div class="trust-stat-title">₹0</div>
+                        <div class="trust-stat-sub">Hardware Rental</div>
+                    </div>
+                    <div>
+                        <div class="trust-stat-title">24/7</div>
+                        <div class="trust-stat-sub">AI & Phone Support</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hero Right: Live Interactive GST Tax Invoice Preview -->
+            <div>
+                <div class="hero-mock-card">
+                    <div class="mock-header">
+                        <div>
+                            <div style="font-weight: 800; font-size: 1.05rem; color: #0f172a;">MYQUICKBILL DEMO TRADERS</div>
+                            <div style="font-size: 0.72rem; color: #64748b;">GSTIN: 24AABCU9603R1ZM • Ahmedabad, Gujarat</div>
+                        </div>
+                        <div style="background: #eff6ff; color: #1e40af; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.72rem; border: 1px solid #bfdbfe;">
+                            TAX INVOICE<br>#INV-2026-0842
+                        </div>
+                    </div>
+
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; display: flex; justify-content: space-between;">
+                        <div>
+                            <div style="font-size: 0.68rem; color: #64748b; font-weight: 700;">BILLED TO:</div>
+                            <div style="font-weight: 700; font-size: 0.82rem; color: #0f172a;">Patel Electronics & Co.</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.68rem; color: #64748b; font-weight: 700;">DATE:</div>
+                            <div style="font-weight: 600; font-size: 0.82rem;">27 Aug 2026</div>
+                        </div>
+                    </div>
+
+                    <table class="mock-table">
+                        <thead>
+                            <tr>
+                                <th>Item Description</th>
+                                <th style="text-align: center;">HSN</th>
+                                <th style="text-align: center;">Qty</th>
+                                <th style="text-align: right;">Rate</th>
+                                <th style="text-align: right;">GST</th>
+                                <th style="text-align: right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Wireless Optical Mouse</strong></td>
+                                <td style="text-align: center; color: #64748b;">8471</td>
+                                <td style="text-align: center;">2 pcs</td>
+                                <td style="text-align: right;">₹450</td>
+                                <td style="text-align: right; color: #15803d;">18%</td>
+                                <td style="text-align: right; font-weight: 700;">₹900.00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Mechanical USB Keyboard</strong></td>
+                                <td style="text-align: center; color: #64748b;">8471</td>
+                                <td style="text-align: center;">1 pc</td>
+                                <td style="text-align: right;">₹1,800</td>
+                                <td style="text-align: right; color: #15803d;">18%</td>
+                                <td style="text-align: right; font-weight: 700;">₹1,800.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="mock-qr-footer">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 48px; height: 48px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa-solid fa-qrcode" style="font-size: 2rem; color: #0f172a;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.68rem; font-weight: 700; color: #1e40af;">SCAN & PAY VIA ANY UPI</div>
+                                <div style="font-size: 0.65rem; color: #64748b;">GPay • PhonePe • Paytm</div>
+                            </div>
+                        </div>
+
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.72rem; color: #64748b;">CGST (9%) + SGST (9%): ₹486.00</div>
+                            <div style="font-size: 1.05rem; font-weight: 800; color: #0f172a; border-top: 1px solid #cbd5e1; padding-top: 2px; margin-top: 2px;">
+                                Total: ₹3,186.00
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- LIVE METRICS BAR -->
+    <section class="mqb-metrics-strip">
+        <div class="metrics-container">
+            <div>
+                <div class="metric-big-num">10,000+</div>
+                <div class="metric-label-text">Active Indian Businesses</div>
+            </div>
+            <div>
+                <div class="metric-big-num">₹50 Cr+</div>
+                <div class="metric-label-text">Invoices Generated</div>
+            </div>
+            <div>
+                <div class="metric-big-num">99.98%</div>
+                <div class="metric-label-text">Cloud Uptime SLA</div>
+            </div>
+            <div>
+                <div class="metric-big-num">100%</div>
+                <div class="metric-label-text">GSTR-1 & e-Way Compliant</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- STEP BY STEP WORKFLOW WITH SIDE SMARTPHONE (MYQUICKBILL STYLE) -->
+    <section class="mqb-workflow-section" id="workflow">
+        <div class="workflow-container">
+            
+            <!-- Left Side: 4 Steps -->
+            <div>
+                <div class="section-tag-pill">End-to-End Business Flow</div>
+                <h2 class="section-h2-title">Run Your Whole Business, Step by Step</h2>
+                <p class="section-p-sub">From the first invoice to daily reports, see how MyQuickBill handles every part of your business.</p>
+
+                <div class="step-flow-list">
+                    <!-- Step 1 -->
+                    <div class="step-item-card active" onclick="setPhoneStep(1)" id="stepItem1">
+                        <div class="step-item-icon"><i class="fa-solid fa-receipt"></i></div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 1.1rem; color: #0f172a; margin-bottom: 2px;">1. Quick GST Invoicing & POS Counter</div>
+                            <p style="font-size: 0.9rem; color: #64748b; margin: 0; line-height: 1.5;">
+                                Auto-computes HSN codes, discounts, and item-wise CGST/SGST in under 10 seconds.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="step-item-card" onclick="setPhoneStep(2)" id="stepItem2">
+                        <div class="step-item-icon"><i class="fa-solid fa-qrcode"></i></div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 1.1rem; color: #0f172a; margin-bottom: 2px;">2. Dynamic UPI QR Payment Collection</div>
+                            <p style="font-size: 0.9rem; color: #64748b; margin: 0; line-height: 1.5;">
+                                Customers scan the bill QR with PhonePe/GPay for direct bank credit with ₹0 transaction fees.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="step-item-card" onclick="setPhoneStep(3)" id="stepItem3">
+                        <div class="step-item-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 1.1rem; color: #0f172a; margin-bottom: 2px;">3. Real-Time Stock & Low Inventory Radar</div>
+                            <p style="font-size: 0.9rem; color: #64748b; margin: 0; line-height: 1.5;">
+                                Quantities auto-deduct in real-time with instant alerts when items drop below threshold.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="step-item-card" onclick="setPhoneStep(4)" id="stepItem4">
+                        <div class="step-item-icon"><i class="fa-solid fa-chart-pie"></i></div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 1.1rem; color: #0f172a; margin-bottom: 2px;">4. Day-End Sales & GSTR-1 Reports</div>
+                            <p style="font-size: 0.9rem; color: #64748b; margin: 0; line-height: 1.5;">
+                                Track daily revenue, cash vs UPI splits, and export one-click GSTR-1 summaries for filing.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Side Smartphone Mockup -->
+            <div class="smartphone-wrapper">
+                <div class="phone-body-frame">
+                    <div class="phone-notch-pill"></div>
+
+                    <div class="phone-inner-screen">
+                        <div class="phone-top-bar">
+                            <span>9:41</span>
+                            <div style="display: flex; gap: 5px; font-size: 0.7rem;">
+                                <i class="fa-solid fa-signal"></i>
+                                <i class="fa-solid fa-wifi"></i>
+                                <i class="fa-solid fa-battery-full" style="color: #16a34a;"></i>
+                            </div>
+                        </div>
+
+                        <!-- PANEL 1: Billing -->
+                        <div class="screen-panel active-panel" id="panelScreen1">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px;">
+                                <span style="font-weight: 800; font-size: 0.95rem; color: #0f172a;"><i class="fa-solid fa-receipt" style="color: #2563eb;"></i> Quick Bill</span>
+                                <span style="font-size: 0.65rem; background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 10px; font-weight: 700;">POS Mode</span>
+                            </div>
+
+                            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; margin-bottom: 10px;">
+                                <div style="font-size: 0.68rem; color: #64748b;">Customer</div>
+                                <div style="font-weight: 700; font-size: 0.82rem;">Patel Electronics (24AAB..)</div>
+                            </div>
+
+                            <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;">
+                                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 8px; display: flex; justify-content: space-between;">
+                                    <div>
+                                        <div style="font-weight: 600; font-size: 0.78rem;">Wireless Mouse</div>
+                                        <div style="font-size: 0.65rem; color: #64748b;">2 pcs × ₹450 (18% GST)</div>
+                                    </div>
+                                    <div style="font-weight: 700; font-size: 0.8rem; color: #2563eb;">₹900.00</div>
+                                </div>
+                                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 8px; display: flex; justify-content: space-between;">
+                                    <div>
+                                        <div style="font-weight: 600; font-size: 0.78rem;">USB Keyboard</div>
+                                        <div style="font-size: 0.65rem; color: #64748b;">1 pc × ₹1,800 (18% GST)</div>
+                                    </div>
+                                    <div style="font-weight: 700; font-size: 0.8rem; color: #2563eb;">₹1,800.00</div>
+                                </div>
+                            </div>
+
+                            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px; margin-bottom: 12px; font-size: 0.72rem;">
+                                <div style="display: flex; justify-content: space-between; color: #64748b; margin-bottom: 2px;">
+                                    <span>Taxable:</span>
+                                    <span style="font-weight: 600; color: #0f172a;">₹2,700.00</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; color: #64748b; margin-bottom: 4px;">
+                                    <span>GST (18%):</span>
+                                    <span style="font-weight: 600; color: #16a34a;">₹486.00</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.92rem; font-weight: 800; color: #1e40af; border-top: 1px solid #dbeafe; padding-top: 4px;">
+                                    <span>Total:</span>
+                                    <span>₹3,186.00</span>
+                                </div>
+                            </div>
+
+                            <button style="width: 100%; background: #2563eb; color: #fff; border: none; padding: 9px; border-radius: 8px; font-weight: 700; font-size: 0.8rem;">
+                                <i class="fa-solid fa-qrcode"></i> Generate QR Invoice
+                            </button>
+                        </div>
+
+                        <!-- PANEL 2: UPI QR -->
+                        <div class="screen-panel" id="panelScreen2">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px;">
+                                <span style="font-weight: 800; font-size: 0.95rem; color: #0f172a;"><i class="fa-solid fa-qrcode" style="color: #2563eb;"></i> UPI QR Pay</span>
+                                <span style="font-size: 0.65rem; background: #f0fdf4; color: #15803d; padding: 2px 8px; border-radius: 10px; font-weight: 700;">Live QR</span>
+                            </div>
+
+                            <div style="text-align: center; margin-bottom: 6px;">
+                                <div style="font-size: 0.68rem; color: #64748b;">INVOICE #INV-2026-0842</div>
+                                <div style="font-size: 1.3rem; font-weight: 800; color: #0f172a;">₹3,186.00</div>
+                            </div>
+
+                            <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 10px;">
+                                <div style="width: 120px; height: 120px; margin: 0 auto 6px auto; background: #fff; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; border-radius: 6px;">
+                                    <i class="fa-solid fa-qrcode" style="font-size: 5rem; color: #0f172a;"></i>
+                                </div>
+                                <div style="font-size: 0.68rem; font-weight: 700; color: #1e40af;">SCAN TO PAY VIA ANY UPI</div>
+                            </div>
+
+                            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 6px 8px; display: flex; align-items: center; gap: 6px; font-size: 0.68rem; color: #15803d; font-weight: 600;">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>Direct Bank Credit Active</span>
+                            </div>
+                        </div>
+
+                        <!-- PANEL 3: Stock -->
+                        <div class="screen-panel" id="panelScreen3">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px;">
+                                <span style="font-weight: 800; font-size: 0.95rem; color: #0f172a;"><i class="fa-solid fa-boxes-stacked" style="color: #2563eb;"></i> Stock Radar</span>
+                                <span style="font-size: 0.65rem; background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 10px; font-weight: 700;">Live Sync</span>
+                            </div>
+
+                            <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;">
+                                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 8px;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="font-weight: 700; font-size: 0.78rem;">Wireless Mouse</span>
+                                        <span style="font-size: 0.62rem; background: #f0fdf4; color: #15803d; font-weight: 700; padding: 1px 5px; border-radius: 4px;">In Stock</span>
+                                    </div>
+                                    <div style="font-size: 0.68rem; color: #64748b;">Stock: 142 pcs</div>
+                                </div>
+                                <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 6px; padding: 6px 8px;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="font-weight: 700; font-size: 0.78rem; color: #9f1239;">RGB Keyboard</span>
+                                        <span style="font-size: 0.62rem; background: #ffe4e6; color: #e11d48; font-weight: 700; padding: 1px 5px; border-radius: 4px;">Low Stock</span>
+                                    </div>
+                                    <div style="font-size: 0.68rem; color: #e11d48; font-weight: 700;">Only 4 pcs left!</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PANEL 4: Reports -->
+                        <div class="screen-panel" id="panelScreen4">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px;">
+                                <span style="font-weight: 800; font-size: 0.95rem; color: #0f172a;"><i class="fa-solid fa-chart-line" style="color: #2563eb;"></i> Daily Sales</span>
+                                <span style="font-size: 0.65rem; background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 10px; font-weight: 700;">Today</span>
+                            </div>
+
+                            <div style="background: linear-gradient(135deg, #0c1b3a, #1e40af); color: #fff; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+                                <div style="font-size: 0.68rem; opacity: 0.85;">TODAY'S TURNOVER</div>
+                                <div style="font-size: 1.25rem; font-weight: 800;">₹48,250.00</div>
+                                <div style="font-size: 0.65rem; color: #86efac;">+18.4% growth</div>
+                            </div>
+
+                            <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; font-size: 0.7rem;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                                    <span>UPI QR (78%):</span>
+                                    <span style="font-weight: 700;">₹37,635</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span>Cash (22%):</span>
+                                    <span style="font-weight: 700;">₹10,615</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- CORE FEATURES GRID (MYQUICKBILL STYLE) -->
+    <section class="mqb-features-section" id="features">
+        <div style="text-align: center; max-width: 750px; margin: 0 auto 3.5rem auto;">
+            <div class="section-tag-pill">Comprehensive Suite</div>
+            <h2 class="section-h2-title">Everything Indian Businesses Need</h2>
+            <p class="section-p-sub">Designed for retail shops, distributors, wholesalers, and traders to streamline everyday operations.</p>
+        </div>
+
+        <div class="feat-grid-3col">
+            <div class="feat-card-clean">
+                <div class="feat-card-icon icon-blue-mqb"><i class="fa-solid fa-qrcode"></i></div>
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem;">Dynamic UPI QR Engine</h3>
+                <p style="font-size: 0.92rem; color: #64748b; line-height: 1.6; margin: 0;">
+                    Generate amount-embedded UPI QR codes for every invoice. Instant settlement straight to your bank account with ₹0 machine rental.
+                </p>
+            </div>
+
+            <div class="feat-card-clean">
+                <div class="feat-card-icon icon-green-mqb"><i class="fa-solid fa-calculator"></i></div>
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem;">Automated GST & HSN Engine</h3>
+                <p style="font-size: 0.92rem; color: #64748b; line-height: 1.6; margin: 0;">
+                    Automatic item-wise calculation of CGST, SGST, IGST, and HSN compliance. Full support for 0%, 5%, 12%, 18%, and 28% tax slabs.
+                </p>
+            </div>
+
+            <div class="feat-card-clean">
+                <div class="feat-card-icon icon-purple-mqb"><i class="fa-solid fa-boxes-stacked"></i></div>
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem;">Real-Time Stock Radar</h3>
+                <p style="font-size: 0.92rem; color: #64748b; line-height: 1.6; margin: 0;">
+                    Quantities auto-deduct on invoice creation. Get automated alerts before running out of fast-selling SKUs.
+                </p>
+            </div>
+
+            <div class="feat-card-clean">
+                <div class="feat-card-icon icon-amber-mqb"><i class="fa-solid fa-address-book"></i></div>
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem;">Customer CRM & Party Ledger</h3>
+                <p style="font-size: 0.92rem; color: #64748b; line-height: 1.6; margin: 0;">
+                    Maintain complete buyer profiles with GSTIN, contact numbers, purchase history, and outstanding ledger balances.
+                </p>
+            </div>
+
+            <div class="feat-card-clean">
+                <div class="feat-card-icon icon-cyan-mqb"><i class="fa-solid fa-print"></i></div>
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem;">Thermal & A4 Invoice Print</h3>
+                <p style="font-size: 0.92rem; color: #64748b; line-height: 1.6; margin: 0;">
+                    Print 3-inch 80mm thermal POS receipts or full-page A4 GST invoices with your company branding and embedded QR.
+                </p>
+            </div>
+
+            <div class="feat-card-clean">
+                <div class="feat-card-icon icon-rose-mqb"><i class="fa-solid fa-user-shield"></i></div>
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem;">Admin Master Console</h3>
+                <p style="font-size: 0.92rem; color: #64748b; line-height: 1.6; margin: 0;">
+                    Central oversight for branch distributors, platform sales turnover, security controls, and audit logs.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SUPPORTED BUSINESS TYPES (MYQUICKBILL STYLE) -->
+    <section class="mqb-biz-section" id="business-types">
+        <div style="text-align: center; max-width: 750px; margin: 0 auto 3.5rem auto;">
+            <div class="section-tag-pill">Tailored for Every Industry</div>
+            <h2 class="section-h2-title">Built for Indian Retailers, Wholesalers & Distributors</h2>
+            <p class="section-p-sub">Whether you run a single retail counter or a multi-branch warehouse, MyQuickBill fits perfectly.</p>
+        </div>
+
+        <div class="biz-grid-4col">
+            <div class="biz-box-item">
+                <div class="biz-box-icon"><i class="fa-solid fa-shop"></i></div>
+                <h4 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 4px;">Retail & Kirana Stores</h4>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 0;">Barcode scanning & thermal billing</p>
+            </div>
+
+            <div class="biz-box-item">
+                <div class="biz-box-icon"><i class="fa-solid fa-truck-ramp-box"></i></div>
+                <h4 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 4px;">Wholesale & Distributors</h4>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 0;">Bulk invoices, credit ledgers & HSN</p>
+            </div>
+
+            <div class="biz-box-item">
+                <div class="biz-box-icon"><i class="fa-solid fa-capsules"></i></div>
+                <h4 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 4px;">Pharmacy & Medical</h4>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 0;">Batch, expiry & GST drug tracking</p>
+            </div>
+
+            <div class="biz-box-item">
+                <div class="biz-box-icon"><i class="fa-solid fa-shirt"></i></div>
+                <h4 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 4px;">Garments & Apparel</h4>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 0;">Size, color & variant inventory</p>
+            </div>
+
+            <div class="biz-box-item">
+                <div class="biz-box-icon"><i class="fa-solid fa-mobile-screen"></i></div>
+                <h4 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 4px;">Mobile & Electronics</h4>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 0;">IMEI / Serial number tracking</p>
+            </div>
+
+            <div class="biz-box-item">
+                <div class="biz-box-icon"><i class="fa-solid fa-basket-shopping"></i></div>
+                <h4 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 4px;">Supermarkets & FMCG</h4>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 0;">Multi-counter fast POS checkouts</p>
+            </div>
+
+            <div class="biz-box-item">
+                <div class="biz-box-icon"><i class="fa-solid fa-industry"></i></div>
+                <h4 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 4px;">Hardware & Traders</h4>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 0;">Unit conversions & quotation bills</p>
+            </div>
+
+            <div class="biz-box-item">
+                <div class="biz-box-icon"><i class="fa-solid fa-laptop-code"></i></div>
+                <h4 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 4px;">Service & Agencies</h4>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 0;">SAC code billing & client management</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRICING SECTION (MYQUICKBILL STYLE) -->
+    <section class="mqb-pricing-section" id="pricing">
+        <div style="text-align: center; max-width: 750px; margin: 0 auto 3.5rem auto;">
+            <div class="section-tag-pill">Simple, Transparent Pricing</div>
+            <h2 class="section-h2-title">Affordable Plans for Every Business Size</h2>
+            <p class="section-p-sub">All plans include complete GST invoicing, dynamic UPI QR codes, and cloud backup.</p>
+        </div>
+
+        <div class="pricing-grid-4col">
+            <!-- Basic Plan -->
+            <div class="pricing-card-mqb">
+                <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 4px;">Basic Plan</h3>
+                <div style="font-size: 0.82rem; color: #64748b;">Small shops & single counters</div>
+                <div class="price-figure-row">
+                    <span class="price-amt">₹249</span>
+                    <span class="price-period">/ month</span>
+                </div>
+                <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; color: #334155; flex: 1;">
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> Unlimited GST Invoices</li>
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> Dynamic UPI QR on Bills</li>
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> Stock & Inventory Tracking</li>
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> 1 Distributor Login</li>
+                </ul>
+                <a href="{% url 'distributor_login' %}" class="btn-portal-outline" style="justify-content: center; width: 100%;">Get Started</a>
+            </div>
+
+            <!-- Professional Plan -->
+            <div class="pricing-card-mqb">
+                <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 4px;">Professional</h3>
+                <div style="font-size: 0.82rem; color: #64748b;">Growing retail stores</div>
+                <div class="price-figure-row">
+                    <span class="price-amt">₹599</span>
+                    <span class="price-period">/ month</span>
+                </div>
+                <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; color: #334155; flex: 1;">
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> Everything in Basic</li>
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> Customer CRM & Khata</li>
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> Thermal 80mm & A4 Print</li>
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> Low Stock Radar Alerts</li>
+                </ul>
+                <a href="{% url 'distributor_login' %}" class="btn-portal-outline" style="justify-content: center; width: 100%;">Get Started</a>
+            </div>
+
+            <!-- Business Plan (Popular) -->
+            <div class="pricing-card-mqb popular">
+                <span class="popular-pill-badge">Most Popular</span>
+                <h3 style="font-size: 1.25rem; font-weight: 800; color: #1a56db; margin-bottom: 4px;">Business Suite</h3>
+                <div style="font-size: 0.82rem; color: #64748b;">Wholesalers & Distributors</div>
+                <div class="price-figure-row">
+                    <span class="price-amt" style="color: #1a56db;">₹1,299</span>
+                    <span class="price-period">/ month</span>
+                </div>
+                <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; color: #334155; flex: 1;">
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> Everything in Professional</li>
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> GSTR-1 JSON/Excel Export</li>
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> Multi-Device POS Access</li>
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> Priority 24/7 Phone Support</li>
+                </ul>
+                <a href="{% url 'distributor_login' %}" class="btn-trial-action" style="justify-content: center; width: 100%;">Start Free Trial</a>
+            </div>
+
+            <!-- Diamond Enterprise -->
+            <div class="pricing-card-mqb">
+                <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 4px;">Enterprise / Diamond</h3>
+                <div style="font-size: 0.82rem; color: #64748b;">Large scale operations</div>
+                <div class="price-figure-row">
+                    <span class="price-amt">₹2,199</span>
+                    <span class="price-period">/ month</span>
+                </div>
+                <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; color: #334155; flex: 1;">
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> Multi-Branch & HQ Console</li>
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> Unlimited Users & Portals</li>
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> Custom API & ERP Integrations</li>
+                    <li><i class="fa-solid fa-check" style="color: #059669;"></i> Dedicated Account Manager</li>
+                </ul>
+                <a href="{% url 'admin_login' %}" class="btn-portal-outline" style="justify-content: center; width: 100%;">Contact Sales</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- COMPARISON TABLE SECTION -->
+    <section class="mqb-compare-section" id="comparison">
+        <div style="text-align: center; max-width: 750px; margin: 0 auto 3.5rem auto;">
+            <div class="section-tag-pill">The Modern Upgrade</div>
+            <h2 class="section-h2-title">Traditional Billing vs. MyQuickBill™</h2>
+            <p class="section-p-sub">See how MyQuickBill helps distributors eliminate monthly hardware rental fees and billing errors.</p>
+        </div>
+
+        <div class="compare-wrap-box">
+            <table class="mqb-compare-tbl">
+                <thead>
+                    <tr>
+                        <th style="width: 35%;">Feature</th>
+                        <th style="width: 30%; color: #64748b;">Traditional POS / Manual Billing</th>
+                        <th style="width: 35%;" class="th-mqb-highlight">MyQuickBill™ Cloud Suite</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>POS Machine Rental</strong></td>
+                        <td style="color: #ef4444;"><i class="fa-solid fa-xmark"></i> ₹500 - ₹1,500 monthly fees</td>
+                        <td class="td-mqb-highlight"><i class="fa-solid fa-check" style="color: #059669;"></i> ₹0 (Runs on Browser & Phone)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Payment Collection</strong></td>
+                        <td style="color: #64748b;">Manual cash & change shortage</td>
+                        <td class="td-mqb-highlight"><i class="fa-solid fa-check" style="color: #059669;"></i> Dynamic UPI QR on every bill</td>
+                    </tr>
+                    <tr>
+                        <td><strong>GST Tax Calculations</strong></td>
+                        <td style="color: #64748b;">Manual calculation with errors</td>
+                        <td class="td-mqb-highlight"><i class="fa-solid fa-check" style="color: #059669;"></i> 100% automated item-wise tax</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Inventory Updates</strong></td>
+                        <td style="color: #ef4444;"><i class="fa-solid fa-xmark"></i> Manual ledger / Excel entries</td>
+                        <td class="td-mqb-highlight"><i class="fa-solid fa-check" style="color: #059669;"></i> Live auto-deduct on billing</td>
+                    </tr>
+                    <tr>
+                        <td><strong>GSTR Filing</strong></td>
+                        <td style="color: #64748b;">Time-consuming invoice consolidation</td>
+                        <td class="td-mqb-highlight"><i class="fa-solid fa-check" style="color: #059669;"></i> One-click GSTR-1 JSON/Excel export</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ISO 9001:2015 CERTIFICATION STRIP (MYQUICKBILL STYLE) -->
+    <section class="mqb-iso-strip">
+        <div class="iso-container-box">
+            <div class="iso-badge-emblem">
+                <span style="font-size: 0.65rem; letter-spacing: 0.08em; opacity: 0.85;">CERTIFIED</span>
+                <span style="font-size: 1.4rem;">ISO</span>
+                <span style="font-size: 0.75rem;">9001:2015</span>
+            </div>
+            <div>
+                <h3 style="font-size: 1.35rem; font-weight: 800; color: #6ee7b7; margin-bottom: 6px;">
+                    ISO 9001:2015 Certified Quality Management System
+                </h3>
+                <p style="font-size: 0.92rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 10px;">
+                    MyQuickBill™ is engineered under internationally recognized ISO 9001:2015 standards, ensuring 99.98% cloud reliability, bank-grade encryption, and adherence to Indian GST laws.
+                </p>
+                <div style="display: flex; gap: 12px; font-size: 0.8rem; color: #a7f3d0; flex-wrap: wrap;">
+                    <span>✓ Tier-2 Cloud Hosting</span>
+                    <span>✓ 256-Bit SSL Encryption</span>
+                    <span>✓ Automatic Daily Backups</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ SECTION (MYQUICKBILL STYLE) -->
+    <section class="mqb-faq-section" id="faq">
+        <div style="text-align: center; max-width: 750px; margin: 0 auto 3.5rem auto;">
+            <div class="section-tag-pill">Got Questions?</div>
+            <h2 class="section-h2-title">Frequently Asked Questions</h2>
+            <p class="section-p-sub">Everything you need to know about MyQuickBill GST billing and CRM suite.</p>
+        </div>
+
+        <div class="faq-accordion-box">
+            <div class="faq-card-row open" onclick="this.classList.toggle('open')">
+                <div class="faq-header-row">
+                    <span>How does payment through the dynamic UPI QR code work?</span>
+                    <i class="fa-solid fa-chevron-down faq-icon-arrow"></i>
+                </div>
+                <div class="faq-body-content">
+                    MyQuickBill encodes your configured Merchant UPI VPA (e.g. yourname@icici) along with the exact final invoice bill into a standard UPI QR code. The buyer simply opens GPay, PhonePe, Paytm or BHIM, scans the screen, and the exact amount is pre-filled.
+                </div>
+            </div>
+
+            <div class="faq-card-row" onclick="this.classList.toggle('open')">
+                <div class="faq-header-row">
+                    <span>Can I print bills on standard thermal POS printers?</span>
+                    <i class="fa-solid fa-chevron-down faq-icon-arrow"></i>
+                </div>
+                <div class="faq-body-content">
+                    Yes. The software supports printing formatted 3-inch (80mm) thermal receipts as well as full A4 tax invoices for tax records and B2B customers.
+                </div>
+            </div>
+
+            <div class="faq-card-row" onclick="this.classList.toggle('open')">
+                <div class="faq-header-row">
+                    <span>Do I need to buy a POS machine or barcode hardware?</span>
+                    <i class="fa-solid fa-chevron-down faq-icon-arrow"></i>
+                </div>
+                <div class="faq-body-content">
+                    No. MyQuickBill runs right in your web browser on your existing laptop, desktop, tablet, or phone. You don't need to rent or buy proprietary hardware.
+                </div>
+            </div>
+
+            <div class="faq-card-row" onclick="this.classList.toggle('open')">
+                <div class="faq-header-row">
+                    <span>Is MyQuickBill cloud-based and secure?</span>
+                    <i class="fa-solid fa-chevron-down faq-icon-arrow"></i>
+                </div>
+                <div class="faq-body-content">
+                    Yes. MyQuickBill is hosted on secure Tier-2 cloud infrastructure with 256-bit SSL encryption, automatic daily backups, and 24/7 access from any device.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BOTTOM CTA BANNER (MYQUICKBILL STYLE) -->
+    <section class="mqb-cta-banner">
+        <div class="cta-inner-wrap">
+            <h2 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; color: #ffffff;">
+                Ready to transform your business billing?
+            </h2>
+            <p style="font-size: 1.15rem; color: #bfdbfe; margin-bottom: 2.25rem; line-height: 1.6;">
+                Join over 10,000+ Indian retailers, wholesalers, and distributors managing their sales with MyQuickBill™.
+            </p>
+            <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                <a href="{% url 'distributor_login' %}" style="background: #ffffff; color: #0c1b3a; padding: 13px 28px; border-radius: 8px; font-weight: 800; font-size: 1rem; text-decoration: none;">
+                    <i class="fa-solid fa-store"></i> Distributor Login
+                </a>
+                <a href="{% url 'admin_login' %}" style="background: rgba(255,255,255,0.12); color: #ffffff; border: 1.5px solid rgba(255,255,255,0.3); padding: 13px 26px; border-radius: 8px; font-weight: 700; font-size: 1rem; text-decoration: none;">
                     <i class="fa-solid fa-shield-halved"></i> Admin Portal
                 </a>
             </div>
         </div>
     </section>
 
-    <!-- Features Section -->
-    <section class="features-section">
-        <div class="section-header">
-            <h2 class="section-title">Everything you need to scale</h2>
-            <p class="section-desc">We built this platform to handle the heavy lifting so you can focus on growing your distribution network.</p>
-        </div>
-        
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon icon-blue">
-                    <i class="fa-solid fa-qrcode"></i>
+    <!-- FOOTER (MYQUICKBILL STYLE) -->
+    <footer class="mqb-footer">
+        <div class="footer-grid-4col">
+            <div>
+                <a href="/" class="mqb-brand" style="padding: 0; margin-bottom: 1rem;">
+                    <div class="mqb-logo-icon" style="width: 34px; height: 34px; font-size: 1rem;">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </div>
+                    <div class="mqb-brand-text">
+                        <span class="mqb-brand-title" style="color: #ffffff; font-size: 1.15rem;">MyQuickBill<span style="color: #60a5fa;">™</span></span>
+                    </div>
+                </a>
+                <p style="font-size: 0.88rem; line-height: 1.6; max-width: 320px; color: #94a3b8; margin-top: 0.75rem;">
+                    ISO 9001:2015 Certified Cloud CRM & GST Billing Software for Indian MSMEs, Retailers & Distributors.
+                </p>
+                <div style="font-size: 0.8rem; color: #6ee7b7; margin-top: 1rem; font-weight: 600;">
+                    <i class="fa-solid fa-circle-check"></i> Backed by 24/7 AI & Phone Support
                 </div>
-                <h3 class="feature-title">Dynamic UPI QR</h3>
-                <p class="feature-text">Automatically generate a unique UPI QR code on every invoice. Customers scan and pay the exact amount instantly. No more cash counting.</p>
             </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon icon-emerald">
-                    <i class="fa-solid fa-boxes-stacked"></i>
-                </div>
-                <h3 class="feature-title">Smart Inventory</h3>
-                <p class="feature-text">Keep track of SKUs, stock levels, and HSN codes. Get alerted when stock is low and automatically calculate GST on a per-product basis.</p>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon icon-purple">
-                    <i class="fa-solid fa-users"></i>
-                </div>
-                <h3 class="feature-title">Customer CRM</h3>
-                <p class="feature-text">Maintain a directory of all your buyers. Track their purchase history, contact details, and GSTIN numbers for seamless B2B transactions.</p>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon icon-amber">
-                    <i class="fa-solid fa-chart-line"></i>
-                </div>
-                <h3 class="feature-title">Admin Ledger</h3>
-                <p class="feature-text">Administrators get a bird's-eye view of all distributors, sales volumes, and platform metrics with beautiful charts and data tables.</p>
-            </div>
-        </div>
-    </section>
 
-    <!-- How It Works Section -->
-    <section class="how-it-works">
-        <div class="section-header">
-            <h2 class="section-title">How it works</h2>
-            <p class="section-desc">Get started in three simple steps</p>
-        </div>
-        
-        <div class="steps-container">
-            <div class="step-item">
-                <div class="step-number">1</div>
-                <h3 class="step-title">Register Details</h3>
-                <p class="step-text">Sign up as a distributor and securely link your Merchant UPI ID to start accepting payments.</p>
+            <div>
+                <div class="footer-title-h5">Access Portals</div>
+                <ul class="footer-link-stack">
+                    <li><a href="{% url 'distributor_login' %}">Distributor Login</a></li>
+                    <li><a href="{% url 'admin_login' %}">Admin Master Console</a></li>
+                    <li><a href="{% url 'distributor_register' %}">Create New Account</a></li>
+                </ul>
             </div>
-            <div class="step-item">
-                <div class="step-number">2</div>
-                <h3 class="step-title">Add Catalog</h3>
-                <p class="step-text">Populate your inventory with products, SKUs, and applicable GST rates.</p>
-            </div>
-            <div class="step-item">
-                <div class="step-number">3</div>
-                <h3 class="step-title">Bill & Get Paid</h3>
-                <p class="step-text">Select a customer, add products, and hand them a professional invoice with an embedded payment QR.</p>
-            </div>
-        </div>
-    </section>
 
-    <!-- CTA Section -->
-    <section class="cta-section">
-        <h2 class="cta-title">Ready to modernize your billing?</h2>
-        <p style="font-size: 1.2rem; margin-bottom: 2rem; opacity: 0.9;">Join the ecosystem of next-gen distributors today.</p>
-        <a href="{% url 'distributor_login' %}" class="btn-hero" style="background: white; color: #4f46e5; box-shadow: 0 10px 20px rgba(0,0,0,0.15);">
-            Get Started Now <i class="fa-solid fa-arrow-right"></i>
-        </a>
-    </section>
-
-    <!-- Footer -->
-    <footer class="landing-footer">
-        <div class="footer-logo">
-            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                <i class="fa-solid fa-file-invoice-dollar" style="font-size: 1rem;"></i>
+            <div>
+                <div class="footer-title-h5">Core Modules</div>
+                <ul class="footer-link-stack">
+                    <li><a href="#features">GST Invoicing & POS</a></li>
+                    <li><a href="#features">Dynamic UPI QR Codes</a></li>
+                    <li><a href="#features">Stock & Inventory Radar</a></li>
+                    <li><a href="#features">Party CRM & Khata</a></li>
+                </ul>
             </div>
-            Advance Billing
+
+            <div>
+                <div class="footer-title-h5">Compliance & Standards</div>
+                <ul class="footer-link-stack">
+                    <li><span style="color: #cbd5e1;">ISO 9001:2015 Certified</span></li>
+                    <li><span style="color: #cbd5e1;">100% GST & HSN Compliant</span></li>
+                    <li><span style="color: #cbd5e1;">GPay / PhonePe / Paytm UPI</span></li>
+                </ul>
+            </div>
         </div>
-        <p>&copy; 2026 Advance Billing System. All rights reserved.</p>
-        <p style="font-size: 0.85rem; margin-top: 10px; opacity: 0.7;">Powered by Django & Modern Web UI</p>
+
+        <div class="footer-bottom-row">
+            <div>&copy; 2026 MyQuickBill™. All rights reserved.</div>
+            <div style="color: #64748b;">Engineered for Indian Businesses • Ready for 2026-2027</div>
+        </div>
     </footer>
 
 </div>
+
+<!-- Interactive JavaScript -->
+<script>
+    let activePhoneStep = 1;
+    let autoStepTimer = null;
+
+    function setPhoneStep(stepNum) {
+        activePhoneStep = stepNum;
+        for (let i = 1; i <= 4; i++) {
+            const card = document.getElementById('stepItem' + i);
+            const panel = document.getElementById('panelScreen' + i);
+            if (card && panel) {
+                if (i === stepNum) {
+                    card.classList.add('active');
+                    panel.classList.add('active-panel');
+                } else {
+                    card.classList.remove('active');
+                    panel.classList.remove('active-panel');
+                }
+            }
+        }
+    }
+
+    function initAutoStepCycle() {
+        autoStepTimer = setInterval(() => {
+            activePhoneStep = (activePhoneStep % 4) + 1;
+            setPhoneStep(activePhoneStep);
+        }, 4500);
+    }
+
+    document.querySelectorAll('.step-item-card').forEach(card => {
+        card.addEventListener('mouseenter', () => {
+            if (autoStepTimer) clearInterval(autoStepTimer);
+        });
+        card.addEventListener('mouseleave', () => {
+            initAutoStepCycle();
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initAutoStepCycle();
+    });
+</script>
 {% endblock %}

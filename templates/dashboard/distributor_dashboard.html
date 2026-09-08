@@ -48,109 +48,135 @@
     </div>
 </div>
 
-<!-- ================= Visual Analytics & Charts ================= -->
-<div class="charts-section">
-    <!-- Primary Row: Collections Trend & Payment Share -->
-    <div class="charts-grid-primary">
-        <!-- Box 1: Collection Trend Chart -->
-        <div class="chart-card accent-emerald">
-            <div class="chart-card-header">
-                <div class="chart-header-left">
-                    <div class="chart-icon-box emerald">
-                        <i class="fa-solid fa-chart-area"></i>
+<!-- ================= BillFlow Financial Analytics & Visualizers ================= -->
+<div class="fintech-visualizers-grid">
+    <!-- Module 1: Dual Spline/Bar Revenue Flow (2 Columns) -->
+    <div class="fintech-card">
+        <div class="fintech-header">
+            <div class="fintech-title-group">
+                <div class="fintech-title-row">
+                    <h2 class="fintech-title">Monthly Billed vs Collected Revenue Flow</h2>
+                    <span class="fintech-tag">FY 2026</span>
+                </div>
+                <p class="fintech-subtitle">Comparative dual vector analytics with linear cash realization velocity</p>
+            </div>
+            
+            <div class="fintech-controls">
+                <div class="fintech-legend-group">
+                    <div class="fintech-legend-item">
+                        <span class="fintech-dot primary"></span>
+                        <span>Billed</span>
                     </div>
-                    <div>
-                        <div class="chart-card-title">My Collection & Sales Activity</div>
-                        <div class="chart-card-subtitle">Daily collections and bills issued timeline</div>
+                    <div class="fintech-legend-item">
+                        <span class="fintech-dot tertiary"></span>
+                        <span>Collected</span>
+                    </div>
+                    <div class="fintech-legend-item">
+                        <span class="fintech-dot secondary"></span>
+                        <span style="color: #bbcabf;">Projected</span>
                     </div>
                 </div>
-                <span class="chart-badge emerald">
-                    <i class="fa-regular fa-calendar-check"></i> {{ chart_window_label }}
-                </span>
-            </div>
 
-            <div class="chart-canvas-wrap">
-                <canvas id="distRevenueChart"></canvas>
-            </div>
-
-            <div class="chart-meta-strip">
-                <div class="chart-meta-item">
-                    <i class="fa-solid fa-circle-dot" style="color: #10b981;"></i>
-                    <span>Period Collection: <strong>₹{{ chart_period_revenue|floatformat:2 }}</strong></span>
-                </div>
-                <div class="chart-meta-item">
-                    <i class="fa-solid fa-file-invoice" style="color: #4f46e5;"></i>
-                    <span>Bills Issued: <strong>{{ chart_period_invoices }}</strong></span>
+                <!-- Spline / Bars View Switch -->
+                <div class="fintech-view-switch">
+                    <button type="button" class="fintech-view-btn active" id="toggleSplineBtn">Spline</button>
+                    <button type="button" class="fintech-view-btn" id="toggleBarsBtn">Bars</button>
                 </div>
             </div>
         </div>
 
-        <!-- Box 2: Payment Distribution -->
-        <div class="chart-card accent-cyan">
-            <div class="chart-card-header">
-                <div class="chart-header-left">
-                    <div class="chart-icon-box cyan">
-                        <i class="fa-solid fa-qrcode"></i>
-                    </div>
-                    <div>
-                        <div class="chart-card-title">Payment Modes</div>
-                        <div class="chart-card-subtitle">QR vs Cash settlement share</div>
-                    </div>
+        <!-- Canvas Container with Interactive Floating HUD Tooltip -->
+        <div class="fintech-canvas-container">
+            <canvas id="fintechDualFlowCanvas"></canvas>
+            
+            <!-- Interactive Floating HUD Tooltip -->
+            <div class="fintech-hud-tooltip" id="fintechHudTooltip">
+                <div class="fintech-hud-date" id="hudDate">{{ hud_date_label }}</div>
+                <div class="fintech-hud-row">
+                    <span class="fintech-hud-lbl primary">Billed:</span>
+                    <span class="fintech-hud-val" id="hudBilled">{{ hud_billed_val }}</span>
                 </div>
-                <span class="chart-badge cyan">
-                    <i class="fa-solid fa-shield-halved"></i> Live Share
-                </span>
-            </div>
-
-            <div class="chart-canvas-wrap">
-                <canvas id="distPaymentChart"></canvas>
+                <div class="fintech-hud-row">
+                    <span class="fintech-hud-lbl tertiary">Collected:</span>
+                    <span class="fintech-hud-val" id="hudCollected">{{ hud_collected_val }}</span>
+                </div>
+                <div class="fintech-hud-divider"></div>
+                <div class="fintech-hud-row">
+                    <span class="fintech-hud-lbl" style="color: #bbcabf;">Efficiency:</span>
+                    <span class="fintech-hud-val" id="hudEff" style="color: #4edea3; font-weight: 700;">{{ hud_efficiency_pct }}</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Secondary Row: Top Billed Products & Category Distribution -->
-    <div class="charts-grid-secondary">
-        <!-- Box 3: Top Products -->
-        <div class="chart-card accent-amber">
-            <div class="chart-card-header">
-                <div class="chart-header-left">
-                    <div class="chart-icon-box amber">
-                        <i class="fa-solid fa-boxes-packing"></i>
-                    </div>
-                    <div>
-                        <div class="chart-card-title">Top Billed Products</div>
-                        <div class="chart-card-subtitle">Highest grossing inventory items</div>
-                    </div>
+    <!-- Module 2: Invoice Status Radial Donut Visualizer (1 Column) -->
+    <div class="fintech-card">
+        <div class="fintech-header">
+            <div class="fintech-title-group">
+                <div class="fintech-title-row">
+                    <h2 class="fintech-title">Invoice Status</h2>
                 </div>
-                <span class="chart-badge amber">
-                    <i class="fa-solid fa-trophy"></i> Top 5
-                </span>
+                <p class="fintech-subtitle">Distribution across active ledgers</p>
             </div>
+            <button type="button" style="background: none; border: none; color: #bbcabf; cursor: pointer;">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+        </div>
 
-            <div class="chart-canvas-wrap">
-                <canvas id="distTopProductsChart"></canvas>
+        <!-- Donut Canvas with Center Readout -->
+        <div class="fintech-donut-wrapper">
+            <canvas id="fintechStatusCanvas"></canvas>
+            <div class="fintech-donut-center">
+                <span class="fintech-donut-center-lbl">TOTAL BILLED</span>
+                <span class="fintech-donut-center-val">{{ compact_total_billed }}</span>
+                <span class="fintech-donut-center-sub">{{ total_invoices_count }} Invoices</span>
             </div>
         </div>
 
-        <!-- Box 4: Sales by Category -->
-        <div class="chart-card accent-indigo">
-            <div class="chart-card-header">
-                <div class="chart-header-left">
-                    <div class="chart-icon-box indigo">
-                        <i class="fa-solid fa-cubes"></i>
-                    </div>
-                    <div>
-                        <div class="chart-card-title">Sales by Category</div>
-                        <div class="chart-card-subtitle">Department revenue contribution</div>
-                    </div>
+        <!-- Legend Breakdown List -->
+        <div class="fintech-breakdown-list">
+            <div class="fintech-breakdown-row">
+                <div class="fintech-breakdown-left">
+                    <span class="fintech-dot primary"></span>
+                    <span class="fintech-breakdown-title">Paid / Settled</span>
                 </div>
-                <span class="chart-badge indigo">
-                    <i class="fa-solid fa-layer-group"></i> Categories
-                </span>
+                <div class="fintech-breakdown-right">
+                    <span class="fintech-breakdown-amt">₹{{ status_paid_tot|floatformat:2 }}</span>
+                    <span class="fintech-breakdown-pct">{{ status_paid_pct }}%</span>
+                </div>
             </div>
 
-            <div class="chart-canvas-wrap">
-                <canvas id="distCategoryChart"></canvas>
+            <div class="fintech-breakdown-row">
+                <div class="fintech-breakdown-left">
+                    <span class="fintech-dot tertiary"></span>
+                    <span class="fintech-breakdown-title">Pending / Due</span>
+                </div>
+                <div class="fintech-breakdown-right">
+                    <span class="fintech-breakdown-amt">₹{{ status_pending_tot|floatformat:2 }}</span>
+                    <span class="fintech-breakdown-pct">{{ status_pending_pct }}%</span>
+                </div>
+            </div>
+
+            <div class="fintech-breakdown-row">
+                <div class="fintech-breakdown-left">
+                    <span class="fintech-dot secondary"></span>
+                    <span class="fintech-breakdown-title">UPI QR Code</span>
+                </div>
+                <div class="fintech-breakdown-right">
+                    <span class="fintech-breakdown-amt">₹{{ status_qr_tot|floatformat:2 }}</span>
+                    <span class="fintech-breakdown-pct">{{ status_qr_pct }}%</span>
+                </div>
+            </div>
+
+            <div class="fintech-breakdown-row">
+                <div class="fintech-breakdown-left">
+                    <span class="fintech-dot error"></span>
+                    <span class="fintech-breakdown-title">Cash at Counter</span>
+                </div>
+                <div class="fintech-breakdown-right">
+                    <span class="fintech-breakdown-amt">₹{{ status_cash_tot|floatformat:2 }}</span>
+                    <span class="fintech-breakdown-pct">{{ status_cash_pct }}%</span>
+                </div>
             </div>
         </div>
     </div>
@@ -220,269 +246,212 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     Chart.defaults.font.family = "'Plus Jakarta Sans', -apple-system, sans-serif";
-    Chart.defaults.color = '#64748b';
+    Chart.defaults.color = '#86948a';
 
     const chartDates = {{ chart_dates_json|safe }};
-    const chartRevenue = {{ chart_revenue_json|safe }};
-    const chartInvoices = {{ chart_invoices_json|safe }};
+    const chartBilled = {{ chart_billed_json|safe }};
+    const chartCollected = {{ chart_collected_json|safe }};
+    const chartProjected = {{ chart_projected_json|safe }};
 
-    const paymentLabels = {{ payment_labels_json|safe }};
-    const paymentData = {{ payment_data_json|safe }};
-
-    const topProductsLabels = {{ top_products_labels_json|safe }};
-    const topProductsSales = {{ top_products_sales_json|safe }};
-
-    const categoryLabels = {{ category_labels_json|safe }};
-    const categoryData = {{ category_data_json|safe }};
+    const donutLabels = {{ donut_labels_json|safe }};
+    const donutValues = {{ donut_values_json|safe }};
 
     const formatINR = (val) => '₹' + Number(val).toLocaleString('en-IN', { maximumFractionDigits: 2 });
 
     // ─────────────────────────────────────────────────────────────
-    // Chart 1: Distributor Revenue & Billing (Dual Axis)
+    // Chart 1: Dual Vector Spline & Bar Revenue Flow (Fintech Style)
     // ─────────────────────────────────────────────────────────────
-    const ctxRevenue = document.getElementById('distRevenueChart');
-    if (ctxRevenue) {
-        const chartCtx = ctxRevenue.getContext('2d');
-        const gradientRev = chartCtx.createLinearGradient(0, 0, 0, 260);
-        gradientRev.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
-        gradientRev.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
+    const ctxFlow = document.getElementById('fintechDualFlowCanvas');
+    let flowChart = null;
 
-        new Chart(ctxRevenue, {
-            type: 'line',
-            data: {
-                labels: chartDates,
-                datasets: [
-                    {
-                        label: 'Collections (₹)',
-                        data: chartRevenue,
-                        borderColor: '#10b981',
-                        backgroundColor: gradientRev,
-                        borderWidth: 3,
-                        pointBackgroundColor: '#10b981',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 7,
-                        fill: true,
-                        tension: 0.35,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Bills Issued',
-                        data: chartInvoices,
-                        borderColor: '#4f46e5',
-                        backgroundColor: 'rgba(79, 70, 229, 0.75)',
-                        borderWidth: 1,
-                        borderRadius: 6,
-                        type: 'bar',
-                        barThickness: 16,
-                        yAxisID: 'y1'
-                    }
-                ]
+    if (ctxFlow) {
+        const chartCtx = ctxFlow.getContext('2d');
+        
+        // Gradients matching BillFlow Terminal specification
+        const gradPrimary = chartCtx.createLinearGradient(0, 0, 0, 260);
+        gradPrimary.addColorStop(0, 'rgba(78, 222, 163, 0.35)');
+        gradPrimary.addColorStop(1, 'rgba(78, 222, 163, 0.00)');
+
+        const gradTertiary = chartCtx.createLinearGradient(0, 0, 0, 260);
+        gradTertiary.addColorStop(0, 'rgba(76, 215, 246, 0.28)');
+        gradTertiary.addColorStop(1, 'rgba(76, 215, 246, 0.00)');
+
+        const flowDataConfig = {
+            labels: chartDates,
+            datasets: [
+                {
+                    label: 'Billed',
+                    data: chartBilled,
+                    borderColor: '#4edea3',
+                    backgroundColor: gradPrimary,
+                    borderWidth: 2.5,
+                    pointBackgroundColor: '#4edea3',
+                    pointBorderColor: '#10131a',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 7,
+                    fill: true,
+                    tension: 0.38,
+                    order: 2
+                },
+                {
+                    label: 'Collected',
+                    data: chartCollected,
+                    borderColor: '#4cd7f6',
+                    backgroundColor: gradTertiary,
+                    borderWidth: 2.5,
+                    pointBackgroundColor: '#4cd7f6',
+                    pointBorderColor: '#10131a',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 7,
+                    fill: true,
+                    tension: 0.38,
+                    order: 3
+                },
+                {
+                    label: 'Projected',
+                    data: chartProjected,
+                    borderColor: '#c3c0ff',
+                    borderDash: [4, 4],
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0.38,
+                    order: 1
+                }
+            ]
+        };
+
+        const flowOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false
-                },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        align: 'end',
-                        labels: {
-                            usePointStyle: true,
-                            boxWidth: 8,
-                            padding: 15,
-                            font: { weight: '600', size: 11 }
-                        }
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    enabled: false,
+                    external: function(context) {
+                        const tooltipModel = context.tooltip;
+                        if (!tooltipModel || tooltipModel.opacity === 0) return;
+                        
+                        const dataIndex = tooltipModel.dataPoints[0].dataIndex;
+                        const curDate = chartDates[dataIndex];
+                        const curBilled = chartBilled[dataIndex] || 0;
+                        const curCollected = chartCollected[dataIndex] || 0;
+                        const eff = curBilled > 0 ? ((curCollected / curBilled) * 100).toFixed(1) : '100.0';
+
+                        const hudDate = document.getElementById('hudDate');
+                        const hudBilled = document.getElementById('hudBilled');
+                        const hudCollected = document.getElementById('hudCollected');
+                        const hudEff = document.getElementById('hudEff');
+
+                        if (hudDate) hudDate.textContent = curDate + ', 2026';
+                        if (hudBilled) hudBilled.textContent = formatINR(curBilled);
+                        if (hudCollected) hudCollected.textContent = formatINR(curCollected);
+                        if (hudEff) hudEff.textContent = eff + '%';
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: 'rgba(50, 53, 61, 0.4)',
+                        borderDash: [3, 3]
                     },
-                    tooltip: {
-                        backgroundColor: '#0f172a',
-                        titleColor: '#ffffff',
-                        bodyColor: '#e2e8f0',
-                        padding: 12,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: function(context) {
-                                if (context.dataset.label.includes('Collections')) {
-                                    return ' Collected: ' + formatINR(context.raw);
-                                }
-                                return ' Invoices: ' + context.raw;
-                            }
-                        }
+                    ticks: {
+                        color: '#86948a',
+                        font: { size: 11, weight: '600' }
                     }
                 },
-                scales: {
-                    x: {
-                        grid: { display: false }
+                y: {
+                    grid: {
+                        color: 'rgba(50, 53, 61, 0.4)',
+                        borderDash: [3, 3]
                     },
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        grid: { color: '#f1f5f9' },
-                        ticks: {
-                            callback: (v) => '₹' + v
-                        }
-                    },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        grid: { drawOnChartArea: false },
-                        ticks: {
-                            stepSize: 1,
-                            precision: 0
-                        }
+                    ticks: {
+                        color: '#86948a',
+                        font: { size: 11 },
+                        callback: (v) => '₹' + v
                     }
                 }
             }
+        };
+
+        flowChart = new Chart(ctxFlow, {
+            type: 'line',
+            data: flowDataConfig,
+            options: flowOptions
         });
+
+        // Toggle Spline / Bars View Handler
+        const splineBtn = document.getElementById('toggleSplineBtn');
+        const barsBtn = document.getElementById('toggleBarsBtn');
+
+        if (splineBtn && barsBtn) {
+            splineBtn.addEventListener('click', function() {
+                splineBtn.classList.add('active');
+                barsBtn.classList.remove('active');
+                flowChart.config.data.datasets[0].type = 'line';
+                flowChart.config.data.datasets[0].fill = true;
+                flowChart.config.data.datasets[1].type = 'line';
+                flowChart.config.data.datasets[1].fill = true;
+                flowChart.update();
+            });
+
+            barsBtn.addEventListener('click', function() {
+                barsBtn.classList.add('active');
+                splineBtn.classList.remove('active');
+                flowChart.config.data.datasets[0].type = 'bar';
+                flowChart.config.data.datasets[0].borderRadius = 4;
+                flowChart.config.data.datasets[0].barPercentage = 0.6;
+                flowChart.config.data.datasets[1].type = 'bar';
+                flowChart.config.data.datasets[1].borderRadius = 4;
+                flowChart.config.data.datasets[1].barPercentage = 0.6;
+                flowChart.update();
+            });
+        }
     }
 
     // ─────────────────────────────────────────────────────────────
-    // Chart 2: Distributor Payment Method (Doughnut)
+    // Chart 2: Invoice Status Radial Donut Visualizer
     // ─────────────────────────────────────────────────────────────
-    const ctxPayment = document.getElementById('distPaymentChart');
-    if (ctxPayment) {
-        new Chart(ctxPayment, {
+    const ctxStatus = document.getElementById('fintechStatusCanvas');
+    if (ctxStatus) {
+        new Chart(ctxStatus, {
             type: 'doughnut',
             data: {
-                labels: paymentLabels,
+                labels: donutLabels,
                 datasets: [{
-                    data: paymentData,
+                    data: donutValues,
                     backgroundColor: [
-                        '#06b6d4',
-                        '#10b981',
-                        '#4f46e5',
-                        '#f59e0b',
-                        '#ec4899'
+                        '#4edea3', // Paid / Settled
+                        '#4cd7f6', // Pending / Due
+                        '#c3c0ff', // UPI QR Code
+                        '#ffb4ab'  // Cash / Direct
                     ],
-                    borderWidth: 2,
-                    borderColor: '#ffffff',
+                    borderWidth: 3,
+                    borderColor: '#0b0e15',
                     hoverOffset: 6
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: '68%',
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 16,
-                            font: { size: 11.5, weight: '600' }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: '#0f172a',
-                        padding: 12,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: (ctx) => ' ' + ctx.label + ': ' + formatINR(ctx.raw)
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // Chart 3: Distributor Top Products (Horizontal Bar)
-    // ─────────────────────────────────────────────────────────────
-    const ctxProducts = document.getElementById('distTopProductsChart');
-    if (ctxProducts) {
-        new Chart(ctxProducts, {
-            type: 'bar',
-            data: {
-                labels: topProductsLabels,
-                datasets: [{
-                    label: 'Gross Sales',
-                    data: topProductsSales,
-                    backgroundColor: [
-                        'rgba(16, 185, 129, 0.85)',
-                        'rgba(79, 70, 229, 0.85)',
-                        'rgba(245, 158, 11, 0.85)',
-                        'rgba(6, 182, 212, 0.85)',
-                        'rgba(236, 72, 153, 0.85)'
-                    ],
-                    borderRadius: 8,
-                    borderSkipped: false,
-                    barThickness: 20
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
+                cutout: '74%',
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: '#0f172a',
+                        backgroundColor: '#1d1f27',
+                        titleColor: '#bbcabf',
+                        bodyColor: '#ffffff',
+                        borderColor: '#32353d',
+                        borderWidth: 1,
                         padding: 10,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: (ctx) => ' Billed: ' + formatINR(ctx.raw)
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        grid: { color: '#f1f5f9' },
-                        ticks: { callback: (v) => '₹' + v }
-                    },
-                    y: {
-                        grid: { display: false }
-                    }
-                }
-            }
-        });
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // Chart 4: Sales by Category (Doughnut)
-    // ─────────────────────────────────────────────────────────────
-    const ctxCategory = document.getElementById('distCategoryChart');
-    if (ctxCategory) {
-        new Chart(ctxCategory, {
-            type: 'doughnut',
-            data: {
-                labels: categoryLabels,
-                datasets: [{
-                    data: categoryData,
-                    backgroundColor: [
-                        '#6366f1',
-                        '#10b981',
-                        '#f59e0b',
-                        '#06b6d4',
-                        '#8b5cf6'
-                    ],
-                    borderWidth: 2,
-                    borderColor: '#ffffff',
-                    hoverOffset: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '62%',
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 14,
-                            font: { size: 11.5, weight: '600' }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: '#0f172a',
-                        padding: 12,
-                        cornerRadius: 8,
+                        cornerRadius: 6,
                         callbacks: {
                             label: (ctx) => ' ' + ctx.label + ': ' + formatINR(ctx.raw)
                         }

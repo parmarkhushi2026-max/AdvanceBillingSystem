@@ -210,6 +210,7 @@
                 <div class="app-container" style="padding: 2rem;">
     {% else %}
         <!-- UNAUTHENTICATED LAYOUT -->
+        {% block unauth_header %}
         <header class="app-header">
             <nav class="navbar" style="max-width: 1300px; margin: 0 auto; padding: 0.85rem 1.5rem; display: flex; align-items: center; justify-content: space-between;">
                 <a href="{% url 'portal_select' %}" class="brand-logo" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: white; font-weight: 700; font-size: 1.25rem;">
@@ -229,8 +230,9 @@
                 </div>
             </nav>
         </header>
+        {% endblock %}
 
-        <main class="app-container" style="max-width: 1300px; margin: 0 auto; padding: 2rem 1.5rem;">
+        <main class="app-container {% block main_container_class %}{% endblock %}" style="{% block main_container_style %}max-width: 1300px; margin: 0 auto; padding: 2rem 1.5rem;{% endblock %}">
     {% endif %}
 
             <!-- Common Flash Messages -->

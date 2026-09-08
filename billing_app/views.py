@@ -134,87 +134,99 @@ def prepare_dashboard_charts(queryset=None, is_distributor=False, distributor_us
     today = timezone.now().date()
     latest_inv = queryset.order_by('-created_at').first()
     
-    # Anchor 7-day window: if latest activity is older than 6 days, anchor to latest invoice date so data shows immediately
     if latest_inv and (today - latest_inv.created_at.date()).days > 6:
         end_date = latest_inv.created_at.date()
     else:
         end_date = today
 
     chart_dates = []
-    chart_revenue = []
+    chart_billed = []
+    chart_collected = []
+    chart_projected = []
     chart_invoices = []
     
     for i in reversed(range(7)):
         d = end_date - timedelta(days=i)
-        chart_dates.append(d.strftime('%d %b'))
+        chart_dates.append(d.strftime('%b %d'))
         day_qs = queryset.filter(created_at__date=d)
-        day_rev = day_qs.filter(payment_status='PAID').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
-        day_count = day_qs.count()
-        chart_revenue.append(float(day_rev))
-        chart_invoices.append(day_count)
-    
-    # Payment Method Breakdown
-    pm_stats = queryset.values('payment_method').annotate(count=Count('id'), total=Sum('grand_total')).order_by('-total')
-    payment_labels = [p['payment_method'] or 'UPI QR Code' for p in pm_stats]
-    payment_data = [float(p['total'] or 0) for p in pm_stats]
-    payment_counts = [p['count'] for p in pm_stats]
-
-    if not payment_labels:
-        payment_labels = ['UPI QR Code']
-        payment_data = [0]
-        payment_counts = [0]
-
-    # Top Selling Products
-    if is_distributor and distributor_user:
-        items_qs = InvoiceItem.objects.filter(invoice__distributor=distributor_user)
-    else:
-        items_qs = InvoiceItem.objects.all()
         
-    top_items = items_qs.values('product_name').annotate(sales=Sum('total'), qty=Sum('quantity')).order_by('-sales')[:5]
-    top_products_labels = [p['product_name'] for p in top_items]
-    top_products_sales = [float(p['sales'] or 0) for p in top_items]
-    top_products_qty = [p['qty'] for p in top_items]
+        day_billed = float(day_qs.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00'))
+        day_collected = float(day_qs.filter(payment_status='PAID').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00'))
+        day_projected = round(day_billed * 1.08, 2)
+        day_count = day_qs.count()
+        
+        chart_billed.append(day_billed)
+        chart_collected.append(day_collected)
+        chart_projected.append(day_projected)
+        chart_invoices.append(day_count)
 
-    if not top_products_labels:
-        cat_products = Product.objects.all()[:5]
-        top_products_labels = [p.name for p in cat_products]
-        top_products_sales = [float(p.price) for p in cat_products]
-        top_products_qty = [0 for _ in cat_products]
+    # Total metrics
+    total_billed = float(queryset.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00'))
+    total_collected = float(queryset.filter(payment_status='PAID').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00'))
+    total_inv_count = queryset.count()
 
-    # Category Breakdown
-    cat_items = items_qs.values('product__category').annotate(sales=Sum('total'), qty=Sum('quantity')).order_by('-sales')
-    category_labels = []
-    category_data = []
-    for c in cat_items:
-        c_name = c['product__category'] or 'General'
-        if c_name not in category_labels:
-            category_labels.append(c_name)
-            category_data.append(float(c['sales'] or 0))
+    # Latest active day HUD
+    latest_b = chart_billed[-1]
+    latest_c = chart_collected[-1]
+    hud_eff = round((latest_c / latest_b * 100), 1) if latest_b > 0 else (round((total_collected / total_billed * 100), 1) if total_billed > 0 else 100.0)
 
-    if not category_labels:
-        all_cats = list(Product.objects.values_list('category', flat=True).distinct())
-        category_labels = all_cats if all_cats else ['Hardware', 'Software', 'Supplies']
-        category_data = [0] * len(category_labels)
+    # Status Breakdown
+    paid_qs = queryset.filter(payment_status='PAID')
+    pending_qs = queryset.filter(~Q(payment_status='PAID'))
+    qr_qs = queryset.filter(payment_method__icontains='QR')
+    cash_qs = queryset.filter(payment_method__icontains='Cash')
 
-    # Calculate summary metrics for charts
-    total_chart_rev = sum(chart_revenue)
-    total_chart_inv = sum(chart_invoices)
+    paid_tot = float(paid_qs.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00'))
+    pending_tot = float(pending_qs.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00'))
+    qr_tot = float(qr_qs.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00'))
+    cash_tot = float(cash_qs.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00'))
+
+    base_tot = total_billed if total_billed > 0 else 1.0
+    paid_pct = round((paid_tot / base_tot) * 100, 1)
+    pending_pct = round((pending_tot / base_tot) * 100, 1)
+    qr_pct = round((qr_tot / base_tot) * 100, 1)
+    cash_pct = round((cash_tot / base_tot) * 100, 1)
+
+    # Compact notation
+    if total_billed >= 100000:
+        compact_total_billed = f"₹{total_billed/100000:.1f}L"
+    elif total_billed >= 1000:
+        compact_total_billed = f"₹{total_billed/1000:.1f}K"
+    else:
+        compact_total_billed = f"₹{total_billed:.0f}"
+
+    # Donut slices data (Paid, Pending, UPI QR, Cash)
+    donut_labels = ['Paid / Settled', 'Pending / Due', 'UPI QR Code', 'Cash / Direct']
+    donut_values = [paid_tot, pending_tot, qr_tot, cash_tot]
 
     return {
         'chart_dates_json': json.dumps(chart_dates),
-        'chart_revenue_json': json.dumps(chart_revenue),
+        'chart_billed_json': json.dumps(chart_billed),
+        'chart_collected_json': json.dumps(chart_collected),
+        'chart_revenue_json': json.dumps(chart_collected),
+        'chart_projected_json': json.dumps(chart_projected),
         'chart_invoices_json': json.dumps(chart_invoices),
-        'payment_labels_json': json.dumps(payment_labels),
-        'payment_data_json': json.dumps(payment_data),
-        'payment_counts_json': json.dumps(payment_counts),
-        'top_products_labels_json': json.dumps(top_products_labels),
-        'top_products_sales_json': json.dumps(top_products_sales),
-        'top_products_qty_json': json.dumps(top_products_qty),
-        'category_labels_json': json.dumps(category_labels),
-        'category_data_json': json.dumps(category_data),
+        
+        'hud_date_label': f"{chart_dates[-1]}, {today.year}",
+        'hud_billed_val': f"₹{latest_b:,.2f}",
+        'hud_collected_val': f"₹{latest_c:,.2f}",
+        'hud_efficiency_pct': f"{hud_eff}%",
+        
+        'compact_total_billed': compact_total_billed,
+        'total_invoices_count': total_inv_count,
+        
+        'status_paid_tot': paid_tot,
+        'status_paid_pct': paid_pct,
+        'status_pending_tot': pending_tot,
+        'status_pending_pct': pending_pct,
+        'status_qr_tot': qr_tot,
+        'status_qr_pct': qr_pct,
+        'status_cash_tot': cash_tot,
+        'status_cash_pct': cash_pct,
+        
+        'donut_labels_json': json.dumps(donut_labels),
+        'donut_values_json': json.dumps(donut_values),
         'chart_window_label': f"{chart_dates[0]} - {chart_dates[-1]}",
-        'chart_period_revenue': total_chart_rev,
-        'chart_period_invoices': total_chart_inv,
     }
 
 
