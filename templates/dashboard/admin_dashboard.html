@@ -62,15 +62,17 @@
 <div class="charts-section">
     <!-- Primary Row: Revenue Trend & Payment Breakdown -->
     <div class="charts-grid-primary">
-        <!-- Revenue & Billing Trend -->
-        <div class="chart-card">
+        <!-- Box 1: Revenue & Billing Trend -->
+        <div class="chart-card accent-indigo">
             <div class="chart-card-header">
-                <div>
-                    <div class="chart-card-title">
-                        <i class="fa-solid fa-chart-line" style="color: #4f46e5;"></i>
-                        <span>System Revenue & Billing Activity</span>
+                <div class="chart-header-left">
+                    <div class="chart-icon-box indigo">
+                        <i class="fa-solid fa-chart-line"></i>
                     </div>
-                    <div class="chart-card-subtitle">Daily collections and invoice volume trend</div>
+                    <div>
+                        <div class="chart-card-title">System Revenue & Billing Activity</div>
+                        <div class="chart-card-subtitle">Daily collections and invoice volume trend</div>
+                    </div>
                 </div>
                 <span class="chart-badge indigo">
                     <i class="fa-regular fa-calendar-check"></i> {{ chart_window_label }}
@@ -93,18 +95,20 @@
             </div>
         </div>
 
-        <!-- Payment Method Distribution -->
-        <div class="chart-card">
+        <!-- Box 2: Payment Method Distribution -->
+        <div class="chart-card accent-cyan">
             <div class="chart-card-header">
-                <div>
-                    <div class="chart-card-title">
-                        <i class="fa-solid fa-chart-pie" style="color: #06b6d4;"></i>
-                        <span>Payment Methods</span>
+                <div class="chart-header-left">
+                    <div class="chart-icon-box cyan">
+                        <i class="fa-solid fa-qrcode"></i>
                     </div>
-                    <div class="chart-card-subtitle">QR vs Offline settlement share</div>
+                    <div>
+                        <div class="chart-card-title">Payment Methods</div>
+                        <div class="chart-card-subtitle">QR vs Offline settlement share</div>
+                    </div>
                 </div>
                 <span class="chart-badge cyan">
-                    <i class="fa-solid fa-qrcode"></i> Live Share
+                    <i class="fa-solid fa-shield-halved"></i> Live Share
                 </span>
             </div>
 
@@ -116,15 +120,17 @@
 
     <!-- Secondary Row: Top Products & Category Breakdown -->
     <div class="charts-grid-secondary">
-        <!-- Top Products -->
-        <div class="chart-card">
+        <!-- Box 3: Top Products -->
+        <div class="chart-card accent-amber">
             <div class="chart-card-header">
-                <div>
-                    <div class="chart-card-title">
-                        <i class="fa-solid fa-ranking-star" style="color: #f59e0b;"></i>
-                        <span>Top Selling Products by Revenue</span>
+                <div class="chart-header-left">
+                    <div class="chart-icon-box amber">
+                        <i class="fa-solid fa-ranking-star"></i>
                     </div>
-                    <div class="chart-card-subtitle">Highest grossing inventory items</div>
+                    <div>
+                        <div class="chart-card-title">Top Selling Products by Revenue</div>
+                        <div class="chart-card-subtitle">Highest grossing inventory items</div>
+                    </div>
                 </div>
                 <span class="chart-badge amber">
                     <i class="fa-solid fa-award"></i> Top 5
@@ -136,18 +142,20 @@
             </div>
         </div>
 
-        <!-- Category Distribution -->
-        <div class="chart-card">
+        <!-- Box 4: Category Distribution -->
+        <div class="chart-card accent-emerald">
             <div class="chart-card-header">
-                <div>
-                    <div class="chart-card-title">
-                        <i class="fa-solid fa-layer-group" style="color: #10b981;"></i>
-                        <span>Sales by Category</span>
+                <div class="chart-header-left">
+                    <div class="chart-icon-box emerald">
+                        <i class="fa-solid fa-cubes"></i>
                     </div>
-                    <div class="chart-card-subtitle">Product category revenue contribution</div>
+                    <div>
+                        <div class="chart-card-title">Sales by Category</div>
+                        <div class="chart-card-subtitle">Product category revenue contribution</div>
+                    </div>
                 </div>
                 <span class="chart-badge emerald">
-                    <i class="fa-solid fa-cubes"></i> Categories
+                    <i class="fa-solid fa-layer-group"></i> Categories
                 </span>
             </div>
 

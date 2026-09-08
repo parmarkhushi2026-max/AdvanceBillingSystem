@@ -52,15 +52,17 @@
 <div class="charts-section">
     <!-- Primary Row: Collections Trend & Payment Share -->
     <div class="charts-grid-primary">
-        <!-- Collection Trend Chart -->
-        <div class="chart-card">
+        <!-- Box 1: Collection Trend Chart -->
+        <div class="chart-card accent-emerald">
             <div class="chart-card-header">
-                <div>
-                    <div class="chart-card-title">
-                        <i class="fa-solid fa-chart-area" style="color: #10b981;"></i>
-                        <span>My Collection & Sales Activity</span>
+                <div class="chart-header-left">
+                    <div class="chart-icon-box emerald">
+                        <i class="fa-solid fa-chart-area"></i>
                     </div>
-                    <div class="chart-card-subtitle">Daily revenue collected and bills issued</div>
+                    <div>
+                        <div class="chart-card-title">My Collection & Sales Activity</div>
+                        <div class="chart-card-subtitle">Daily collections and bills issued timeline</div>
+                    </div>
                 </div>
                 <span class="chart-badge emerald">
                     <i class="fa-regular fa-calendar-check"></i> {{ chart_window_label }}
@@ -83,18 +85,20 @@
             </div>
         </div>
 
-        <!-- Payment Distribution -->
-        <div class="chart-card">
+        <!-- Box 2: Payment Distribution -->
+        <div class="chart-card accent-cyan">
             <div class="chart-card-header">
-                <div>
-                    <div class="chart-card-title">
-                        <i class="fa-solid fa-qrcode" style="color: #06b6d4;"></i>
-                        <span>Payment Modes</span>
+                <div class="chart-header-left">
+                    <div class="chart-icon-box cyan">
+                        <i class="fa-solid fa-qrcode"></i>
                     </div>
-                    <div class="chart-card-subtitle">QR vs Offline settlement share</div>
+                    <div>
+                        <div class="chart-card-title">Payment Modes</div>
+                        <div class="chart-card-subtitle">QR vs Cash settlement share</div>
+                    </div>
                 </div>
                 <span class="chart-badge cyan">
-                    <i class="fa-solid fa-shield-halved"></i> Verified
+                    <i class="fa-solid fa-shield-halved"></i> Live Share
                 </span>
             </div>
 
@@ -104,24 +108,49 @@
         </div>
     </div>
 
-    <!-- Secondary Row: Top Billed Products -->
-    <div class="charts-grid-secondary" style="grid-template-columns: 1fr;">
-        <div class="chart-card">
+    <!-- Secondary Row: Top Billed Products & Category Distribution -->
+    <div class="charts-grid-secondary">
+        <!-- Box 3: Top Products -->
+        <div class="chart-card accent-amber">
             <div class="chart-card-header">
-                <div>
-                    <div class="chart-card-title">
-                        <i class="fa-solid fa-boxes-packing" style="color: #f59e0b;"></i>
-                        <span>My Top Billed Inventory Items</span>
+                <div class="chart-header-left">
+                    <div class="chart-icon-box amber">
+                        <i class="fa-solid fa-boxes-packing"></i>
                     </div>
-                    <div class="chart-card-subtitle">Fastest moving stock items by gross billing value</div>
+                    <div>
+                        <div class="chart-card-title">Top Billed Products</div>
+                        <div class="chart-card-subtitle">Highest grossing inventory items</div>
+                    </div>
                 </div>
                 <span class="chart-badge amber">
-                    <i class="fa-solid fa-trophy"></i> Top Demand
+                    <i class="fa-solid fa-trophy"></i> Top 5
                 </span>
             </div>
 
-            <div class="chart-canvas-wrap" style="min-height: 240px; max-height: 270px;">
+            <div class="chart-canvas-wrap">
                 <canvas id="distTopProductsChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Box 4: Sales by Category -->
+        <div class="chart-card accent-indigo">
+            <div class="chart-card-header">
+                <div class="chart-header-left">
+                    <div class="chart-icon-box indigo">
+                        <i class="fa-solid fa-cubes"></i>
+                    </div>
+                    <div>
+                        <div class="chart-card-title">Sales by Category</div>
+                        <div class="chart-card-subtitle">Department revenue contribution</div>
+                    </div>
+                </div>
+                <span class="chart-badge indigo">
+                    <i class="fa-solid fa-layer-group"></i> Categories
+                </span>
+            </div>
+
+            <div class="chart-canvas-wrap">
+                <canvas id="distCategoryChart"></canvas>
             </div>
         </div>
     </div>
@@ -202,6 +231,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const topProductsLabels = {{ top_products_labels_json|safe }};
     const topProductsSales = {{ top_products_sales_json|safe }};
+
+    const categoryLabels = {{ category_labels_json|safe }};
+    const categoryData = {{ category_data_json|safe }};
 
     const formatINR = (val) => '₹' + Number(val).toLocaleString('en-IN', { maximumFractionDigits: 2 });
 
@@ -405,6 +437,55 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     y: {
                         grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Chart 4: Sales by Category (Doughnut)
+    // ─────────────────────────────────────────────────────────────
+    const ctxCategory = document.getElementById('distCategoryChart');
+    if (ctxCategory) {
+        new Chart(ctxCategory, {
+            type: 'doughnut',
+            data: {
+                labels: categoryLabels,
+                datasets: [{
+                    data: categoryData,
+                    backgroundColor: [
+                        '#6366f1',
+                        '#10b981',
+                        '#f59e0b',
+                        '#06b6d4',
+                        '#8b5cf6'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '62%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 14,
+                            font: { size: 11.5, weight: '600' }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: (ctx) => ' ' + ctx.label + ': ' + formatINR(ctx.raw)
+                        }
                     }
                 }
             }
