@@ -625,6 +625,14 @@ class InvoiceItemForm(forms.Form):
         min_value=Decimal('0.00'),
         widget=forms.NumberInput(attrs={'class': 'form-input item-price', 'step': '0.01', 'min': '0.00'})
     )
+    discount = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        min_value=Decimal('0.00'),
+        initial=Decimal('0.00'),
+        required=False,
+        widget=forms.NumberInput(attrs={'class': 'form-input item-discount', 'step': '0.01', 'min': '0.00', 'placeholder': '0.00'})
+    )
     tax_rate = forms.ChoiceField(
         choices=(
             ('0', '0% GST'),
@@ -790,6 +798,13 @@ class InvoiceCreationForm(forms.Form):
                 price = Decimal('0.00')
 
             try:
+                discount_item = Decimal(str(item.get('discount', '0')))
+                if discount_item < 0:
+                    discount_item = Decimal('0.00')
+            except (InvalidOperation, ValueError, TypeError):
+                discount_item = Decimal('0.00')
+
+            try:
                 tax_rate = Decimal(str(item.get('tax', '18')))
                 if tax_rate < 0:
                     tax_rate = Decimal('0.00')
@@ -801,6 +816,7 @@ class InvoiceCreationForm(forms.Form):
                 'product_name': p_name,
                 'quantity': qty,
                 'unit_price': price,
+                'discount': discount_item,
                 'tax_rate': tax_rate,
             })
 
@@ -831,7 +847,7 @@ class InvoiceCreationForm(forms.Form):
         customer_phone = cleaned_data.get('customer_phone', '9999999999').strip()
         payment_method = cleaned_data.get('payment_method', 'UPI QR Code')
         notes = cleaned_data.get('notes', '')
-        discount = cleaned_data.get('discount', Decimal('0.00'))
+        extra_discount = cleaned_data.get('discount', Decimal('0.00'))
         items = cleaned_data.get('items_data', [])
 
         # Auto-link customer if not explicitly picked from dropdown
@@ -852,6 +868,7 @@ class InvoiceCreationForm(forms.Form):
 
         subtotal = Decimal('0.00')
         tax_total = Decimal('0.00')
+        total_items_discount = Decimal('0.00')
 
         invoice = Invoice.objects.create(
             invoice_number=inv_number,
@@ -863,7 +880,7 @@ class InvoiceCreationForm(forms.Form):
             payment_status='PAID',
             payment_method=payment_method,
             notes=notes,
-            discount=discount,
+            discount=extra_discount,
             subtotal=Decimal('0.00'),
             tax_amount=Decimal('0.00'),
             grand_total=Decimal('0.00')
@@ -874,13 +891,16 @@ class InvoiceCreationForm(forms.Form):
             p_name = it['product_name']
             qty = it['quantity']
             price = it['unit_price']
+            item_disc = it.get('discount', Decimal('0.00'))
             tax_rate = it['tax_rate']
 
-            line_subtotal = price * qty
-            line_tax = line_subtotal * (tax_rate / Decimal('100'))
-            line_total = line_subtotal + line_tax
+            line_base = price * qty
+            taxable_base = max(Decimal('0.00'), line_base - item_disc)
+            line_tax = taxable_base * (tax_rate / Decimal('100'))
+            line_total = taxable_base + line_tax
 
-            subtotal += line_subtotal
+            subtotal += line_base
+            total_items_discount += item_disc
             tax_total += line_tax
 
             InvoiceItem.objects.create(
@@ -889,6 +909,7 @@ class InvoiceCreationForm(forms.Form):
                 product_name=p_name,
                 quantity=qty,
                 unit_price=price,
+                discount=item_disc,
                 tax_rate=tax_rate,
                 total=line_total
             )
@@ -901,9 +922,11 @@ class InvoiceCreationForm(forms.Form):
                     product_obj.stock = 0
                 product_obj.save()
 
+        combined_discount = extra_discount + total_items_discount
         invoice.subtotal = subtotal
+        invoice.discount = combined_discount
         invoice.tax_amount = tax_total
-        grand = (subtotal + tax_total) - discount
+        grand = (subtotal - combined_discount) + tax_total
         invoice.grand_total = max(Decimal('0.00'), grand)
         invoice.save()
 

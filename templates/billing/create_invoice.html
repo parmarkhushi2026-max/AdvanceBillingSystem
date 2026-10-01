@@ -101,11 +101,12 @@
                     <table class="app-table">
                         <thead>
                             <tr>
-                                <th style="min-width: 250px;">Product Selection (DB Dropdown)</th>
-                                <th style="width: 130px;">Price (₹)</th>
-                                <th style="width: 100px;">Qty</th>
-                                <th style="width: 120px;">GST Tax (%)</th>
-                                <th style="width: 130px;">Line Total</th>
+                                <th style="min-width: 220px;">Product Selection (DB Dropdown)</th>
+                                <th style="width: 120px;">Price (₹)</th>
+                                <th style="width: 85px;">Qty</th>
+                                <th style="width: 110px;">Discount (₹)</th>
+                                <th style="width: 115px;">GST Tax (%)</th>
+                                <th style="width: 125px;">Line Total</th>
                                 <th style="width: 45px;"></th>
                             </tr>
                         </thead>
@@ -138,6 +139,9 @@
                                     <input type="number" class="form-input item-qty" min="1" value="1" required>
                                 </td>
                                 <td>
+                                    <input type="number" class="form-input item-discount" min="0" step="0.01" value="0.00" placeholder="0.00">
+                                </td>
+                                <td>
                                     <select class="form-input form-select item-tax">
                                         <option value="0" {% if products.0.gst_rate == 0 %}selected{% endif %}>0% GST</option>
                                         <option value="5" {% if products.0.gst_rate == 5 %}selected{% endif %}>5% GST</option>
@@ -164,6 +168,9 @@
                                 </td>
                                 <td>
                                     <input type="number" class="form-input item-qty" min="1" value="1" required>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-input item-discount" min="0" step="0.01" value="0.00" placeholder="0.00">
                                 </td>
                                 <td>
                                     <select class="form-input form-select item-tax">

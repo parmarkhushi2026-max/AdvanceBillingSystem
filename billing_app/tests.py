@@ -355,3 +355,42 @@ class InvoiceCreationFormTestCase(TestCase):
         self.assertIsNotNone(new_inv)
         self.assertRedirects(post_resp, reverse('invoice_detail', args=[new_inv.id]))
 
+    def test_invoice_creation_with_item_discount_and_gst(self):
+        # Base: 2000 * 2 = 4000; Item Discount: 200; Taxable: 3800; Tax (18%): 684; Total: 4484
+        items_payload = json.dumps([
+            {
+                'product_id': self.product.id,
+                'name': self.product.name,
+                'price': '2000.00',
+                'qty': 2,
+                'discount': '200.00',
+                'tax': '18.00'
+            }
+        ])
+
+        post_data = {
+            'customer': self.customer.id,
+            'customer_name': self.customer.name,
+            'customer_phone': self.customer.phone,
+            'payment_method': 'UPI QR Code',
+            'discount': '50.00', # Extra overall invoice discount
+            'notes': 'Item discount test',
+            'items_data': items_payload
+        }
+
+        form = InvoiceCreationForm(data=post_data, user=self.user)
+        self.assertTrue(form.is_valid(), form.errors)
+        invoice = form.save(distributor=self.user)
+
+        self.assertEqual(invoice.subtotal, Decimal('4000.00'))
+        # Total discount: 200 (item) + 50 (invoice extra) = 250
+        self.assertEqual(invoice.discount, Decimal('250.00'))
+        self.assertEqual(invoice.tax_amount, Decimal('684.00'))
+        # Grand total = (4000 - 250) + 684 = 4434.00
+        self.assertEqual(invoice.grand_total, Decimal('4434.00'))
+
+        item = invoice.items.first()
+        self.assertEqual(item.discount, Decimal('200.00'))
+        self.assertEqual(item.total, Decimal('4484.00'))
+
+

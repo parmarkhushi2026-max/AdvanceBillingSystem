@@ -96,6 +96,7 @@ class InvoiceItem(models.Model):
     product_name = models.CharField(max_length=150)
     quantity = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text='Discount on item in INR')
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=18.00)
     total = models.DecimalField(max_digits=10, decimal_places=2)
 

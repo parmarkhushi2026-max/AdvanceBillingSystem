@@ -53,7 +53,7 @@ function initBillingCalculator() {
     const dynamicQrBox = document.getElementById('dynamic-qr-box');
     const merchantUpi = dynamicQrBox ? dynamicQrBox.dataset.upi : 'merchant@upi';
     const billingForm = document.getElementById('billing-form');
-    const discountInput = document.getElementById('invoice_discount');
+    const invoiceDiscountInput = document.getElementById('invoice_discount');
 
     // Parse products catalog JSON embedded in page
     let productsCatalog = [];
@@ -87,6 +87,7 @@ function initBillingCalculator() {
     function calculateTotals() {
         const rows = itemsTableBody.querySelectorAll('tr.item-row');
         let subtotal = 0;
+        let totalItemDiscounts = 0;
         let taxTotal = 0;
         const items = [];
 
@@ -95,6 +96,7 @@ function initBillingCalculator() {
             const customNameInput = row.querySelector('.item-name');
             const priceInput = row.querySelector('.item-price');
             const qtyInput = row.querySelector('.item-qty');
+            const discountInput = row.querySelector('.item-discount');
             const taxInput = row.querySelector('.item-tax');
             const totalDisplay = row.querySelector('.item-total-val');
 
@@ -117,13 +119,21 @@ function initBillingCalculator() {
 
             const price = parseFloat(priceInput ? priceInput.value : 0) || 0;
             const qty = parseInt(qtyInput ? qtyInput.value : 1, 10) || 1;
+            const itemDiscount = parseFloat(discountInput ? discountInput.value : 0) || 0;
             const taxRate = parseFloat(taxInput ? taxInput.value : 18) || 0;
 
-            const lineSubtotal = price * qty;
-            const lineTax = lineSubtotal * (taxRate / 100);
-            const lineTotal = lineSubtotal + lineTax;
+            // Dynamic item total calculation:
+            // Base = Price * Quantity
+            // Taxable = Base - Discount
+            // Tax = Taxable * (GST / 100)
+            // Item Total = Taxable + Tax
+            const baseLineTotal = price * qty;
+            const taxableAmount = Math.max(0, baseLineTotal - itemDiscount);
+            const lineTax = taxableAmount * (taxRate / 100);
+            const lineTotal = taxableAmount + lineTax;
 
-            subtotal += lineSubtotal;
+            subtotal += baseLineTotal;
+            totalItemDiscounts += itemDiscount;
             taxTotal += lineTax;
 
             if (totalDisplay) {
@@ -135,16 +145,18 @@ function initBillingCalculator() {
                 name: productName,
                 price: price,
                 qty: qty,
+                discount: itemDiscount,
                 tax: taxRate
             });
         });
 
-        const discountVal = parseFloat(discountInput ? discountInput.value : 0) || 0;
-        const grandTotal = Math.max(0, subtotal + taxTotal - discountVal);
+        const extraInvoiceDiscount = parseFloat(invoiceDiscountInput ? invoiceDiscountInput.value : 0) || 0;
+        const totalDiscount = totalItemDiscounts + extraInvoiceDiscount;
+        const grandTotal = Math.max(0, (subtotal - totalDiscount) + taxTotal);
 
         if (displaySubtotal) displaySubtotal.textContent = '₹' + subtotal.toFixed(2);
         if (displayTax) displayTax.textContent = '₹' + taxTotal.toFixed(2);
-        if (displayDiscount) displayDiscount.textContent = '- ₹' + discountVal.toFixed(2);
+        if (displayDiscount) displayDiscount.textContent = '- ₹' + totalDiscount.toFixed(2);
         if (displayGrandTotal) displayGrandTotal.textContent = '₹' + grandTotal.toFixed(2);
         if (qrAmountDisplay) qrAmountDisplay.textContent = '₹' + grandTotal.toFixed(2);
         if (itemsDataInput) itemsDataInput.value = JSON.stringify(items);
@@ -220,9 +232,9 @@ function initBillingCalculator() {
         });
     }
 
-    if (discountInput) {
-        discountInput.addEventListener('input', calculateTotals);
-        discountInput.addEventListener('change', calculateTotals);
+    if (invoiceDiscountInput) {
+        invoiceDiscountInput.addEventListener('input', calculateTotals);
+        invoiceDiscountInput.addEventListener('change', calculateTotals);
     }
 
     // Guarantee data is serialized before form submits
@@ -236,7 +248,7 @@ function initBillingCalculator() {
         });
     }
 
-    // Add new product item row with database product options
+    // Add new product item row with database product options and discount field
     if (btnAddItem) {
         btnAddItem.addEventListener('click', () => {
             const tr = document.createElement('tr');
@@ -280,6 +292,9 @@ function initBillingCalculator() {
                 </td>
                 <td>
                     <input type="number" class="form-input item-qty" min="1" value="1" required>
+                </td>
+                <td>
+                    <input type="number" class="form-input item-discount" min="0" step="0.01" value="0.00" placeholder="0.00">
                 </td>
                 <td>
                     <select class="form-input form-select item-tax">
