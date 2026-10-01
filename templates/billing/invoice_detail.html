@@ -7,11 +7,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <div class="print-actions-bar">
-    <a href="{% url 'distributor_dashboard' %}" class="btn-quick-fill" style="text-decoration: none; font-size: 0.9rem;">
+    <a href="{% if user.is_superuser or user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}" class="btn-secondary-action" style="text-decoration: none; font-size: 0.9rem;">
         <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
     </a>
     <div style="display: flex; gap: 10px; align-items: center;">
-        <a href="{% url 'create_invoice' %}" class="btn-quick-fill" style="text-decoration: none; font-size: 0.9rem; background: #ecfdf5; color: #065f46;">
+        <a href="{% url 'create_invoice' %}" class="btn-secondary-action" style="text-decoration: none; font-size: 0.9rem; background: #ecfdf5; color: #065f46;">
             <i class="fa-solid fa-plus"></i> New Bill
         </a>
         <button type="button" id="btn-pdf-download" onclick="exportInvoiceToPDF()" class="btn-export-pdf">

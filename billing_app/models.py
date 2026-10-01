@@ -143,3 +143,21 @@ class OTPToken(models.Model):
         status = "Verified" if self.is_verified else ("Valid" if self.is_valid() else "Expired")
         return f"OTP {self.otp_code} for {self.user.username} ({status})"
 
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=User)
+def ensure_user_profile_exists(sender, instance, created, **kwargs):
+    """Ensure every User has a matching UserProfile."""
+    if created:
+        UserProfile.objects.get_or_create(
+            user=instance,
+            defaults={
+                'role': 'ADMIN' if instance.is_superuser else 'DISTRIBUTOR',
+                'business_name': instance.get_full_name() or instance.username,
+                'upi_id': 'merchant@upi'
+            }
+        )
+
+

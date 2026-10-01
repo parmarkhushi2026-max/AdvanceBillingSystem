@@ -350,8 +350,11 @@
         if (e.key === 'Escape') closeDeleteModal();
     });
 
-    document.getElementById('deleteModal').addEventListener('click', function(e) {
-        if (e.target === this) closeDeleteModal();
-    });
+    const deleteModalOverlay = document.getElementById('deleteModal');
+    if (deleteModalOverlay) {
+        deleteModalOverlay.addEventListener('click', function(e) {
+            if (e.target === this) closeDeleteModal();
+        });
+    }
 </script>
 {% endblock %}

@@ -24,7 +24,7 @@
         <a href="{% url 'customer_list' %}" class="btn-secondary-action">
             <i class="fa-solid fa-users"></i> View All Customers
         </a>
-        <a href="{% url 'distributor_dashboard' %}" class="btn-secondary-action">
+        <a href="{% if user.is_superuser or user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}" class="btn-secondary-action">
             <i class="fa-solid fa-arrow-left"></i> Dashboard
         </a>
     </div>

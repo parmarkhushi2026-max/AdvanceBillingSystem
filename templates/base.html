@@ -155,30 +155,42 @@
                 </div>
                 
                 <nav class="sidebar-nav">
-                    {% if user.profile.role == 'ADMIN' or user.is_superuser %}
+                    {% if user.is_superuser or user.profile.role == 'ADMIN' %}
                         <div style="font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; margin-bottom: 0.5rem; padding-left: 1rem;">Admin Controls</div>
-                        <a href="{% url 'admin_dashboard' %}" class="sidebar-link">
+                        <a href="{% url 'admin_dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
                             <i class="fa-solid fa-chart-pie"></i> <span>Dashboard</span>
+                        </a>
+                        <a href="{% url 'product_list' %}" class="sidebar-link {% if request.resolver_match.url_name in 'product_list,add_product,edit_product' %}active{% endif %}">
+                            <i class="fa-solid fa-boxes-stacked"></i> <span>Product Inventory</span>
+                        </a>
+                        <a href="{% url 'customer_list' %}" class="sidebar-link {% if request.resolver_match.url_name in 'customer_list,add_customer,edit_customer' %}active{% endif %}">
+                            <i class="fa-solid fa-users"></i> <span>Customer Directory</span>
+                        </a>
+                        <a href="{% url 'create_invoice' %}" class="sidebar-link {% if request.resolver_match.url_name == 'create_invoice' %}active{% endif %}" style="background: rgba(16, 185, 129, 0.1); color: #34d399; border-left: 3px solid #10b981;">
+                            <i class="fa-solid fa-receipt"></i> <span>Quick QR Bill</span>
+                        </a>
+                        <a href="/django-admin/" target="_blank" class="sidebar-link">
+                            <i class="fa-solid fa-screwdriver-wrench"></i> <span>Django Backend Admin</span>
                         </a>
                     {% else %}
                         <div style="font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; margin-bottom: 0.5rem; padding-left: 1rem;">Main Menu</div>
-                        <a href="{% url 'distributor_dashboard' %}" class="sidebar-link">
+                        <a href="{% url 'distributor_dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'distributor_dashboard' %}active{% endif %}">
                             <i class="fa-solid fa-gauge-high"></i> <span>Dashboard</span>
                         </a>
-                        <a href="{% url 'create_invoice' %}" class="sidebar-link" style="background: rgba(16, 185, 129, 0.1); color: #34d399; border-left: 3px solid #10b981;">
+                        <a href="{% url 'create_invoice' %}" class="sidebar-link {% if request.resolver_match.url_name == 'create_invoice' %}active{% endif %}" style="background: rgba(16, 185, 129, 0.1); color: #34d399; border-left: 3px solid #10b981;">
                             <i class="fa-solid fa-receipt"></i> <span>Quick QR Bill</span>
                         </a>
                         
                         <div style="font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; margin: 1.5rem 0 0.5rem 0; padding-left: 1rem;">Management</div>
-                        <a href="{% url 'customer_list' %}" class="sidebar-link">
+                        <a href="{% url 'customer_list' %}" class="sidebar-link {% if request.resolver_match.url_name in 'customer_list,add_customer,edit_customer' %}active{% endif %}">
                             <i class="fa-solid fa-users"></i> <span>Customer Directory</span>
                         </a>
-                        <a href="{% url 'product_list' %}" class="sidebar-link">
+                        <a href="{% url 'product_list' %}" class="sidebar-link {% if request.resolver_match.url_name in 'product_list,add_product,edit_product' %}active{% endif %}">
                             <i class="fa-solid fa-boxes-stacked"></i> <span>Product Inventory</span>
                         </a>
                         
                         <div style="font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; margin: 1.5rem 0 0.5rem 0; padding-left: 1rem;">Settings</div>
-                        <a href="{% url 'distributor_profile' %}" class="sidebar-link">
+                        <a href="{% url 'distributor_profile' %}" class="sidebar-link {% if request.resolver_match.url_name == 'distributor_profile' %}active{% endif %}">
                             <i class="fa-solid fa-user-gear"></i> <span>My Profile</span>
                         </a>
                     {% endif %}
@@ -189,7 +201,7 @@
                         <div class="user-avatar">{{ user.username|make_list|first|upper }}</div>
                         <div class="user-details">
                             <span class="user-name">{{ user.username }}</span>
-                            {% if user.profile.role == 'ADMIN' or user.is_superuser %}
+                            {% if user.is_superuser or user.profile.role == 'ADMIN' %}
                                 <span style="font-size: 0.75rem; color: #f87171; font-weight: 600;">System Admin</span>
                             {% else %}
                                 <span style="font-size: 0.75rem; color: #34d399; font-weight: 600;">Distributor</span>
@@ -264,6 +276,8 @@
         </main>
     {% endif %}
 
+    <!-- Main Application Scripts -->
+    <script src="{% static 'js/main.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -14,39 +14,49 @@ from django.utils import timezone
 from datetime import timedelta
 from django.core.paginator import Paginator
 from .models import UserProfile, Product, Invoice, InvoiceItem, OTPToken, Customer
-from .forms import AdminLoginForm, DistributorLoginForm, ForgotPasswordForm, VerifyOTPForm, ResetPasswordForm, DistributorRegistrationForm, DistributorProfileForm, CustomerForm, ProductForm
+from .forms import (
+    AdminLoginForm, DistributorLoginForm, ForgotPasswordForm, VerifyOTPForm,
+    ResetPasswordForm, DistributorRegistrationForm, DistributorProfileForm,
+    CustomerForm, ProductForm, InvoiceCreationForm, InvoiceItemForm
+)
 from .decorators import admin_required, distributor_required
 
 
 def initialize_default_users():
     """Ensure default admin, distributor and demo products exist in the database."""
     # Admin Account
-    if not User.objects.filter(username='admin').exists():
+    admin_user = User.objects.filter(username='admin').first()
+    if not admin_user:
         admin_user = User.objects.create_superuser('admin', 'admin@advancebilling.com', 'admin123')
         admin_user.first_name = 'Super'
         admin_user.last_name = 'Admin'
         admin_user.save()
-        UserProfile.objects.create(
-            user=admin_user,
-            role='ADMIN',
-            business_name='Advance Billing HQ',
-            phone='+91 98765 43210',
-            upi_id='advancebilling@upi'
-        )
+    UserProfile.objects.get_or_create(
+        user=admin_user,
+        defaults={
+            'role': 'ADMIN',
+            'business_name': 'Advance Billing HQ',
+            'phone': '+91 98765 43210',
+            'upi_id': 'advancebilling@upi'
+        }
+    )
 
     # Distributor Account
-    if not User.objects.filter(username='distributor').exists():
+    dist_user = User.objects.filter(username='distributor').first()
+    if not dist_user:
         dist_user = User.objects.create_user('distributor', 'distributor@agency.com', 'dist123')
         dist_user.first_name = 'Rahul'
         dist_user.last_name = 'Sharma'
         dist_user.save()
-        UserProfile.objects.create(
-            user=dist_user,
-            role='DISTRIBUTOR',
-            business_name='Sharma Tech & Retail Distribution',
-            phone='+91 98123 45678',
-            upi_id='sharmadist@upi'
-        )
+    UserProfile.objects.get_or_create(
+        user=dist_user,
+        defaults={
+            'role': 'DISTRIBUTOR',
+            'business_name': 'Sharma Tech & Retail Distribution',
+            'phone': '+91 98123 45678',
+            'upi_id': 'sharmadist@upi'
+        }
+    )
 
     # Sample Products
     if Product.objects.count() == 0:
@@ -64,7 +74,7 @@ def portal_select(request):
     initialize_default_users()
     if request.user.is_authenticated:
         try:
-            if request.user.profile.role == 'ADMIN' or request.user.is_superuser:
+            if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'):
                 return redirect('admin_dashboard')
             return redirect('distributor_dashboard')
         except Exception:
@@ -294,100 +304,59 @@ def distributor_dashboard_view(request):
 @distributor_required
 def create_invoice_view(request):
     initialize_default_users()
-    products = Product.objects.all()
+    products = Product.objects.all().order_by('name')
     profile = getattr(request.user, 'profile', None)
     upi_id = profile.upi_id if profile else 'advancebilling@upi'
     business_name = profile.business_name if profile else 'Advance Billing Agency'
 
     if request.method == 'POST':
-        customer_name = request.POST.get('customer_name', 'Walk-in Customer')
-        customer_phone = request.POST.get('customer_phone', '9999999999')
-        payment_method = request.POST.get('payment_method', 'UPI QR Code')
-        notes = request.POST.get('notes', '')
-        
-        items_json = request.POST.get('items_data', '[]')
-        try:
-            items_data = json.loads(items_json)
-        except Exception:
-            items_data = []
-
-        if not items_data:
-            messages.error(request, 'Please add at least one product item to create the bill.')
-            return redirect('create_invoice')
-
-        # Calculate totals
-        subtotal = Decimal('0.00')
-        tax_total = Decimal('0.00')
-        inv_number = f"INV-{uuid.uuid4().hex[:8].upper()}"
-
-        customer_obj = Customer.objects.filter(
-            Q(phone=customer_phone) | Q(name__iexact=customer_name),
-            Q(created_by=request.user) | Q(created_by__isnull=True)
-        ).first()
-
-        invoice = Invoice.objects.create(
-            invoice_number=inv_number,
-            distributor=request.user,
-            customer=customer_obj,
-            customer_ref=customer_obj,
-            customer_name=customer_name,
-            customer_phone=customer_phone,
-            payment_status='PAID',
-            payment_method=payment_method,
-            notes=notes,
-            subtotal=subtotal,
-            tax_amount=tax_total,
-            grand_total=Decimal('0.00')
-        )
-
-        for item in items_data:
-            p_name = str(item.get('name', 'Product')).strip() or 'Product'
-            product_obj = Product.objects.filter(name__iexact=p_name).first()
-            
+        form = InvoiceCreationForm(request.POST, user=request.user)
+        if form.is_valid():
             try:
-                p_qty = max(1, int(item.get('qty', 1)))
-            except (ValueError, TypeError):
-                p_qty = 1
+                invoice = form.save(distributor=request.user)
+                messages.success(request, f'Invoice #{invoice.invoice_number} created with QR Code successfully!')
+                return redirect('invoice_detail', invoice_id=invoice.id)
+            except Exception as e:
+                messages.error(request, f'Failed to generate invoice: {str(e)}')
+        else:
+            for field, errs in form.errors.items():
+                for err in errs:
+                    field_label = field.replace('_', ' ').capitalize() if field != '__all__' else 'Error'
+                    messages.error(request, f'{field_label}: {err}')
+    else:
+        initial_data = {}
+        if request.GET.get('customer_id'):
+            initial_data['customer'] = request.GET.get('customer_id')
+        if request.GET.get('customer_name'):
+            initial_data['customer_name'] = request.GET.get('customer_name')
+        if request.GET.get('customer_phone'):
+            initial_data['customer_phone'] = request.GET.get('customer_phone')
+        form = InvoiceCreationForm(user=request.user, initial=initial_data)
 
-            try:
-                p_price = Decimal(str(item.get('price', 0)))
-            except (InvalidOperation, ValueError, TypeError):
-                p_price = Decimal('0.00')
+    customers = form.fields['customer'].queryset
 
-            try:
-                p_tax_rate = Decimal(str(item.get('tax', 18)))
-            except (InvalidOperation, ValueError, TypeError):
-                p_tax_rate = Decimal('18.00')
-            
-            line_subtotal = p_price * p_qty
-            line_tax = line_subtotal * (p_tax_rate / Decimal('100'))
-            line_total = line_subtotal + line_tax
-
-            subtotal += line_subtotal
-            tax_total += line_tax
-
-            InvoiceItem.objects.create(
-                invoice=invoice,
-                product=product_obj,
-                product_name=p_name,
-                quantity=p_qty,
-                unit_price=p_price,
-                tax_rate=p_tax_rate,
-                total=line_total
-            )
-
-        invoice.subtotal = subtotal
-        invoice.tax_amount = tax_total
-        invoice.grand_total = subtotal + tax_total
-        invoice.save()
-
-        messages.success(request, f'Invoice #{inv_number} created with QR Code successfully!')
-        return redirect('invoice_detail', invoice_id=invoice.id)
+    # Products JSON representation for instant dynamic dropdown line items
+    products_catalog = [
+        {
+            'id': p.id,
+            'name': p.name,
+            'sku': p.sku or '',
+            'price': str(p.price),
+            'tax': str(p.gst_rate),
+            'stock': p.stock,
+            'unit': p.unit or 'Pcs'
+        }
+        for p in products
+    ]
 
     context = {
+        'form': form,
         'products': products,
+        'products_catalog_json': json.dumps(products_catalog),
+        'customers': customers,
         'upi_id': upi_id,
         'business_name': business_name,
+        'role': 'Admin' if (request.user.is_superuser or (profile and profile.role == 'ADMIN')) else 'Distributor',
     }
     return render(request, 'billing/create_invoice.html', context)
 
@@ -545,6 +514,8 @@ def resend_otp_view(request):
             })
         except User.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'User account not found.'}, status=404)
+    return JsonResponse({'success': False, 'message': 'Method not allowed.'}, status=405)
+
 # 11. Distributor Registration View
 def distributor_register_view(request):
     initialize_default_users()
@@ -575,14 +546,13 @@ def distributor_register_view(request):
                 last_name=last_name
             )
 
-            # Create UserProfile
-            UserProfile.objects.create(
-                user=user,
-                role='DISTRIBUTOR',
-                business_name=business_name,
-                phone=phone,
-                upi_id=upi_id
-            )
+            # Update UserProfile created by post_save signal
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile.role = 'DISTRIBUTOR'
+            profile.business_name = business_name
+            profile.phone = phone
+            profile.upi_id = upi_id
+            profile.save()
 
             # Save User & UserProfile to Database
             messages.success(
@@ -650,15 +620,16 @@ def distributor_profile_view(request):
         'form': form,
         'total_invoices': total_invoices,
         'total_earnings': total_earnings,
-        'role': 'Distributor',
+        'role': 'Admin' if (user.is_superuser or (profile and profile.role == 'ADMIN')) else 'Distributor',
     }
     return render(request, 'dashboard/distributor_profile.html', context)
 
 
 # 13. Customer Management: Add Customer View
-@distributor_required
+@login_required
 def add_customer_view(request):
     initialize_default_users()
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
     if request.method == 'POST':
         form = CustomerForm(request.POST)
         if form.is_valid():
@@ -674,19 +645,20 @@ def add_customer_view(request):
 
     context = {
         'form': form,
-        'role': 'Distributor',
+        'role': 'Admin' if is_admin else 'Distributor',
     }
     return render(request, 'billing/add_customer.html', context)
 
 
 # 14. Customer Management: Customer List View
-@distributor_required
+@login_required
 def customer_list_view(request):
     initialize_default_users()
     query = request.GET.get('q', '').strip()
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
     
     customers = Customer.objects.all()
-    if not request.user.is_superuser:
+    if not is_admin:
         customers = customers.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
 
     if query:
@@ -703,16 +675,20 @@ def customer_list_view(request):
         'query': query,
         'total_count': customers.count(),
         'gst_count': customers.filter(gstin__isnull=False).exclude(gstin='').count(),
-        'role': 'Distributor',
+        'role': 'Admin' if is_admin else 'Distributor',
     }
     return render(request, 'billing/customer_list.html', context)
 
 
 # 15. Edit Customer View
-@distributor_required
+@login_required
 def edit_customer_view(request, customer_id):
     initialize_default_users()
     customer = get_object_or_404(Customer, pk=customer_id)
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+    if not is_admin and customer.created_by and customer.created_by != request.user:
+        messages.error(request, "Access denied: You do not have permission to edit this customer profile.")
+        return redirect('customer_list')
 
     if request.method == 'POST':
         form = CustomerForm(request.POST)
@@ -738,16 +714,20 @@ def edit_customer_view(request, customer_id):
         'form': form,
         'customer': customer,
         'is_edit': True,
-        'role': 'Distributor',
+        'role': 'Admin' if is_admin else 'Distributor',
     }
     return render(request, 'billing/add_customer.html', context)
 
 
 # 16. Delete Customer View
-@distributor_required
+@login_required
 def delete_customer_view(request, customer_id):
     initialize_default_users()
     customer = get_object_or_404(Customer, pk=customer_id)
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+    if not is_admin and customer.created_by and customer.created_by != request.user:
+        messages.error(request, "Access denied: You do not have permission to delete this customer profile.")
+        return redirect('customer_list')
     name = customer.name
     customer.delete()
     messages.success(request, f"🗑️ Customer '{name}' deleted successfully.")
@@ -834,6 +814,10 @@ def add_product_view(request):
 def edit_product_view(request, product_id):
     initialize_default_users()
     product = get_object_or_404(Product, pk=product_id)
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+    if not is_admin and product.created_by and product.created_by != request.user:
+        messages.error(request, "Access denied: You do not have permission to edit this product.")
+        return redirect('product_list')
 
     if request.method == 'POST':
         form = ProductForm(request.POST, instance=product)
@@ -852,7 +836,7 @@ def edit_product_view(request, product_id):
         'form': form,
         'product': product,
         'is_edit': True,
-        'role': 'Admin' if (request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')) else 'Distributor',
+        'role': 'Admin' if is_admin else 'Distributor',
     }
     return render(request, 'billing/add_product.html', context)
 
@@ -862,9 +846,14 @@ def edit_product_view(request, product_id):
 def delete_product_view(request, product_id):
     initialize_default_users()
     product = get_object_or_404(Product, pk=product_id)
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+    if not is_admin and product.created_by and product.created_by != request.user:
+        messages.error(request, "Access denied: You do not have permission to delete this product.")
+        return redirect('product_list')
     name = product.name
     product.delete()
     messages.success(request, f"🗑️ Product '{name}' deleted successfully from inventory.")
     return redirect('product_list')
+
 
 

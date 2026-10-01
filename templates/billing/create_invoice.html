@@ -6,55 +6,94 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">Generate Instant QR Bill</h1>
-        <p class="page-subtitle">Add items, compute real-time GST, and generate dynamic UPI QR code for checkout.</p>
+        <p class="page-subtitle">Select customers and inventory products dynamically from the database, compute real-time GST, and generate instant UPI QR code.</p>
     </div>
-    <div>
-        <a href="{% url 'distributor_dashboard' %}" class="btn-quick-fill" style="text-decoration: none; font-size: 0.9rem; padding: 8px 16px;">
-            <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <a href="{% url 'add_customer' %}" target="_blank" class="btn-secondary-action" style="text-decoration: none; font-size: 0.88rem; padding: 8px 14px; background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 6px;">
+            <i class="fa-solid fa-user-plus"></i> New Customer
+        </a>
+        <a href="{% url 'add_product' %}" target="_blank" class="btn-secondary-action" style="text-decoration: none; font-size: 0.88rem; padding: 8px 14px; background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 6px;">
+            <i class="fa-solid fa-box-open"></i> New Product
+        </a>
+        <a href="{% if user.is_superuser or user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}" class="btn-secondary-action" style="text-decoration: none; font-size: 0.88rem; padding: 8px 14px;">
+            <i class="fa-solid fa-arrow-left"></i> Dashboard
         </a>
     </div>
 </div>
+
+<!-- Embedded Products Catalog for dynamic client-side line item generation -->
+<script id="products-catalog-data" type="application/json">
+{{ products_catalog_json|safe }}
+</script>
 
 <form method="POST" action="{% url 'create_invoice' %}" id="billing-form">
     {% csrf_token %}
     <input type="hidden" name="items_data" id="items_data_input" value="[]">
 
     <div class="billing-grid">
-        <!-- Left Column: Bill & Customer Details -->
+        <!-- Left Column: Customer & Invoice Items -->
         <div>
-            <!-- Customer Information Card -->
+            <!-- Customer Selection Card (Dynamic Database Fetch) -->
             <div class="dashboard-card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
-                <h3 style="font-size: 1.1rem; color: #0f172a; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-user" style="color: #4f46e5;"></i>
-                    <span>Customer Details</span>
-                </h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.75rem;">
+                    <h3 style="font-size: 1.1rem; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-user-tag" style="color: #4f46e5;"></i>
+                        <span>Customer Details (Database Dropdown)</span>
+                    </h3>
+                    <span style="font-size: 0.8rem; background: #e0e7ff; color: #4338ca; padding: 3px 10px; border-radius: 9999px; font-weight: 600;">
+                        <i class="fa-solid fa-database"></i> Live DB Sync
+                    </span>
+                </div>
+
+                <!-- Database Customer Dropdown Field -->
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label" for="customer-select" style="font-weight: 600;">
+                        Select Customer from Database
+                    </label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-users-viewfinder"></i>
+                        <select name="customer" id="customer-select" class="form-input form-select" style="padding-left: 38px; cursor: pointer; font-size: 0.95rem;">
+                            <option value="" data-name="Walk-in Customer" data-phone="9999999999">-- Walk-in / Counter Customer (Default) --</option>
+                            {% for cust in customers %}
+                            <option value="{{ cust.id }}" data-id="{{ cust.id }}" data-name="{{ cust.name }}" data-phone="{{ cust.phone }}" data-city="{{ cust.city|default:'' }}" {% if form.customer.value|stringformat:"s" == cust.id|stringformat:"s" %}selected{% endif %}>
+                                {{ cust.name }} ({{ cust.phone }}){% if cust.city %} &bull; {{ cust.city }}{% endif %}{% if cust.gstin %} [GSTIN: {{ cust.gstin }}]{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <small style="color: #64748b; font-size: 0.8rem;">
+                        Selecting a saved customer automatically populates the Name and Phone fields below.
+                    </small>
+                </div>
+
+                <!-- Editable/Auto-filled Customer Subfields -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Customer Name</label>
+                        <label class="form-label" style="font-size: 0.85rem; color: #475569;">Customer Full Name *</label>
                         <div class="input-icon-group">
                             <i class="fa-solid fa-user"></i>
-                            <input type="text" name="customer_name" class="form-input" placeholder="e.g. Ramesh Kumar" required value="{{ request.GET.customer_name|default:'Walk-in Customer' }}">
+                            <input type="text" name="customer_name" id="customer-name-input" class="form-input" placeholder="e.g. Ramesh Kumar" required value="{{ form.customer_name.value|default:'Walk-in Customer' }}">
                         </div>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Phone Number</label>
+                        <label class="form-label" style="font-size: 0.85rem; color: #475569;">Customer Phone Number *</label>
                         <div class="input-icon-group">
                             <i class="fa-solid fa-phone"></i>
-                            <input type="text" name="customer_phone" class="form-input" placeholder="e.g. 9876543210" required value="{{ request.GET.customer_phone|default:'9876543210' }}">
+                            <input type="text" name="customer_phone" id="customer-phone-input" class="form-input" placeholder="e.g. 9876543210" required value="{{ form.customer_phone.value|default:'9999999999' }}">
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Invoice Items Card -->
+            <!-- Invoice Items Card (Dynamic Product Dropdowns) -->
             <div class="dashboard-card">
                 <div class="card-header-clean">
                     <div class="card-title-clean">
                         <i class="fa-solid fa-cart-shopping" style="color: #10b981;"></i>
-                        <span>Invoice Line Items</span>
+                        <span>Invoice Line Items (Dynamic Database Products)</span>
                     </div>
                     <button type="button" id="btn-add-item" class="btn-add-item">
-                        <i class="fa-solid fa-plus"></i> Add Item
+                        <i class="fa-solid fa-plus"></i> Add Product Item
                     </button>
                 </div>
 
@@ -62,58 +101,109 @@
                     <table class="app-table">
                         <thead>
                             <tr>
-                                <th>Item Description</th>
-                                <th>Price (₹)</th>
-                                <th>Qty</th>
-                                <th>Tax (%)</th>
-                                <th>Total</th>
-                                <th></th>
+                                <th style="min-width: 250px;">Product Selection (DB Dropdown)</th>
+                                <th style="width: 130px;">Price (₹)</th>
+                                <th style="width: 100px;">Qty</th>
+                                <th style="width: 120px;">GST Tax (%)</th>
+                                <th style="width: 130px;">Line Total</th>
+                                <th style="width: 45px;"></th>
                             </tr>
                         </thead>
                         <tbody id="billing-items-tbody">
+                            {% if products %}
+                            <!-- Default first row pre-selected from first database product -->
                             <tr class="item-row">
                                 <td>
-                                    <input type="text" class="form-input item-name" placeholder="Item / Product Name" value="Wireless Barcode Scanner Pro" required>
+                                    <select class="form-input form-select item-product-select" required style="cursor: pointer;">
+                                        <option value="" data-price="0.00" data-tax="18" data-stock="0" data-unit="Pcs">-- Select Product from DB --</option>
+                                        {% for prod in products %}
+                                        <option value="{{ prod.id }}" data-id="{{ prod.id }}" data-name="{{ prod.name }}" data-price="{{ prod.price }}" data-tax="{{ prod.gst_rate }}" data-stock="{{ prod.stock }}" data-unit="{{ prod.unit }}" {% if forloop.first %}selected{% endif %}>
+                                            {{ prod.name }} (₹{{ prod.price }} &bull; Stock: {{ prod.stock }} {{ prod.unit }})
+                                        </option>
+                                        {% endfor %}
+                                        <option value="custom" data-price="0.00" data-tax="18" data-stock="999" data-unit="Pcs">+ Custom / Unlisted Product</option>
+                                    </select>
+                                    <div class="item-custom-name-wrapper" style="display: none; margin-top: 6px;">
+                                        <input type="text" class="form-input item-name" placeholder="Enter custom item name">
+                                    </div>
+                                    <div class="item-stock-hint" style="font-size: 0.75rem; color: #10b981; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+                                        <i class="fa-solid fa-circle-check"></i>
+                                        <span class="stock-text">Stock: {{ products.0.stock }} {{ products.0.unit }}</span>
+                                    </div>
                                 </td>
-                                <td style="width: 140px;">
-                                    <input type="number" class="form-input item-price" min="0" step="0.5" value="2499.00" required>
+                                <td>
+                                    <input type="number" class="form-input item-price" min="0" step="0.01" value="{{ products.0.price }}" required>
                                 </td>
-                                <td style="width: 100px;">
+                                <td>
                                     <input type="number" class="form-input item-qty" min="1" value="1" required>
                                 </td>
-                                <td style="width: 120px;">
-                                    <select class="form-input item-tax">
-                                        <option value="0">0%</option>
-                                        <option value="5">5%</option>
-                                        <option value="12">12%</option>
-                                        <option value="18" selected>18%</option>
-                                        <option value="28">28%</option>
+                                <td>
+                                    <select class="form-input form-select item-tax">
+                                        <option value="0" {% if products.0.gst_rate == 0 %}selected{% endif %}>0% GST</option>
+                                        <option value="5" {% if products.0.gst_rate == 5 %}selected{% endif %}>5% GST</option>
+                                        <option value="12" {% if products.0.gst_rate == 12 %}selected{% endif %}>12% GST</option>
+                                        <option value="18" {% if products.0.gst_rate == 18 %}selected{% endif %}>18% GST</option>
+                                        <option value="28" {% if products.0.gst_rate == 28 %}selected{% endif %}>28% GST</option>
                                     </select>
                                 </td>
-                                <td style="width: 130px; font-weight: 700;" class="item-total-val">₹2948.82</td>
-                                <td style="width: 50px; text-align: center;">
+                                <td class="item-total-val" style="font-weight: 700; color: #0f172a;">₹0.00</td>
+                                <td style="text-align: center;">
+                                    <button type="button" class="btn-remove-row" title="Remove Item" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; padding: 4px 8px;">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <!-- Fallback if no products in database yet -->
+                            <tr class="item-row">
+                                <td>
+                                    <input type="text" class="form-input item-name" placeholder="Item / Product Name" value="Standard Service / Product" required>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-input item-price" min="0" step="0.01" value="100.00" required>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-input item-qty" min="1" value="1" required>
+                                </td>
+                                <td>
+                                    <select class="form-input form-select item-tax">
+                                        <option value="0">0% GST</option>
+                                        <option value="5">5% GST</option>
+                                        <option value="12">12% GST</option>
+                                        <option value="18" selected>18% GST</option>
+                                        <option value="28">28% GST</option>
+                                    </select>
+                                </td>
+                                <td class="item-total-val" style="font-weight: 700;">₹118.00</td>
+                                <td style="text-align: center;">
                                     <button type="button" class="btn-remove-row" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer;">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </td>
                             </tr>
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Notes & Payment Method -->
-                <div style="padding: 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <!-- Payment, Discount & Remarks -->
+                <div style="padding: 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label class="form-label">Payment Method</label>
-                        <select name="payment_method" class="form-input">
-                            <option value="UPI QR Code" selected>Dynamic UPI QR Code</option>
-                            <option value="Cash">Cash at Counter</option>
-                            <option value="Credit / Debit Card">Credit / Debit Card POS</option>
+                        <select name="payment_method" id="payment_method" class="form-input form-select">
+                            <option value="UPI QR Code" {% if form.payment_method.value == 'UPI QR Code' or not form.payment_method.value %}selected{% endif %}>Dynamic UPI QR Code</option>
+                            <option value="Cash" {% if form.payment_method.value == 'Cash' %}selected{% endif %}>Cash at Counter</option>
+                            <option value="Credit / Debit Card" {% if form.payment_method.value == 'Credit / Debit Card' %}selected{% endif %}>Credit / Debit Card POS</option>
+                            <option value="Net Banking" {% if form.payment_method.value == 'Net Banking' %}selected{% endif %}>Net Banking / Bank Transfer</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Discount Amount (₹)</label>
+                        <input type="number" name="discount" id="invoice_discount" class="form-input" min="0" step="0.01" value="{{ form.discount.value|default:'0.00' }}" placeholder="0.00">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
                         <label class="form-label">Invoice Remarks / Notes</label>
-                        <input type="text" name="notes" class="form-input" placeholder="Optional notes for customer receipt">
+                        <input type="text" name="notes" id="invoice_notes" class="form-input" placeholder="e.g. Warranty 1 Year" value="{{ form.notes.value|default:'' }}">
                     </div>
                 </div>
             </div>
@@ -134,16 +224,24 @@
                 </div>
 
                 <div style="font-size: 0.85rem; color: #94a3b8;">Payable Grand Total</div>
-                <div class="qr-amount-display" id="qr-amount-display">₹2,948.82</div>
+                <div class="qr-amount-display" id="qr-amount-display">₹0.00</div>
                 
-                <div style="background: rgba(255,255,255,0.06); border-radius: 8px; padding: 12px; margin: 1rem 0; font-size: 0.88rem; text-align: left;">
+                <div style="background: rgba(255,255,255,0.06); border-radius: 8px; padding: 14px; margin: 1.25rem 0; font-size: 0.88rem; text-align: left;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                         <span style="color: #94a3b8;">Subtotal:</span>
-                        <span id="display-subtotal" style="font-weight: 600;">₹2,499.00</span>
+                        <span id="display-subtotal" style="font-weight: 600; color: #fff;">₹0.00</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                         <span style="color: #94a3b8;">GST Tax:</span>
-                        <span id="display-tax" style="font-weight: 600;">₹449.82</span>
+                        <span id="display-tax" style="font-weight: 600; color: #38bdf8;">₹0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="color: #94a3b8;">Discount:</span>
+                        <span id="display-discount" style="font-weight: 600; color: #f87171;">- ₹0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 8px; margin-top: 6px;">
+                        <span style="color: #e2e8f0; font-weight: 700;">Grand Total:</span>
+                        <span id="display-grandtotal" style="font-weight: 700; color: #4ade80;">₹0.00</span>
                     </div>
                 </div>
 
@@ -156,3 +254,4 @@
     </div>
 </form>
 {% endblock %}
+
