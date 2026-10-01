@@ -164,6 +164,21 @@ function initBillingCalculator() {
         renderQRCode(grandTotal);
     }
 
+    // Renumber all active line item rows and update counter badge dynamically
+    function renumberRows() {
+        const rows = itemsTableBody.querySelectorAll('tr.item-row');
+        const badge = document.getElementById('items-count-badge');
+        rows.forEach((row, idx) => {
+            const numSpan = row.querySelector('.row-num-badge');
+            if (numSpan) {
+                numSpan.textContent = `#${idx + 1}`;
+            }
+        });
+        if (badge) {
+            badge.textContent = `${rows.length} Product Item${rows.length > 1 ? 's' : ''}`;
+        }
+    }
+
     function attachRowEvents(row) {
         const selectEl = row.querySelector('.item-product-select');
         const customWrapper = row.querySelector('.item-custom-name-wrapper');
@@ -200,14 +215,23 @@ function initBillingCalculator() {
             input.addEventListener('change', calculateTotals);
         });
 
+        // Dynamic row removal without page refresh
         if (btnRemove) {
             btnRemove.addEventListener('click', () => {
-                if (itemsTableBody.querySelectorAll('tr.item-row').length > 1) {
-                    row.remove();
-                    calculateTotals();
-                } else {
-                    alert('At least one item is required in the invoice.');
+                const totalRows = itemsTableBody.querySelectorAll('tr.item-row');
+                if (totalRows.length <= 1) {
+                    alert('At least one product item is required in the invoice.');
+                    return;
                 }
+                // Smooth removal transition
+                row.style.transition = 'all 0.2s ease';
+                row.style.opacity = '0';
+                row.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    row.remove();
+                    renumberRows();
+                    calculateTotals();
+                }, 150);
             });
         }
     }
@@ -248,79 +272,97 @@ function initBillingCalculator() {
         });
     }
 
-    // Add new product item row with database product options and discount field
+    // Function to dynamically add a new product item row without page refresh
+    function addNewProductRow() {
+        const tr = document.createElement('tr');
+        tr.className = 'item-row';
+        tr.style.opacity = '0';
+        tr.style.transition = 'all 0.25s ease';
+
+        let optionsHtml = '<option value="" data-price="0.00" data-tax="18" data-stock="0" data-unit="Pcs">-- Select Product from DB --</option>';
+        let initialPrice = '100.00';
+        let initialTax = '18';
+        let initialStock = '100';
+        let initialUnit = 'Pcs';
+
+        if (productsCatalog && productsCatalog.length > 0) {
+            productsCatalog.forEach((p, idx) => {
+                const isSelected = idx === 0 ? 'selected' : '';
+                if (idx === 0) {
+                    initialPrice = p.price;
+                    initialTax = p.tax;
+                    initialStock = p.stock;
+                    initialUnit = p.unit;
+                }
+                optionsHtml += `<option value="${p.id}" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}" data-tax="${p.tax}" data-stock="${p.stock}" data-unit="${p.unit}" ${isSelected}>${p.name} (₹${p.price} • Stock: ${p.stock} ${p.unit})</option>`;
+            });
+        }
+        optionsHtml += '<option value="custom" data-price="0.00" data-tax="18" data-stock="999" data-unit="Pcs">+ Custom / Unlisted Product</option>';
+
+        tr.innerHTML = `
+            <td class="item-index-col" style="text-align: center; font-weight: 700; color: #64748b;">
+                <span class="row-num-badge" style="background: #f1f5f9; padding: 2px 7px; border-radius: 6px; font-size: 0.8rem;">#</span>
+            </td>
+            <td>
+                <select class="form-input form-select item-product-select" required style="cursor: pointer;">
+                    ${optionsHtml}
+                </select>
+                <div class="item-custom-name-wrapper" style="display: none; margin-top: 6px;">
+                    <input type="text" class="form-input item-name" placeholder="Enter custom item name">
+                </div>
+                <div class="item-stock-hint" style="font-size: 0.75rem; color: #10b981; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span class="stock-text">Stock: ${initialStock} ${initialUnit}</span>
+                </div>
+            </td>
+            <td>
+                <input type="number" class="form-input item-price" min="0" step="0.01" value="${initialPrice}" required>
+            </td>
+            <td>
+                <input type="number" class="form-input item-qty" min="1" value="1" required>
+            </td>
+            <td>
+                <input type="number" class="form-input item-discount" min="0" step="0.01" value="0.00" placeholder="0.00">
+            </td>
+            <td>
+                <select class="form-input form-select item-tax">
+                    <option value="0" ${initialTax === '0' || initialTax === '0.00' ? 'selected' : ''}>0% GST</option>
+                    <option value="5" ${initialTax === '5' || initialTax === '5.00' ? 'selected' : ''}>5% GST</option>
+                    <option value="12" ${initialTax === '12' || initialTax === '12.00' ? 'selected' : ''}>12% GST</option>
+                    <option value="18" ${initialTax === '18' || initialTax === '18.00' ? 'selected' : ''}>18% GST</option>
+                    <option value="28" ${initialTax === '28' || initialTax === '28.00' ? 'selected' : ''}>28% GST</option>
+                </select>
+            </td>
+            <td class="item-total-val" style="font-weight: 700; color: #0f172a;">₹0.00</td>
+            <td style="text-align: center;">
+                <button type="button" class="btn-remove-row" title="Remove Item" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; padding: 4px 8px;">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        `;
+
+        itemsTableBody.appendChild(tr);
+        setTimeout(() => {
+            tr.style.opacity = '1';
+        }, 10);
+
+        attachRowEvents(tr);
+        renumberRows();
+        calculateTotals();
+    }
+
+    // Attach click events to both top & bottom Add Item buttons
     if (btnAddItem) {
-        btnAddItem.addEventListener('click', () => {
-            const tr = document.createElement('tr');
-            tr.className = 'item-row';
-
-            let optionsHtml = '<option value="" data-price="0.00" data-tax="18" data-stock="0" data-unit="Pcs">-- Select Product from DB --</option>';
-            let initialPrice = '100.00';
-            let initialTax = '18';
-            let initialStock = '100';
-            let initialUnit = 'Pcs';
-
-            if (productsCatalog && productsCatalog.length > 0) {
-                productsCatalog.forEach((p, idx) => {
-                    const isSelected = idx === 0 ? 'selected' : '';
-                    if (idx === 0) {
-                        initialPrice = p.price;
-                        initialTax = p.tax;
-                        initialStock = p.stock;
-                        initialUnit = p.unit;
-                    }
-                    optionsHtml += `<option value="${p.id}" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}" data-tax="${p.tax}" data-stock="${p.stock}" data-unit="${p.unit}" ${isSelected}>${p.name} (₹${p.price} • Stock: ${p.stock} ${p.unit})</option>`;
-                });
-            }
-            optionsHtml += '<option value="custom" data-price="0.00" data-tax="18" data-stock="999" data-unit="Pcs">+ Custom / Unlisted Product</option>';
-
-            tr.innerHTML = `
-                <td>
-                    <select class="form-input form-select item-product-select" required style="cursor: pointer;">
-                        ${optionsHtml}
-                    </select>
-                    <div class="item-custom-name-wrapper" style="display: none; margin-top: 6px;">
-                        <input type="text" class="form-input item-name" placeholder="Enter custom item name">
-                    </div>
-                    <div class="item-stock-hint" style="font-size: 0.75rem; color: #10b981; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
-                        <i class="fa-solid fa-circle-check"></i>
-                        <span class="stock-text">Stock: ${initialStock} ${initialUnit}</span>
-                    </div>
-                </td>
-                <td>
-                    <input type="number" class="form-input item-price" min="0" step="0.01" value="${initialPrice}" required>
-                </td>
-                <td>
-                    <input type="number" class="form-input item-qty" min="1" value="1" required>
-                </td>
-                <td>
-                    <input type="number" class="form-input item-discount" min="0" step="0.01" value="0.00" placeholder="0.00">
-                </td>
-                <td>
-                    <select class="form-input form-select item-tax">
-                        <option value="0" ${initialTax === '0' || initialTax === '0.00' ? 'selected' : ''}>0% GST</option>
-                        <option value="5" ${initialTax === '5' || initialTax === '5.00' ? 'selected' : ''}>5% GST</option>
-                        <option value="12" ${initialTax === '12' || initialTax === '12.00' ? 'selected' : ''}>12% GST</option>
-                        <option value="18" ${initialTax === '18' || initialTax === '18.00' ? 'selected' : ''}>18% GST</option>
-                        <option value="28" ${initialTax === '28' || initialTax === '28.00' ? 'selected' : ''}>28% GST</option>
-                    </select>
-                </td>
-                <td class="item-total-val" style="font-weight: 700; color: #0f172a;">₹0.00</td>
-                <td style="text-align: center;">
-                    <button type="button" class="btn-remove-row" title="Remove Item" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; padding: 4px 8px;">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </td>
-            `;
-
-            itemsTableBody.appendChild(tr);
-            attachRowEvents(tr);
-            calculateTotals();
-        });
+        btnAddItem.addEventListener('click', addNewProductRow);
+    }
+    const btnAddItemBottom = document.getElementById('btn-add-item-bottom');
+    if (btnAddItemBottom) {
+        btnAddItemBottom.addEventListener('click', addNewProductRow);
     }
 
     // Attach to existing rows
     itemsTableBody.querySelectorAll('tr.item-row').forEach(row => attachRowEvents(row));
+    renumberRows();
     calculateTotals();
 }
 

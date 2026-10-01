@@ -393,4 +393,94 @@ class InvoiceCreationFormTestCase(TestCase):
         self.assertEqual(item.discount, Decimal('200.00'))
         self.assertEqual(item.total, Decimal('4484.00'))
 
+    def test_multiple_products_added_to_same_invoice(self):
+        # Create second and third products
+        prod2 = Product.objects.create(
+            name='Thermal Receipt Printer',
+            sku='PRN-002',
+            price=Decimal('3000.00'),
+            gst_rate=Decimal('12.00'),
+            stock=15,
+            unit='Pcs',
+            created_by=self.user
+        )
+        prod3 = Product.objects.create(
+            name='Thermal Paper Rolls',
+            sku='ROL-003',
+            price=Decimal('500.00'),
+            gst_rate=Decimal('5.00'),
+            stock=100,
+            unit='Box',
+            created_by=self.user
+        )
+
+        # 3 products in one invoice:
+        # Item 1: self.product (price 2000, qty 2, disc 100, gst 18%) -> taxable 3900, tax 702, total 4602
+        # Item 2: prod2 (price 3000, qty 1, disc 0, gst 12%) -> taxable 3000, tax 360, total 3360
+        # Item 3: prod3 (price 500, qty 4, disc 50, gst 5%) -> taxable 1950, tax 97.50, total 2047.50
+        items_payload = json.dumps([
+            {
+                'product_id': self.product.id,
+                'name': self.product.name,
+                'price': '2000.00',
+                'qty': 2,
+                'discount': '100.00',
+                'tax': '18.00'
+            },
+            {
+                'product_id': prod2.id,
+                'name': prod2.name,
+                'price': '3000.00',
+                'qty': 1,
+                'discount': '0.00',
+                'tax': '12.00'
+            },
+            {
+                'product_id': prod3.id,
+                'name': prod3.name,
+                'price': '500.00',
+                'qty': 4,
+                'discount': '50.00',
+                'tax': '5.00'
+            }
+        ])
+
+        post_data = {
+            'customer': self.customer.id,
+            'customer_name': self.customer.name,
+            'customer_phone': self.customer.phone,
+            'payment_method': 'UPI QR Code',
+            'discount': '0.00',
+            'notes': 'Multi-product order',
+            'items_data': items_payload
+        }
+
+        form = InvoiceCreationForm(data=post_data, user=self.user)
+        self.assertTrue(form.is_valid(), form.errors)
+        invoice = form.save(distributor=self.user)
+
+        # Verify 3 distinct line items saved to invoice
+        self.assertEqual(invoice.items.count(), 3)
+
+        # Subtotal: (2000*2) + (3000*1) + (500*4) = 4000 + 3000 + 2000 = 9000
+        self.assertEqual(invoice.subtotal, Decimal('9000.00'))
+
+        # Total item discount: 100 + 0 + 50 = 150
+        self.assertEqual(invoice.discount, Decimal('150.00'))
+
+        # Tax: 702 + 360 + 97.50 = 1159.50
+        self.assertEqual(invoice.tax_amount, Decimal('1159.50'))
+
+        # Grand total = (9000 - 150) + 1159.50 = 10009.50
+        self.assertEqual(invoice.grand_total, Decimal('10009.50'))
+
+        # Verify stock was decremented for all 3 products in inventory
+        self.product.refresh_from_db()
+        prod2.refresh_from_db()
+        prod3.refresh_from_db()
+        self.assertEqual(self.product.stock, 25 - 2) # 23
+        self.assertEqual(prod2.stock, 15 - 1)       # 14
+        self.assertEqual(prod3.stock, 100 - 4)      # 96
+
+
 

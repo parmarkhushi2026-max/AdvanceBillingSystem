@@ -87,12 +87,15 @@
 
             <!-- Invoice Items Card (Dynamic Product Dropdowns) -->
             <div class="dashboard-card">
-                <div class="card-header-clean">
-                    <div class="card-title-clean">
+                <div class="card-header-clean" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="card-title-clean" style="display: flex; align-items: center; gap: 8px;">
                         <i class="fa-solid fa-cart-shopping" style="color: #10b981;"></i>
-                        <span>Invoice Line Items (Dynamic Database Products)</span>
+                        <span>Invoice Line Items</span>
+                        <span id="items-count-badge" style="font-size: 0.78rem; background: #e0f2fe; color: #0369a1; padding: 2px 10px; border-radius: 9999px; font-weight: 700;">
+                            1 Product Item
+                        </span>
                     </div>
-                    <button type="button" id="btn-add-item" class="btn-add-item">
+                    <button type="button" id="btn-add-item" class="btn-add-item" style="cursor: pointer;">
                         <i class="fa-solid fa-plus"></i> Add Product Item
                     </button>
                 </div>
@@ -101,19 +104,23 @@
                     <table class="app-table">
                         <thead>
                             <tr>
-                                <th style="min-width: 220px;">Product Selection (DB Dropdown)</th>
+                                <th style="width: 40px; text-align: center;">#</th>
+                                <th style="min-width: 210px;">Product Selection (DB Dropdown)</th>
                                 <th style="width: 120px;">Price (₹)</th>
-                                <th style="width: 85px;">Qty</th>
-                                <th style="width: 110px;">Discount (₹)</th>
-                                <th style="width: 115px;">GST Tax (%)</th>
+                                <th style="width: 80px;">Qty</th>
+                                <th style="width: 105px;">Discount (₹)</th>
+                                <th style="width: 110px;">GST Tax (%)</th>
                                 <th style="width: 125px;">Line Total</th>
-                                <th style="width: 45px;"></th>
+                                <th style="width: 45px; text-align: center;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="billing-items-tbody">
                             {% if products %}
                             <!-- Default first row pre-selected from first database product -->
                             <tr class="item-row">
+                                <td class="item-index-col" style="text-align: center; font-weight: 700; color: #64748b;">
+                                    <span class="row-num-badge" style="background: #f1f5f9; padding: 2px 7px; border-radius: 6px; font-size: 0.8rem;">#1</span>
+                                </td>
                                 <td>
                                     <select class="form-input form-select item-product-select" required style="cursor: pointer;">
                                         <option value="" data-price="0.00" data-tax="18" data-stock="0" data-unit="Pcs">-- Select Product from DB --</option>
@@ -160,6 +167,9 @@
                             {% else %}
                             <!-- Fallback if no products in database yet -->
                             <tr class="item-row">
+                                <td class="item-index-col" style="text-align: center; font-weight: 700; color: #64748b;">
+                                    <span class="row-num-badge" style="background: #f1f5f9; padding: 2px 7px; border-radius: 6px; font-size: 0.8rem;">#1</span>
+                                </td>
                                 <td>
                                     <input type="text" class="form-input item-name" placeholder="Item / Product Name" value="Standard Service / Product" required>
                                 </td>
@@ -191,6 +201,13 @@
                             {% endif %}
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Footer Quick Add Button Bar -->
+                <div style="padding: 10px 1.5rem; background: #fafafa; border-top: 1px dashed #e2e8f0; display: flex; justify-content: flex-start;">
+                    <button type="button" id="btn-add-item-bottom" class="btn-secondary-action" style="cursor: pointer; font-size: 0.88rem; padding: 7px 16px; background: #ffffff; border: 1px dashed #4f46e5; color: #4f46e5; border-radius: 6px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-circle-plus"></i> Add Another Product Row
+                    </button>
                 </div>
 
                 <!-- Payment, Discount & Remarks -->
