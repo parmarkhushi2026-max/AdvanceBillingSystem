@@ -4,14 +4,7 @@
 
 {% block content %}
 <div class="auth-wrapper" style="flex-direction: column;">
-    <div style="width: 100%; max-width: 460px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
-        <a href="{% url 'portal_select' %}" style="display: inline-flex; align-items: center; gap: 8px; color: #475569; text-decoration: none; font-size: 0.88rem; font-weight: 600; padding: 7px 14px; border-radius: 8px; background: #ffffff; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s;">
-            <i class="fa-solid fa-arrow-left"></i> Back to Home
-        </a>
-        <span style="font-size: 0.8rem; color: #64748b; font-weight: 500;">AdvanceBilling</span>
-    </div>
-
-    <div class="auth-card">
+    <div class="auth-card" style="margin-top: 2rem;">
         <div class="auth-card-header">
             <div class="auth-role-badge admin">
                 <i class="fa-solid fa-lock"></i>
@@ -32,9 +25,9 @@
             </div>
 
             <div class="form-group">
-                <div class="label-with-link">
-                    <label for="password" class="form-label">Security Password</label>
-                    <a href="{% url 'forgot_password' %}" class="link-forgot-pwd">Forgot Password?</a>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <label for="password" class="form-label" style="margin-bottom: 0;">Security Password</label>
+                    <a href="{% url 'forgot_password' %}" style="font-size: 0.8rem; font-weight: 600; color: #4f46e5; text-decoration: none;">Forgot Password?</a>
                 </div>
                 <div class="input-icon-group">
                     <i class="fa-solid fa-key"></i>
@@ -42,26 +35,27 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn-submit-auth btn-submit-admin">
+            <button type="submit" class="btn-submit-auth btn-submit-admin" style="margin-top: 1.5rem; border-radius: 8px;">
                 <span>Secure Admin Login</span>
                 <i class="fa-solid fa-arrow-right-to-bracket"></i>
             </button>
         </form>
 
         <!-- Quick Fill Demo Box -->
-        <div class="auth-demo-box">
-            <div class="demo-title">Default Admin Demo Credentials</div>
-            <div class="demo-creds">User: <strong>admin</strong> | Pass: <strong>admin123</strong></div>
-            <button type="button" class="btn-quick-fill" data-user="admin" data-pass="admin123">
+        <div class="auth-demo-box" style="background: #eef2ff; border-color: #c7d2fe; border-radius: 8px;">
+            <div class="demo-title" style="color: #4338ca;">Default Admin Demo Credentials</div>
+            <div class="demo-creds" style="color: #312e81;">User: <strong>admin</strong> | Pass: <strong>admin123</strong></div>
+            <button type="button" class="btn-quick-fill" data-user="admin" data-pass="admin123" style="background: #ffffff; color: #4f46e5; border-color: #a5b4fc;">
                 <i class="fa-solid fa-bolt"></i> Auto-fill Credentials
             </button>
         </div>
 
-        <div class="auth-switch-link">
-            Are you a Distributor? <a href="{% url 'distributor_login' %}">Sign in to Distributor Portal &rarr;</a>
+        <div class="auth-switch-link" style="margin-top: 1.5rem;">
+            Are you a Distributor? <a href="{% url 'distributor_login' %}" style="color: #059669;">Sign in to Distributor Portal &rarr;</a>
         </div>
+        
         <div class="auth-switch-link" style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; text-align: center;">
-            <a href="{% url 'portal_select' %}" style="display: inline-flex; align-items: center; gap: 6px; color: #2563eb; font-weight: 600; text-decoration: none;">
+            <a href="{% url 'portal_select' %}" style="display: inline-flex; align-items: center; gap: 6px; color: #64748b; font-weight: 600; text-decoration: none; transition: 0.2s;">
                 <i class="fa-solid fa-house"></i> Return to Home Page
             </a>
         </div>
