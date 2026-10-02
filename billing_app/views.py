@@ -856,4 +856,45 @@ def delete_product_view(request, product_id):
     return redirect('product_list')
 
 
+from django.http import HttpResponse
+from django.template.loader import get_template
+try:
+    from xhtml2pdf import pisa
+except ImportError:
+    pisa = None
+
+@login_required
+def generate_invoice_pdf_view(request, invoice_id):
+    if not pisa:
+        messages.error(request, "PDF generation library (xhtml2pdf) is not installed.")
+        return redirect('invoice_detail', invoice_id=invoice_id)
+        
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    profile = getattr(invoice.distributor, 'profile', None) if invoice.distributor else None
+    upi_id = profile.upi_id if profile else 'advancebilling@upi'
+    business_name = profile.business_name if profile else 'Advance Billing Agency'
+
+    upi_payment_url = f"upi://pay?pa={upi_id}&pn={business_name.replace(' ', '%20')}&am={invoice.grand_total}&tn={invoice.invoice_number}&cu=INR"
+
+    context = {
+        'invoice': invoice,
+        'items': invoice.items.all(),
+        'upi_id': upi_id,
+        'business_name': business_name,
+        'upi_payment_url': upi_payment_url,
+    }
+    
+    template = get_template('billing/invoice_pdf.html')
+    html = template.render(context)
+    
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
+    
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    
+    if pisa_status.err:
+        return HttpResponse(f'We had some errors <pre>{html}</pre>')
+    return response
+
+
 

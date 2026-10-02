@@ -14,9 +14,9 @@
         <a href="{% url 'create_invoice' %}" class="btn-secondary-action" style="text-decoration: none; font-size: 0.9rem; background: #ecfdf5; color: #065f46;">
             <i class="fa-solid fa-plus"></i> New Bill
         </a>
-        <button type="button" id="btn-pdf-download" onclick="exportInvoiceToPDF()" class="btn-export-pdf">
-            <i class="fa-solid fa-file-pdf"></i> Download PDF Invoice
-        </button>
+        <a href="{% url 'invoice_pdf' invoice.id %}" id="btn-pdf-download" class="btn-export-pdf" style="text-decoration: none; display: flex; align-items: center; justify-content: center; padding: 0.6rem 1.2rem; background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 600; gap: 8px;">
+            <i class="fa-solid fa-file-pdf"></i> Download PDF Invoice (Server-Side)
+        </a>
         <button type="button" onclick="window.print()" class="btn-print">
             <i class="fa-solid fa-print"></i> Print Tax Receipt
         </button>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Invoice PDF</title>
+    <style>
+        body { font-family: Helvetica, sans-serif; font-size: 12px; color: #333; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .title { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+        .subtitle { font-size: 14px; color: #666; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .table th, .table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .table th { background-color: #f8f8f8; font-weight: bold; }
+        .totals { margin-top: 20px; width: 40%; float: right; border-collapse: collapse; }
+        .totals td { padding: 5px; text-align: right; }
+        .totals .bold { font-weight: bold; }
+        .footer { text-align: center; margin-top: 40px; font-size: 10px; color: #999; }
+        .info-table { width: 100%; margin-bottom: 20px; }
+        .info-table td { width: 50%; vertical-align: top; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">{{ business_name }}</div>
+        <div class="subtitle">Tax Invoice</div>
+    </div>
+
+    <table class="info-table">
+        <tr>
+            <td>
+                <strong>Billed To:</strong><br>
+                {{ invoice.customer_name }}<br>
+                Phone: {{ invoice.customer_phone }}<br>
+                {% if invoice.customer.address %}{{ invoice.customer.address }}<br>{% endif %}
+                {% if invoice.customer.gstin %}GSTIN: {{ invoice.customer.gstin }}<br>{% endif %}
+            </td>
+            <td style="text-align: right;">
+                <strong>Invoice Details:</strong><br>
+                Invoice No: {{ invoice.invoice_number }}<br>
+                Date: {{ invoice.created_at|date:"d M, Y" }}<br>
+                Payment: {{ invoice.payment_method }}
+            </td>
+        </tr>
+    </table>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Description</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Discount</th>
+                <th>GST (%)</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.product_name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>₹{{ item.unit_price }}</td>
+                <td>₹{{ item.discount }}</td>
+                <td>{{ item.tax_rate }}%</td>
+                <td>₹{{ item.total }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table class="totals">
+        <tr>
+            <td>Subtotal:</td>
+            <td>₹{{ invoice.subtotal }}</td>
+        </tr>
+        <tr>
+            <td>Discount:</td>
+            <td>- ₹{{ invoice.discount }}</td>
+        </tr>
+        <tr>
+            <td>GST Amount:</td>
+            <td>₹{{ invoice.tax_amount }}</td>
+        </tr>
+        <tr>
+            <td class="bold">Grand Total:</td>
+            <td class="bold">₹{{ invoice.grand_total }}</td>
+        </tr>
+    </table>
+    
+    <div style="clear: both;"></div>
+
+    <div class="footer">
+        <p>Thank you for your business!</p>
+        <p>Payable to {{ business_name }} via UPI ID: {{ upi_id }}</p>
+    </div>
+</body>
+</html>
