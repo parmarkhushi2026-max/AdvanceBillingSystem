@@ -199,41 +199,71 @@ body {
 }
 
 /* ==========================================================================
-   MESSAGES & ALERTS
+   MESSAGES & ALERTS (TOASTS)
    ========================================================================== */
 
-.alert-wrapper {
-    margin-bottom: 1.5rem;
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.alert-banner {
-    padding: 0.9rem 1.25rem;
+.toast-banner {
+    padding: 1rem 1.5rem;
     border-radius: var(--radius-md);
-    margin-bottom: 0.75rem;
     display: flex;
     align-items: center;
     gap: 12px;
-    font-size: 0.92rem;
-    font-weight: 500;
-    animation: fadeInDown 0.3s ease-out;
+    font-size: 0.95rem;
+    font-weight: 600;
+    box-shadow: var(--shadow-lg);
+    animation: slideInRight 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    min-width: 300px;
+    justify-content: space-between;
 }
 
-.alert-banner.success {
+@keyframes slideInRight {
+    from { transform: translateX(120%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeOutRight {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(120%); opacity: 0; }
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1.1rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    margin-left: 10px;
+}
+.toast-close:hover { opacity: 1; }
+
+.toast-banner.success {
     background: var(--accent-emerald-light);
     color: #065f46;
-    border: 1px solid #a7f3d0;
+    border-left: 4px solid var(--accent-emerald);
 }
 
-.alert-banner.error {
+.toast-banner.error {
     background: #fef2f2;
     color: #991b1b;
-    border: 1px solid #fecaca;
+    border-left: 4px solid var(--accent-rose);
 }
 
-.alert-banner.info {
+.toast-banner.info {
     background: #eff6ff;
     color: #1e40af;
-    border: 1px solid #bfdbfe;
+    border-left: 4px solid var(--primary);
 }
 
 /* ==========================================================================

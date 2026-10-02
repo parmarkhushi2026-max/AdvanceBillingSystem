@@ -249,9 +249,9 @@
 
             <!-- Common Flash Messages -->
             {% if messages %}
-                <div class="alert-wrapper" style="margin-bottom: 2rem;">
+                <div class="toast-container" id="toast-container">
                     {% for message in messages %}
-                        <div class="alert-banner {{ message.tags }}">
+                        <div class="toast-banner {{ message.tags }}">
                             {% if message.tags == 'success' %}
                                 <i class="fa-solid fa-circle-check"></i>
                             {% elif message.tags == 'error' %}
@@ -260,9 +260,19 @@
                                 <i class="fa-solid fa-circle-info"></i>
                             {% endif %}
                             <span>{{ message }}</span>
+                            <button type="button" class="toast-close" onclick="this.parentElement.remove();"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                     {% endfor %}
                 </div>
+                <script>
+                    setTimeout(() => {
+                        const toasts = document.querySelectorAll('.toast-banner');
+                        toasts.forEach(toast => {
+                            toast.style.animation = 'fadeOutRight 0.3s ease-in forwards';
+                            setTimeout(() => toast.remove(), 300);
+                        });
+                    }, 5000);
+                </script>
             {% endif %}
 
             <!-- ONE SINGLE CONTENT BLOCK -->
