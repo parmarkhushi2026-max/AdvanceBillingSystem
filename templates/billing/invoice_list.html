@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}All Invoices - Advance Billing System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fa-solid fa-file-invoice" style="color: var(--primary);"></i> Invoices</h1>
+        <p class="page-subtitle">View and manage all generated invoices.</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'create_invoice' %}" class="btn-primary-action">
+            <i class="fa-solid fa-plus"></i> Create New Invoice
+        </a>
+    </div>
+</div>
+
+<div class="dashboard-card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+    <form method="GET" action="{% url 'invoice_list' %}" style="display: flex; gap: 10px; max-width: 500px;">
+        <div class="input-icon-group" style="flex: 1;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" name="q" class="form-input" placeholder="Search by Invoice # or Customer..." value="{{ query }}">
+        </div>
+        <button type="submit" class="btn-secondary-action" style="padding: 0 1.25rem;">
+            Search
+        </button>
+        {% if query %}
+            <a href="{% url 'invoice_list' %}" class="btn-secondary-action" style="color: var(--accent-rose);" title="Clear Search">
+                Clear
+            </a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="dashboard-card" id="tableViewContainer">
+    <div class="table-responsive">
+        <table class="app-table">
+            <thead>
+                <tr>
+                    <th>Invoice #</th>
+                    <th>Customer Name</th>
+                    <th>Date</th>
+                    <th style="text-align: right;">Total Amount</th>
+                    <th style="text-align: center;">Status</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if invoices %}
+                    {% for invoice in invoices %}
+                        <tr>
+                            <td style="font-weight: 700;">{{ invoice.invoice_number }}</td>
+                            <td>{{ invoice.customer_name }}</td>
+                            <td>{{ invoice.created_at|date:"M d, Y" }}</td>
+                            <td style="text-align: right; font-weight: 700;">₹{{ invoice.grand_total|floatformat:2 }}</td>
+                            <td style="text-align: center;">
+                                <span class="badge-status {{ invoice.payment_status|lower }}">{{ invoice.payment_status }}</span>
+                            </td>
+                            <td style="text-align: right;">
+                                <a href="{% url 'invoice_detail' invoice.id %}" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem;" title="View Invoice">
+                                    <i class="fa-solid fa-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+                            <i class="fa-solid fa-file-invoice" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--text-light);"></i>
+                            <h4>No invoices found</h4>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if invoices.has_other_pages %}
+    <div style="padding: 1rem; display: flex; justify-content: center;">
+        <div style="display: flex; gap: 0.5rem;">
+            {% if invoices.has_previous %}
+                <a href="?page={{ invoices.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="btn-secondary-action" style="padding: 0.5rem 1rem;">Previous</a>
+            {% endif %}
+            
+            <span class="btn-secondary-action" style="padding: 0.5rem 1rem; background: var(--bg-card); cursor: default;">
+                Page {{ invoices.number }} of {{ invoices.paginator.num_pages }}
+            </span>
+            
+            {% if invoices.has_next %}
+                <a href="?page={{ invoices.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="btn-secondary-action" style="padding: 0.5rem 1rem;">Next</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

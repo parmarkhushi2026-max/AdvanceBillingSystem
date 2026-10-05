@@ -23,6 +23,7 @@ urlpatterns = [
     path('invoice/<int:invoice_id>/pdf/', views.generate_invoice_pdf_view, name='invoice_pdf'),
 
     # Customer Management
+    path('invoices/', views.invoice_list_view, name='invoice_list'),
     path('customers/', views.customer_list_view, name='customer_list'),
     path('customers/add/', views.add_customer_view, name='add_customer'),
     path('customers/<int:customer_id>/edit/', views.edit_customer_view, name='edit_customer'),

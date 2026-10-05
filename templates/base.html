@@ -205,6 +205,9 @@
                         <a href="{% url 'admin_dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
                             <i class="fa-solid fa-chart-pie"></i> <span>Dashboard</span>
                         </a>
+                        <a href="{% url 'invoice_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'invoice_list' %}active{% endif %}">
+                            <i class="fa-solid fa-file-invoice"></i> <span>All Invoices</span>
+                        </a>
                         <a href="{% url 'product_list' %}" class="sidebar-link {% if request.resolver_match.url_name in 'product_list,add_product,edit_product' %}active{% endif %}">
                             <i class="fa-solid fa-boxes-stacked"></i> <span>Product Inventory</span>
                         </a>
@@ -227,6 +230,9 @@
                         </a>
                         
                         <div style="font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; margin: 1.5rem 0 0.5rem 0; padding-left: 1rem;">Management</div>
+                        <a href="{% url 'invoice_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'invoice_list' %}active{% endif %}">
+                            <i class="fa-solid fa-file-invoice"></i> <span>All Invoices</span>
+                        </a>
                         <a href="{% url 'customer_list' %}" class="sidebar-link {% if request.resolver_match.url_name in 'customer_list,add_customer,edit_customer' %}active{% endif %}">
                             <i class="fa-solid fa-users"></i> <span>Customer Directory</span>
                         </a>

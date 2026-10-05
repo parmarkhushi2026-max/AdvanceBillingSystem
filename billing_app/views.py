@@ -371,12 +371,15 @@ def invoice_detail_view(request, invoice_id):
     # Dynamic UPI Payment format
     upi_payment_url = f"upi://pay?pa={upi_id}&pn={business_name.replace(' ', '%20')}&am={invoice.grand_total}&tn={invoice.invoice_number}&cu=INR"
 
+    qr_data = f"Invoice: {invoice.invoice_number} | Customer: {invoice.customer_name} | Items: {invoice.items.count()} | Total: Rs.{invoice.grand_total}"
+
     context = {
         'invoice': invoice,
         'items': invoice.items.all(),
         'upi_id': upi_id,
         'business_name': business_name,
         'upi_payment_url': upi_payment_url,
+        'qr_data': qr_data,
     }
     return render(request, 'billing/invoice_detail.html', context)
 
@@ -892,9 +895,31 @@ def generate_invoice_pdf_view(request, invoice_id):
     
     pisa_status = pisa.CreatePDF(html, dest=response)
     
-    if pisa_status.err:
-        return HttpResponse(f'We had some errors <pre>{html}</pre>')
-    return response
-
-
-
+@login_required
+def invoice_list_view(request):
+    initialize_default_users()
+    query = request.GET.get('q', '').strip()
+    
+    if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'):
+        invoices = Invoice.objects.all().order_by('-created_at')
+        role = 'Admin'
+    else:
+        invoices = Invoice.objects.filter(distributor=request.user).order_by('-created_at')
+        role = 'Distributor'
+        
+    if query:
+        invoices = invoices.filter(
+            Q(invoice_number__icontains=query) |
+            Q(customer_name__icontains=query)
+        )
+        
+    paginator = Paginator(invoices, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'invoices': page_obj,
+        'query': query,
+        'role': role,
+    }
+    return render(request, 'billing/invoice_list.html', context)

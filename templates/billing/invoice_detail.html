@@ -93,11 +93,10 @@
 
     <!-- Totals & QR Verification Footer -->
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center; border-top: 2px solid #f1f5f9; padding-top: 1.5rem;">
-        <!-- Left: UPI & Verification QR Code -->
         <div class="invoice-qr-wrap" style="align-items: flex-start;">
-            <div id="invoice-qrcode" data-qr-text="{{ upi_payment_url }}"></div>
+            <div id="invoice-qrcode" data-qr-text="{{ qr_data }}"></div>
             <div style="font-size: 0.78rem; color: #64748b; margin-top: 6px;">
-                <i class="fa-solid fa-qrcode"></i> Scan to Verify / Pay via UPI
+                <i class="fa-solid fa-qrcode"></i> Scan to Verify Invoice
             </div>
         </div>
 
