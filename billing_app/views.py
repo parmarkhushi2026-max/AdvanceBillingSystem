@@ -876,6 +876,10 @@ try:
 except ImportError:
     pisa = None
 
+import qrcode
+import base64
+from io import BytesIO
+
 @login_required
 def generate_invoice_pdf_view(request, invoice_id):
     if not pisa:
@@ -887,14 +891,28 @@ def generate_invoice_pdf_view(request, invoice_id):
     upi_id = profile.upi_id if profile else 'advancebilling@upi'
     business_name = profile.business_name if profile else 'Advance Billing Agency'
 
-    upi_payment_url = f"upi://pay?pa={upi_id}&pn={business_name.replace(' ', '%20')}&am={invoice.grand_total}&tn={invoice.invoice_number}&cu=INR"
+    product_summary = ", ".join([f"{item.product_name} (x{item.quantity})" for item in invoice.items.all()])
+    formatted_date = invoice.created_at.strftime('%Y-%m-%d %H:%M')
+    
+    qr_data = (
+        f"Invoice No: {invoice.invoice_number}\n"
+        f"Date: {formatted_date}\n"
+        f"Customer: {invoice.customer_name}\n"
+        f"Products: {product_summary}\n"
+        f"Total Bill: Rs.{invoice.grand_total}"
+    )
+
+    qr = qrcode.make(qr_data)
+    buffer = BytesIO()
+    qr.save(buffer, format="PNG")
+    qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
     context = {
         'invoice': invoice,
         'items': invoice.items.all(),
         'upi_id': upi_id,
         'business_name': business_name,
-        'upi_payment_url': upi_payment_url,
+        'qr_base64': qr_base64,
     }
     
     template = get_template('billing/invoice_pdf.html')

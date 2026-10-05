@@ -133,13 +133,25 @@
         
         <div class="clear"></div>
 
-        <div class="notes">
-            <strong>Notes & Terms:</strong><br>
-            {% if invoice.notes %}
-                {{ invoice.notes }}<br>
-            {% endif %}
-            Thank you for your business! This is a computer-generated tax invoice.
-        </div>
+        <table style="width: 100%; margin-top: 20px;">
+            <tr>
+                <td style="width: 75%; vertical-align: bottom;">
+                    <div class="notes" style="margin-top: 0;">
+                        <strong>Notes & Terms:</strong><br>
+                        {% if invoice.notes %}
+                            {{ invoice.notes }}<br>
+                        {% endif %}
+                        Thank you for your business! This is a computer-generated tax invoice verified with QR Code.
+                    </div>
+                </td>
+                <td style="width: 25%; text-align: right; vertical-align: bottom;">
+                    {% if qr_base64 %}
+                        <img src="data:image/png;base64,{{ qr_base64 }}" style="width: 90px; height: 90px;" /><br>
+                        <span style="font-size: 10px; color: #64748b; display: block; margin-top: 5px;">Scan to Verify Invoice</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
     </div>
     
     <div id="footerContent">
