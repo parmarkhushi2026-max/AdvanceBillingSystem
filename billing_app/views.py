@@ -371,7 +371,17 @@ def invoice_detail_view(request, invoice_id):
     # Dynamic UPI Payment format
     upi_payment_url = f"upi://pay?pa={upi_id}&pn={business_name.replace(' ', '%20')}&am={invoice.grand_total}&tn={invoice.invoice_number}&cu=INR"
 
-    qr_data = f"Invoice: {invoice.invoice_number} | Customer: {invoice.customer_name} | Items: {invoice.items.count()} | Total: Rs.{invoice.grand_total}"
+    # Build dynamic product summary
+    product_summary = ", ".join([f"{item.product_name} (x{item.quantity})" for item in invoice.items.all()])
+    formatted_date = invoice.created_at.strftime('%Y-%m-%d %H:%M')
+    
+    qr_data = (
+        f"Invoice No: {invoice.invoice_number}\n"
+        f"Date: {formatted_date}\n"
+        f"Customer: {invoice.customer_name}\n"
+        f"Products: {product_summary}\n"
+        f"Total Bill: Rs.{invoice.grand_total}"
+    )
 
     context = {
         'invoice': invoice,
@@ -901,10 +911,10 @@ def invoice_list_view(request):
     query = request.GET.get('q', '').strip()
     
     if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'):
-        invoices = Invoice.objects.all().order_by('-created_at')
+        invoices = Invoice.objects.prefetch_related('items').all().order_by('-created_at')
         role = 'Admin'
     else:
-        invoices = Invoice.objects.filter(distributor=request.user).order_by('-created_at')
+        invoices = Invoice.objects.prefetch_related('items').filter(distributor=request.user).order_by('-created_at')
         role = 'Distributor'
         
     if query:

@@ -39,6 +39,7 @@
                 <tr>
                     <th>Invoice #</th>
                     <th>Customer Name</th>
+                    <th>Products</th>
                     <th>Date</th>
                     <th style="text-align: right;">Total Amount</th>
                     <th style="text-align: center;">Status</th>
@@ -51,6 +52,11 @@
                         <tr>
                             <td style="font-weight: 700;">{{ invoice.invoice_number }}</td>
                             <td>{{ invoice.customer_name }}</td>
+                            <td style="font-size: 0.85rem; color: var(--text-muted); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                {% for item in invoice.items.all %}
+                                    {{ item.product_name }} (x{{ item.quantity }}){% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            </td>
                             <td>{{ invoice.created_at|date:"M d, Y" }}</td>
                             <td style="text-align: right; font-weight: 700;">₹{{ invoice.grand_total|floatformat:2 }}</td>
                             <td style="text-align: center;">
