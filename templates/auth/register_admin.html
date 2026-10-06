@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Registration - Advance Billing System{% endblock %}
+
+{% block content %}
+<style>
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 600px) {
+        .form-row { grid-template-columns: 1fr; gap: 0; }
+    }
+    .field-hint-text { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
+    .field-error-text { font-size: 0.75rem; color: #ef4444; margin-top: 4px; font-weight: 600; display: none; }
+    .required-star { color: #ef4444; }
+    .btn-toggle-pwd { position: absolute; right: 10px; background: none; border: none; color: #94a3b8; cursor: pointer; }
+</style>
+
+<div class="auth-wrapper" style="flex-direction: column;">
+    <div class="auth-card register-card" style="margin-top: 2rem; max-width: 700px; border-top: 4px solid #4f46e5;">
+        <div class="auth-card-header">
+            <div class="auth-role-badge admin">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Admin Registration</span>
+            </div>
+            <h2 class="auth-title">Create Admin Account</h2>
+            <p class="auth-subtitle">Register your system administrator account securely.</p>
+        </div>
+
+        <form id="admin-reg-form">
+            <div id="form-general-error" class="field-error-text" style="text-align: center; margin-bottom: 1rem; font-size: 0.9rem;"></div>
+            <div id="form-general-success" style="display: none; text-align: center; margin-bottom: 1rem; color: #10b981; font-weight: 600;"></div>
+
+            <div class="form-row">
+                <!-- First Name -->
+                <div class="form-group">
+                    <label for="first_name" class="form-label">First Name</label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-user"></i>
+                        <input type="text" id="first_name" name="first_name" class="form-input" placeholder="First Name">
+                    </div>
+                </div>
+
+                <!-- Last Name -->
+                <div class="form-group">
+                    <label for="last_name" class="form-label">Last Name</label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-user"></i>
+                        <input type="text" id="last_name" name="last_name" class="form-input" placeholder="Last Name">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <!-- Business Name -->
+                <div class="form-group">
+                    <label for="business_name" class="form-label">Business Name</label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-building"></i>
+                        <input type="text" id="business_name" name="business_name" class="form-input" placeholder="Admin HQ">
+                    </div>
+                </div>
+
+                <!-- Phone Number -->
+                <div class="form-group">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-phone"></i>
+                        <input type="text" id="phone" name="phone" class="form-input" placeholder="+91 9876543210">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <!-- Email Address -->
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-envelope"></i>
+                        <input type="email" id="email" name="email" class="form-input" required placeholder="admin@example.com">
+                    </div>
+                </div>
+
+                <!-- Username -->
+                <div class="form-group">
+                    <label for="username" class="form-label">Username <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-user-shield"></i>
+                        <input type="text" id="username" name="username" class="form-input" required placeholder="admin">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <!-- Password -->
+                <div class="form-group">
+                    <label for="password" class="form-label">Password <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="password" name="password" class="form-input" required placeholder="Min 6 chars">
+                        <button type="button" class="btn-toggle-pwd" data-target="password">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Confirm Password -->
+                <div class="form-group">
+                    <label for="confirm_password" class="form-label">Confirm Password <span class="required-star">*</span></label>
+                    <div class="input-icon-group">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <input type="password" id="confirm_password" class="form-input" required placeholder="Repeat password">
+                        <button type="button" class="btn-toggle-pwd" data-target="confirm_password">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                    <div id="pwd-match-status" class="field-hint-text"></div>
+                </div>
+            </div>
+
+            <button type="submit" id="btn-submit" class="btn-submit-auth" style="margin-top: 1rem; border-radius: 8px; background: #4f46e5;">
+                <span>Create Admin Account</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </form>
+
+        <div class="auth-switch-link" style="margin-top: 1.5rem;">
+            Already have an Admin Account? <a href="{% url 'admin_login' %}" style="color: #4f46e5;">Sign In Here &rarr;</a>
+        </div>
+        
+        <div class="auth-switch-link" style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; text-align: center;">
+            <a href="{% url 'portal_select' %}" style="display: inline-flex; align-items: center; gap: 6px; color: #64748b; font-weight: 600; text-decoration: none; transition: 0.2s;">
+                <i class="fa-solid fa-house"></i> Return to Home Page
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Password Visibility Toggle
+    document.querySelectorAll('.btn-toggle-pwd').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            const targetInput = document.getElementById(targetId);
+            if (targetInput) {
+                const type = targetInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                targetInput.setAttribute('type', type);
+                this.querySelector('i').className = type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+            }
+        });
+    });
+
+    // Real-time Password Validation
+    const pwdInput = document.getElementById('password');
+    const confirmPwdInput = document.getElementById('confirm_password');
+    const matchStatus = document.getElementById('pwd-match-status');
+
+    function checkPasswordMatch() {
+        if (!pwdInput || !confirmPwdInput || !matchStatus) return;
+        const p1 = pwdInput.value;
+        const p2 = confirmPwdInput.value;
+
+        if (p2.length > 0) {
+            if (p1 === p2) {
+                matchStatus.innerHTML = '<span style="color:#10b981; font-weight:600;"><i class="fa-solid fa-check"></i> Passwords match!</span>';
+            } else {
+                matchStatus.innerHTML = '<span style="color:#ef4444; font-weight:600;"><i class="fa-solid fa-xmark"></i> Passwords do not match</span>';
+            }
+        } else {
+            matchStatus.innerHTML = '';
+        }
+    }
+
+    if (pwdInput && confirmPwdInput) {
+        pwdInput.addEventListener('input', checkPasswordMatch);
+        confirmPwdInput.addEventListener('input', checkPasswordMatch);
+    }
+
+    // Handle Form Submit to API
+    const form = document.getElementById('admin-reg-form');
+    const btnSubmit = document.getElementById('btn-submit');
+    const errorDiv = document.getElementById('form-general-error');
+    const successDiv = document.getElementById('form-general-success');
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        errorDiv.style.display = 'none';
+        successDiv.style.display = 'none';
+        
+        if (pwdInput.value !== confirmPwdInput.value) {
+            errorDiv.textContent = "Passwords do not match.";
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        const payload = {
+            first_name: document.getElementById('first_name').value,
+            last_name: document.getElementById('last_name').value,
+            business_name: document.getElementById('business_name').value,
+            phone: document.getElementById('phone').value,
+            email: document.getElementById('email').value,
+            username: document.getElementById('username').value,
+            password: pwdInput.value
+        };
+
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = '<span>Processing...</span> <i class="fa-solid fa-spinner fa-spin"></i>';
+
+        try {
+            const response = await fetch('/api/register/admin/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                successDiv.textContent = data.message + ' Redirecting to login...';
+                successDiv.style.display = 'block';
+                setTimeout(() => {
+                    window.location.href = "{% url 'admin_login' %}";
+                }, 2000);
+            } else {
+                errorDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> ' + (data.message || 'Registration failed.');
+                errorDiv.style.display = 'block';
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = '<span>Create Admin Account</span> <i class="fa-solid fa-arrow-right"></i>';
+            }
+        } catch (error) {
+            errorDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Network error. Please try again.';
+            errorDiv.style.display = 'block';
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = '<span>Create Admin Account</span> <i class="fa-solid fa-arrow-right"></i>';
+        }
+    });
+});
+</script>
+{% endblock %}

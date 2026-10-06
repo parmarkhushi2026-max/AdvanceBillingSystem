@@ -104,6 +104,17 @@ def admin_login_view(request):
 
     return render(request, 'auth/login_admin.html', {'form': form})
 
+# 2.1 Admin Register View (Front-end)
+def admin_register_view(request):
+    initialize_default_users()
+    if request.user.is_authenticated:
+        if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'):
+            return redirect('admin_dashboard')
+        return redirect('distributor_dashboard')
+    
+    # Render the pure HTML form which connects to the API via JS
+    return render(request, 'auth/register_admin.html')
+
 # 3. Distributor Login View (Django Auth Backend)
 def distributor_login_view(request):
     initialize_default_users()

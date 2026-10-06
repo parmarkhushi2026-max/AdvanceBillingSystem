@@ -5,6 +5,7 @@ urlpatterns = [
     # Portal Landing & Authentication
     path('', views.portal_select, name='portal_select'),
     path('login/admin/', views.admin_login_view, name='admin_login'),
+    path('register/admin/', views.admin_register_view, name='admin_register'),
     path('login/distributor/', views.distributor_login_view, name='distributor_login'),
     path('register/distributor/', views.distributor_register_view, name='distributor_register'),
     path('forgot-password/', views.forgot_password_view, name='forgot_password'),
