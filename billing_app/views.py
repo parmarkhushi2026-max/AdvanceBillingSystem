@@ -951,3 +951,41 @@ def invoice_list_view(request):
         'role': role,
     }
     return render(request, 'billing/invoice_list.html', context)
+
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_register_admin(request):
+    try:
+        data = json.loads(request.body)
+        username = data.get('username', '').strip()
+        email = data.get('email', '').strip()
+        password = data.get('password', '')
+        
+        if not username or not email or not password:
+            return JsonResponse({'success': False, 'message': 'Username, email, and password are required.'}, status=400)
+            
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({'success': False, 'message': 'Username already exists.'}, status=400)
+            
+        user = User.objects.create_superuser(
+            username=username,
+            email=email,
+            password=password,
+            first_name=data.get('first_name', '').strip(),
+            last_name=data.get('last_name', '').strip()
+        )
+        
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.role = 'ADMIN'
+        profile.business_name = data.get('business_name', 'Admin HQ').strip()
+        profile.phone = data.get('phone', '').strip()
+        profile.save()
+        
+        return JsonResponse({'success': True, 'message': f'Admin user {username} created successfully.'}, status=201)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': 'Invalid JSON data.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
