@@ -483,4 +483,103 @@ class InvoiceCreationFormTestCase(TestCase):
         self.assertEqual(prod3.stock, 100 - 4)      # 96
 
 
+class AdminRegistrationTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
 
+    def test_admin_registration_success(self):
+        import json
+        data = {
+            'first_name': 'Super',
+            'last_name': 'Admin',
+            'business_name': 'Admin Corp',
+            'phone': '1234567890',
+            'email': 'admin_new@example.com',
+            'username': 'admin_new',
+            'password': 'AdminPassword123!',
+        }
+        response = self.client.post(reverse('api_register_admin'), data=json.dumps(data), content_type='application/json')
+        self.assertIn(response.status_code, [200, 201])
+        resp_data = response.json()
+        self.assertTrue(resp_data.get('success'))
+
+        # Verify user & profile created properly
+        user = User.objects.filter(username='admin_new').first()
+        self.assertIsNotNone(user)
+        self.assertEqual(user.email, 'admin_new@example.com')
+        self.assertTrue(user.check_password('AdminPassword123!'))
+
+        self.assertEqual(user.profile.role, 'ADMIN')
+        self.assertEqual(user.profile.business_name, 'Admin Corp')
+        self.assertEqual(user.profile.phone, '1234567890')
+
+
+from billing_app.models import OTPToken
+
+class PasswordRecoveryTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin = User.objects.create_superuser(username='admin', email='admin@example.com', password='password123')
+        # Trigger signal/create profile
+        from billing_app.models import UserProfile
+        profile, _ = UserProfile.objects.get_or_create(user=self.admin)
+        profile.role = 'ADMIN'
+        profile.save()
+
+    def test_admin_request_otp(self):
+        data = {
+            'action': 'request_otp',
+            'identity': 'admin'
+        }
+        response = self.client.post(reverse('admin_forgot_password'), data)
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify OTP is created
+        token = OTPToken.objects.filter(user=self.admin).first()
+        self.assertIsNotNone(token)
+        
+        # Verify session is updated
+        self.assertEqual(self.client.session.get('admin_reset_user_id'), self.admin.id)
+        self.assertEqual(self.client.session.get('admin_reset_step'), 2)
+
+    def test_admin_verify_otp(self):
+        # 1. Setup session as if step 1 was completed
+        token = OTPToken.generate_otp_for_user(self.admin)
+        session = self.client.session
+        session['admin_reset_user_id'] = self.admin.id
+        session['admin_reset_step'] = 2
+        session['admin_reset_otp'] = token.otp_code
+        session.save()
+
+        # 2. Submit valid OTP
+        data = {
+            'action': 'verify_otp',
+            'otp_code': token.otp_code
+        }
+        response = self.client.post(reverse('admin_forgot_password'), data)
+        self.assertEqual(response.status_code, 302)
+        
+        # 3. Verify OTP marked as verified and session moves to step 3
+        token.refresh_from_db()
+        self.assertTrue(token.is_verified)
+        self.assertEqual(self.client.session.get('admin_reset_step'), 3)
+
+    def test_admin_reset_password(self):
+        # 1. Setup session as if step 2 was completed
+        session = self.client.session
+        session['admin_reset_user_id'] = self.admin.id
+        session['admin_reset_step'] = 3
+        session.save()
+
+        # 2. Submit new password
+        data = {
+            'action': 'reset_password',
+            'new_password': 'NewPassword123!',
+            'confirm_password': 'NewPassword123!'
+        }
+        response = self.client.post(reverse('admin_forgot_password'), data)
+        self.assertEqual(response.status_code, 302)
+        
+        # 3. Verify password was updated
+        self.admin.refresh_from_db()
+        self.assertTrue(self.admin.check_password('NewPassword123!'))
