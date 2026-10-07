@@ -126,6 +126,8 @@ class OTPToken(models.Model):
     @classmethod
     def generate_otp_for_user(cls, user, validity_minutes=10):
         """Generate a random 6-digit OTP code, store in DB, and invalidate older active OTPs."""
+        from django.core.mail import send_mail
+        
         # Invalidate old unverified OTPs
         cls.objects.filter(user=user, is_verified=False).update(is_verified=True)
         
@@ -138,6 +140,22 @@ class OTPToken(models.Model):
             otp_code=random_code,
             expires_at=expiration
         )
+        
+        # Send OTP email
+        if user.email:
+            try:
+                subject = "Your Password Recovery OTP"
+                message = f"Hello {user.get_full_name() or user.username},\n\nYour OTP for password recovery is: {random_code}\n\nThis OTP is valid for {validity_minutes} minutes.\n\nThank you,\nAdvance Billing System"
+                send_mail(
+                    subject,
+                    message,
+                    'noreply@advancebilling.com',
+                    [user.email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                print(f"Failed to send email to {user.email}: {e}")
+                
         return token
 
     def __str__(self):
