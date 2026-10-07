@@ -10,6 +10,8 @@ urlpatterns = [
     path('register/distributor/', views.distributor_register_view, name='distributor_register'),
     path('forgot-password/', views.forgot_password_view, name='forgot_password'),
     path('forgot-password/resend-otp/', views.resend_otp_view, name='resend_otp'),
+    path('admin/forgot-password/', views.admin_forgot_password_view, name='admin_forgot_password'),
+    path('admin/forgot-password/resend-otp/', views.admin_resend_otp_view, name='admin_resend_otp'),
     path('logout/', views.user_logout, name='logout'),
     
     # API endpoints

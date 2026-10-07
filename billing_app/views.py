@@ -517,6 +517,118 @@ def forgot_password_view(request):
     }
     return render(request, 'auth/forgot_password.html', context)
 
+# Admin Specific Forgot Password View (Multi-step DB-backed OTP flow)
+def admin_forgot_password_view(request):
+    initialize_default_users()
+    
+    # Reset flow if requested
+    if request.GET.get('reset') == '1':
+        for key in ['admin_reset_user_id', 'admin_reset_otp', 'admin_reset_identity', 'admin_reset_step']:
+            if key in request.session:
+                del request.session[key]
+        return redirect('admin_forgot_password')
+
+    step = request.session.get('admin_reset_step', 1)
+    user_id = request.session.get('admin_reset_user_id')
+    stored_otp = request.session.get('admin_reset_otp')
+    identity = request.session.get('admin_reset_identity', '')
+
+    forgot_form = ForgotPasswordForm()
+    verify_form = VerifyOTPForm()
+    reset_form = ResetPasswordForm()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        # STEP 1: Request & Generate DB-backed OTP for Username/Email
+        if action == 'request_otp' or step == 1:
+            forgot_form = ForgotPasswordForm(request.POST)
+            if forgot_form.is_valid():
+                input_id = forgot_form.cleaned_data['identity'].strip()
+                user = User.objects.filter(Q(username__iexact=input_id) | Q(email__iexact=input_id)).first()
+                
+                if user and (user.is_superuser or (hasattr(user, 'profile') and user.profile.role == 'ADMIN')):
+                    # Generate OTP and save to Database (OTPToken table)
+                    token = OTPToken.generate_otp_for_user(user, validity_minutes=10)
+                    otp_code = token.otp_code
+
+                    request.session['admin_reset_user_id'] = user.id
+                    request.session['admin_reset_otp'] = otp_code
+                    request.session['admin_reset_identity'] = user.username
+                    request.session['admin_reset_step'] = 2
+                    
+                    messages.success(
+                        request,
+                        f"🔐 DB OTP GENERATED & STORED: Your 6-digit code is [{otp_code}]. (Saved in Database, Valid 10 mins)"
+                    )
+                    return redirect('admin_forgot_password')
+                else:
+                    messages.error(request, "No admin account found matching that username or email address.")
+
+        # STEP 2: Validate 6-digit OTP from Database
+        elif action == 'verify_otp' or (step == 2 and action != 'request_otp'):
+            verify_form = VerifyOTPForm(request.POST)
+            otp_entered = request.POST.get('otp_code', '').strip()
+            
+            # Combine input boxes if multi-box OTP sent
+            if not otp_entered:
+                digit_keys = [f'otp_{i}' for i in range(1, 7)]
+                if all(k in request.POST for k in digit_keys):
+                    otp_entered = "".join([request.POST.get(k, '') for k in digit_keys])
+
+            # Query DB for OTP matching user and code
+            token = OTPToken.objects.filter(
+                user_id=user_id,
+                otp_code=otp_entered
+            ).order_by('-created_at').first()
+
+            if token and token.is_valid():
+                # Mark as verified in DB so it cannot be reused
+                token.is_verified = True
+                token.save()
+
+                request.session['admin_reset_step'] = 3
+                messages.success(request, "✅ Database OTP validated successfully! Please enter your new password.")
+                return redirect('admin_forgot_password')
+            elif token and not token.is_valid():
+                messages.error(request, "⏰ This OTP code has expired or was already used. Please click 'Resend OTP Code'.")
+                verify_form = VerifyOTPForm(initial={'otp_code': otp_entered})
+            else:
+                messages.error(request, "❌ Invalid OTP code. Please check the code and try again.")
+                verify_form = VerifyOTPForm(initial={'otp_code': otp_entered})
+
+        # STEP 3: Reset Password
+        elif action == 'reset_password' or step == 3:
+            reset_form = ResetPasswordForm(request.POST)
+            if reset_form.is_valid():
+                new_pass = reset_form.cleaned_data['new_password']
+                try:
+                    user = User.objects.get(id=user_id)
+                    user.set_password(new_pass)
+                    user.save()
+
+                    # Clear reset session
+                    for key in ['admin_reset_user_id', 'admin_reset_otp', 'admin_reset_identity', 'admin_reset_step']:
+                        if key in request.session:
+                            del request.session[key]
+
+                    messages.success(request, "🎉 Admin Password reset successful! You can now log in with your new password.")
+                    return redirect('admin_login')
+                except User.DoesNotExist:
+                    messages.error(request, "Session expired or invalid user. Please start again.")
+                    request.session['admin_reset_step'] = 1
+                    return redirect('admin_forgot_password')
+
+    context = {
+        'step': step,
+        'identity': identity,
+        'stored_otp': stored_otp,
+        'forgot_form': forgot_form,
+        'verify_form': verify_form,
+        'reset_form': reset_form,
+    }
+    return render(request, 'auth/admin_forgot_password.html', context)
+
 
 # 10. Resend DB OTP View (AJAX / POST)
 def resend_otp_view(request):
@@ -530,6 +642,28 @@ def resend_otp_view(request):
             token = OTPToken.generate_otp_for_user(user, validity_minutes=10)
             new_otp = token.otp_code
             request.session['reset_otp'] = new_otp
+
+            return JsonResponse({
+                'success': True,
+                'otp': new_otp,
+                'message': f'New OTP code [{new_otp}] generated & saved to database successfully!'
+            })
+        except User.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'User account not found.'}, status=404)
+    return JsonResponse({'success': False, 'message': 'Method not allowed.'}, status=405)
+
+
+def admin_resend_otp_view(request):
+    if request.method == 'POST':
+        user_id = request.session.get('admin_reset_user_id')
+        if not user_id:
+            return JsonResponse({'success': False, 'message': 'Session expired. Please request OTP again.'}, status=400)
+        
+        try:
+            user = User.objects.get(id=user_id)
+            token = OTPToken.generate_otp_for_user(user, validity_minutes=10)
+            new_otp = token.otp_code
+            request.session['admin_reset_otp'] = new_otp
 
             return JsonResponse({
                 'success': True,
