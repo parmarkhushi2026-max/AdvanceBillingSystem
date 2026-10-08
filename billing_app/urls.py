@@ -20,6 +20,13 @@ urlpatterns = [
     path('api/customer/register/', views.api_register_customer, name='api_register_customer'),
     path('api/register/customer/', views.api_register_customer, name='api_register_customer_alt'),
     path('api/distributor/customers/register/', views.api_register_customer, name='api_distributor_register_customer'),
+    
+    # Product CRUD API endpoints
+    path('api/products/', views.api_products, name='api_products'),
+    path('api/products/create/', views.api_products, name='api_product_create'),
+    path('api/products/<int:product_id>/', views.api_product_detail, name='api_product_detail'),
+    path('api/products/<int:product_id>/update/', views.api_product_detail, name='api_product_update'),
+    path('api/products/<int:product_id>/delete/', views.api_product_delete, name='api_product_delete'),
 
 
     # Admin Portal

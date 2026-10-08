@@ -723,3 +723,123 @@ class CustomerRegistrationAPITestCase(TestCase):
         self.assertContains(response, '/api/customer/register/')
 
 
+class ProductCRUDAPITestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='prod_admin', password='password123')
+        self.product = Product.objects.create(
+            name='Thermal Paper 80mm',
+            sku='ROLL-80MM',
+            category='Supplies',
+            price=120.00,
+            stock=200,
+            gst_rate=12.00,
+            hsn_code='4823',
+            unit='Box',
+            description='High quality thermal paper',
+            created_by=self.user
+        )
+
+    def test_create_product_api_success(self):
+        import json
+        payload = {
+            'name': 'Wireless Handheld POS',
+            'sku': 'POS-WL-01',
+            'category': 'Hardware',
+            'price': 14999.00,
+            'stock': 25,
+            'gst_rate': 18.00,
+            'hsn_code': '847130',
+            'unit': 'Pcs',
+            'description': 'Smart POS Terminal with NFC'
+        }
+        response = self.client.post(
+            reverse('api_products'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertTrue(data.get('success'))
+        self.assertEqual(data['product']['name'], 'Wireless Handheld POS')
+        self.assertEqual(data['product']['sku'], 'POS-WL-01')
+
+        # Check DB
+        p = Product.objects.filter(sku='POS-WL-01').first()
+        self.assertIsNotNone(p)
+        self.assertEqual(float(p.price), 14999.00)
+
+    def test_create_product_api_missing_name_or_price(self):
+        import json
+        payload = {'sku': 'INVALID-01'}
+        response = self.client.post(
+            reverse('api_products'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json().get('success'))
+
+    def test_create_product_api_duplicate_sku(self):
+        import json
+        payload = {
+            'name': 'Duplicate Roll',
+            'sku': 'ROLL-80MM',
+            'price': 150.00
+        }
+        response = self.client.post(
+            reverse('api_products'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 409)
+        self.assertFalse(response.json().get('success'))
+
+    def test_read_product_list_and_search(self):
+        # List all
+        response = self.client.get(reverse('api_products'))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data.get('success'))
+        self.assertGreaterEqual(data['count'], 1)
+
+        # Search by query
+        search_resp = self.client.get(reverse('api_products') + '?q=ROLL-80MM')
+        self.assertEqual(search_resp.status_code, 200)
+        search_data = search_resp.json()
+        self.assertEqual(search_data['count'], 1)
+        self.assertEqual(search_data['products'][0]['sku'], 'ROLL-80MM')
+
+    def test_read_single_product_detail(self):
+        response = self.client.get(reverse('api_product_detail', args=[self.product.id]))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data.get('success'))
+        self.assertEqual(data['product']['id'], self.product.id)
+        self.assertEqual(data['product']['name'], 'Thermal Paper 80mm')
+
+    def test_update_product_api(self):
+        import json
+        update_data = {
+            'price': 135.50,
+            'stock': 250,
+            'name': 'Thermal Paper 80mm Premium'
+        }
+        response = self.client.post(
+            reverse('api_product_update', args=[self.product.id]),
+            data=json.dumps(update_data),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.product.refresh_from_db()
+        self.assertEqual(float(self.product.price), 135.50)
+        self.assertEqual(self.product.stock, 250)
+        self.assertEqual(self.product.name, 'Thermal Paper 80mm Premium')
+
+    def test_delete_product_api(self):
+        pid = self.product.id
+        response = self.client.post(reverse('api_product_delete', args=[pid]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Product.objects.filter(pk=pid).exists())
+
+
+

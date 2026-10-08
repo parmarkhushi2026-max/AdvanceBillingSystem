@@ -1329,3 +1329,239 @@ def api_register_customer(request):
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
+
+def serialize_product(product):
+    """Serialize Product model instance into clean JSON-compliant dictionary."""
+    return {
+        'id': product.id,
+        'name': product.name,
+        'sku': product.sku or '',
+        'category': product.category,
+        'price': float(product.price),
+        'stock': product.stock,
+        'gst_rate': float(product.gst_rate),
+        'hsn_code': product.hsn_code or '',
+        'unit': product.unit,
+        'description': product.description or '',
+        'created_by': product.created_by.username if product.created_by else None,
+        'created_at': product.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'updated_at': product.updated_at.strftime('%Y-%m-%d %H:%M:%S')
+    }
+
+
+@csrf_exempt
+def api_products(request):
+    """
+    Product API CRUD Endpoint:
+    - GET: Read/List all products (with optional 'q' search and 'category' filtering)
+    - POST: Create a new product
+    """
+    initialize_default_users()
+    if request.method == 'GET':
+        query = request.GET.get('q', '').strip()
+        category = request.GET.get('category', '').strip()
+        limit = int(request.GET.get('limit', 100))
+
+        products = Product.objects.all().order_by('-id')
+        if query:
+            products = products.filter(
+                Q(name__icontains=query) |
+                Q(sku__icontains=query) |
+                Q(hsn_code__icontains=query) |
+                Q(category__icontains=query)
+            )
+        if category:
+            products = products.filter(category__iexact=category)
+
+        product_list = [serialize_product(p) for p in products[:limit]]
+        return JsonResponse({
+            'success': True,
+            'count': len(product_list),
+            'total_count': products.count(),
+            'products': product_list
+        }, status=200)
+
+    elif request.method == 'POST':
+        try:
+            if request.content_type == 'application/json' or (request.body and request.body.strip().startswith(b'{')):
+                try:
+                    data = json.loads(request.body)
+                except json.JSONDecodeError:
+                    return JsonResponse({'success': False, 'message': 'Invalid JSON format in request body.'}, status=400)
+            else:
+                data = request.POST.dict()
+
+            name = data.get('name', '').strip()
+            price_raw = data.get('price')
+            sku = data.get('sku', '').strip()
+            category = data.get('category', '').strip() or 'General'
+            stock_raw = data.get('stock', 100)
+            gst_rate_raw = data.get('gst_rate', 18.00)
+            hsn_code = data.get('hsn_code', '').strip()
+            unit = data.get('unit', '').strip() or 'Pcs'
+            description = data.get('description', '').strip()
+
+            if not name:
+                return JsonResponse({'success': False, 'message': 'Product name is required.'}, status=400)
+            if price_raw is None or str(price_raw).strip() == '':
+                return JsonResponse({'success': False, 'message': 'Product price is required.'}, status=400)
+
+            try:
+                price = Decimal(str(price_raw))
+                if price <= 0:
+                    return JsonResponse({'success': False, 'message': 'Product price must be greater than zero.'}, status=400)
+            except (InvalidOperation, ValueError):
+                return JsonResponse({'success': False, 'message': 'Invalid price format.'}, status=400)
+
+            try:
+                stock = int(stock_raw)
+                if stock < 0:
+                    return JsonResponse({'success': False, 'message': 'Stock cannot be negative.'}, status=400)
+            except (ValueError, TypeError):
+                stock = 100
+
+            try:
+                gst_rate = Decimal(str(gst_rate_raw))
+            except (InvalidOperation, ValueError):
+                gst_rate = Decimal('18.00')
+
+            # Check SKU uniqueness if provided
+            if sku:
+                if Product.objects.filter(sku=sku).exists():
+                    return JsonResponse({'success': False, 'message': f"Product with SKU '{sku}' already exists."}, status=409)
+
+            creator = request.user if request.user.is_authenticated else User.objects.filter(is_superuser=True).first()
+
+            product = Product.objects.create(
+                name=name,
+                sku=sku or None,
+                category=category,
+                price=price,
+                stock=stock,
+                gst_rate=gst_rate,
+                hsn_code=hsn_code or None,
+                unit=unit,
+                description=description or None,
+                created_by=creator
+            )
+
+            return JsonResponse({
+                'success': True,
+                'message': f"Product '{product.name}' created successfully.",
+                'product': serialize_product(product)
+            }, status=201)
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+    return JsonResponse({'success': False, 'message': f"Method '{request.method}' not allowed."}, status=405)
+
+
+@csrf_exempt
+def api_product_detail(request, product_id):
+    """
+    Product Detail CRUD Endpoint:
+    - GET: Read single product details
+    - PUT / PATCH / POST: Update product details
+    - DELETE: Delete product
+    """
+    initialize_default_users()
+    product = Product.objects.filter(pk=product_id).first()
+    if not product:
+        return JsonResponse({'success': False, 'message': f"Product with ID #{product_id} not found."}, status=404)
+
+    # 1. READ (GET)
+    if request.method == 'GET':
+        return JsonResponse({
+            'success': True,
+            'product': serialize_product(product)
+        }, status=200)
+
+    # 2. UPDATE (PUT / PATCH / POST)
+    elif request.method in ['PUT', 'PATCH', 'POST']:
+        try:
+            if request.content_type == 'application/json' or (request.body and request.body.strip().startswith(b'{')):
+                try:
+                    data = json.loads(request.body)
+                except json.JSONDecodeError:
+                    return JsonResponse({'success': False, 'message': 'Invalid JSON format in request body.'}, status=400)
+            else:
+                data = request.POST.dict()
+
+            if 'name' in data and data['name'].strip():
+                product.name = data['name'].strip()
+            if 'price' in data and str(data['price']).strip():
+                try:
+                    p = Decimal(str(data['price']))
+                    if p > 0:
+                        product.price = p
+                    else:
+                        return JsonResponse({'success': False, 'message': 'Price must be greater than zero.'}, status=400)
+                except (InvalidOperation, ValueError):
+                    return JsonResponse({'success': False, 'message': 'Invalid price format.'}, status=400)
+            if 'stock' in data:
+                try:
+                    product.stock = max(0, int(data['stock']))
+                except (ValueError, TypeError):
+                    pass
+            if 'gst_rate' in data:
+                try:
+                    product.gst_rate = Decimal(str(data['gst_rate']))
+                except (InvalidOperation, ValueError):
+                    pass
+            if 'category' in data and data['category'].strip():
+                product.category = data['category'].strip()
+            if 'unit' in data and data['unit'].strip():
+                product.unit = data['unit'].strip()
+            if 'hsn_code' in data:
+                product.hsn_code = data['hsn_code'].strip() or None
+            if 'description' in data:
+                product.description = data['description'].strip() or None
+
+            if 'sku' in data:
+                new_sku = data['sku'].strip() or None
+                if new_sku and new_sku != product.sku:
+                    if Product.objects.filter(sku=new_sku).exclude(pk=product.id).exists():
+                        return JsonResponse({'success': False, 'message': f"SKU '{new_sku}' already in use by another product."}, status=409)
+                product.sku = new_sku
+
+            product.save()
+
+            return JsonResponse({
+                'success': True,
+                'message': f"Product '{product.name}' updated successfully.",
+                'product': serialize_product(product)
+            }, status=200)
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+    # 3. DELETE (DELETE)
+    elif request.method == 'DELETE':
+        name = product.name
+        pid = product.id
+        product.delete()
+        return JsonResponse({
+            'success': True,
+            'message': f"Product '{name}' (ID: #{pid}) deleted successfully."
+        }, status=200)
+
+    return JsonResponse({'success': False, 'message': f"Method '{request.method}' not allowed."}, status=405)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_product_delete(request, product_id):
+    """Convenience POST endpoint for deleting product from clients/tools without native DELETE method."""
+    product = Product.objects.filter(pk=product_id).first()
+    if not product:
+        return JsonResponse({'success': False, 'message': f"Product with ID #{product_id} not found."}, status=404)
+    name = product.name
+    pid = product.id
+    product.delete()
+    return JsonResponse({
+        'success': True,
+        'message': f"Product '{name}' (ID: #{pid}) deleted successfully."
+    }, status=200)
+
+
