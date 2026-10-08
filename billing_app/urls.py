@@ -36,6 +36,9 @@ urlpatterns = [
     path('invoices/', views.invoice_list_view, name='invoice_list'),
     path('customers/', views.customer_list_view, name='customer_list'),
     path('customers/add/', views.add_customer_view, name='add_customer'),
+    path('customers/register/', views.customer_register_frontend_view, name='customer_register_frontend'),
+    path('register/customer/', views.customer_register_frontend_view, name='customer_register_page'),
+    path('distributor/customer/register/', views.customer_register_frontend_view, name='distributor_customer_register'),
     path('customers/<int:customer_id>/edit/', views.edit_customer_view, name='edit_customer'),
     path('customers/<int:customer_id>/delete/', views.delete_customer_view, name='delete_customer'),
     

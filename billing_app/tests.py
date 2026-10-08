@@ -715,3 +715,11 @@ class CustomerRegistrationAPITestCase(TestCase):
         self.assertEqual(user.profile.role, 'DISTRIBUTOR')
         self.assertEqual(user.profile.business_name, 'Verma Traders')
 
+    def test_customer_registration_frontend_page_renders(self):
+        response = self.client.get(reverse('customer_register_frontend'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Register Customer')
+        self.assertContains(response, 'Live Card Preview')
+        self.assertContains(response, '/api/customer/register/')
+
+

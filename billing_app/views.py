@@ -808,6 +808,28 @@ def add_customer_view(request):
     return render(request, 'billing/add_customer.html', context)
 
 
+# 13.1 Interactive Customer Registration Frontend View (Connected to API)
+def customer_register_frontend_view(request):
+    initialize_default_users()
+    distributors = User.objects.filter(profile__role='DISTRIBUTOR').select_related('profile')
+    current_distributor = None
+    if request.user.is_authenticated:
+        if hasattr(request.user, 'profile') and request.user.profile.role == 'DISTRIBUTOR':
+            current_distributor = request.user
+    if not current_distributor:
+        current_distributor = distributors.first()
+
+    is_admin = request.user.is_authenticated and (request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'))
+
+    context = {
+        'distributors': distributors,
+        'current_distributor': current_distributor,
+        'role': 'Admin' if is_admin else 'Distributor',
+    }
+    return render(request, 'billing/register_customer.html', context)
+
+
+
 # 14. Customer Management: Customer List View
 @login_required
 def customer_list_view(request):

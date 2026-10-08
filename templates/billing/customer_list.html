@@ -8,11 +8,15 @@
         <h1 class="page-title"><i class="fa-solid fa-address-book" style="color: var(--primary);"></i> Customer Directory</h1>
         <p class="page-subtitle">Manage customer profiles, contact info, tax IDs, and generate instant QR invoices.</p>
     </div>
-    <div class="page-actions">
-        <a href="{% url 'add_customer' %}" class="btn-primary-action">
-            <i class="fa-solid fa-user-plus"></i> Add New Customer
+    <div class="page-actions" style="display: flex; gap: 10px;">
+        <a href="{% url 'customer_register_frontend' %}" class="btn-primary-action" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;">
+            <i class="fa-solid fa-bolt"></i> Register Customer (API Form)
+        </a>
+        <a href="{% url 'add_customer' %}" class="btn-secondary-action">
+            <i class="fa-solid fa-user-plus"></i> Standard Form
         </a>
     </div>
+
 </div>
 
 <!-- Stats Summary Row -->

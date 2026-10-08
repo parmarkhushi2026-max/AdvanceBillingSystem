@@ -1,0 +1,772 @@
+{% extends 'base.html' %}
+
+{% block title %}Customer Registration - Advance Billing System{% endblock %}
+
+{% block content %}
+<style>
+    .cust-reg-container {
+        max-width: 1100px;
+        margin: 1.5rem auto 3rem auto;
+        padding: 0 1rem;
+    }
+
+    .cust-reg-grid {
+        display: grid;
+        grid-template-columns: 1.25fr 0.75fr;
+        gap: 2rem;
+        align-items: start;
+    }
+
+    @media (max-width: 900px) {
+        .cust-reg-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+    }
+
+    .form-glass-card {
+        background: #ffffff;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+        padding: 2.25rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .form-glass-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: linear-gradient(90deg, #10b981 0%, #3b82f6 50%, #6366f1 100%);
+    }
+
+    .reg-header {
+        margin-bottom: 2rem;
+    }
+
+    .badge-pill-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        margin-bottom: 0.75rem;
+    }
+
+    .reg-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .reg-subtitle {
+        color: #64748b;
+        font-size: 0.95rem;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    .input-field-wrap {
+        margin-bottom: 1.25rem;
+    }
+
+    .field-lbl {
+        display: block;
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 6px;
+    }
+
+    .field-lbl span.req {
+        color: #ef4444;
+    }
+
+    .field-group {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .field-group i.field-icon {
+        position: absolute;
+        left: 14px;
+        color: #94a3b8;
+        font-size: 1rem;
+        transition: color 0.2s;
+        pointer-events: none;
+    }
+
+    .field-input, .field-textarea, .field-select {
+        width: 100%;
+        padding: 12px 14px 12px 42px;
+        background: #f8fafc;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-family: inherit;
+        transition: all 0.2s ease;
+        outline: none;
+    }
+
+    .field-textarea {
+        padding-top: 12px;
+        min-height: 85px;
+        resize: vertical;
+    }
+
+    .field-input:focus, .field-textarea:focus, .field-select:focus {
+        background: #ffffff;
+        border-color: #10b981;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
+    }
+
+    .field-input:focus ~ i.field-icon, .field-textarea:focus ~ i.field-icon {
+        color: #10b981;
+    }
+
+    .field-row-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+    }
+
+    @media (max-width: 600px) {
+        .field-row-2 {
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+    }
+
+    .field-help {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        margin-top: 4px;
+    }
+
+    /* Live Preview Card */
+    .preview-card {
+        background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+        border-radius: 20px;
+        padding: 1.75rem;
+        color: #ffffff;
+        box-shadow: 0 15px 35px rgba(15, 23, 42, 0.2);
+        position: sticky;
+        top: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .preview-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 1.25rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 1.5rem;
+    }
+
+    .preview-badge {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .preview-avatar {
+        width: 58px;
+        height: 58px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #ffffff;
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+        margin-bottom: 1rem;
+    }
+
+    .preview-name {
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin: 0 0 4px 0;
+        color: #ffffff;
+        word-break: break-word;
+    }
+
+    .preview-phone {
+        font-size: 0.95rem;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 1.25rem;
+    }
+
+    .preview-meta-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .preview-meta-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+    }
+
+    .preview-meta-label {
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .preview-meta-val {
+        color: #e2e8f0;
+        font-weight: 600;
+        text-align: right;
+    }
+
+    .btn-submit-reg {
+        width: 100%;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #ffffff;
+        border: none;
+        padding: 14px 24px;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        margin-top: 1.5rem;
+    }
+
+    .btn-submit-reg:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgba(16, 185, 129, 0.4);
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    }
+
+    .btn-submit-reg:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
+
+    /* Modal / Alert Notification */
+    .alert-banner {
+        display: none;
+        padding: 14px 16px;
+        border-radius: 12px;
+        font-size: 0.92rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        line-height: 1.45;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .alert-banner.error {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #b91c1c;
+    }
+
+    .alert-banner.success {
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        color: #065f46;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Success Card Overlay */
+    .success-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(6px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+    }
+
+    .success-modal {
+        background: #ffffff;
+        border-radius: 24px;
+        max-width: 500px;
+        width: 100%;
+        padding: 2.5rem;
+        text-align: center;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+        animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes scaleUp {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .success-icon-badge {
+        width: 76px;
+        height: 76px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.25rem;
+        margin: 0 auto 1.25rem auto;
+        box-shadow: 0 10px 25px rgba(16, 185, 129, 0.35);
+    }
+</style>
+
+<div class="cust-reg-container">
+    <!-- Top Action Breadcrumbs -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: #64748b;">
+            <a href="{% if user.is_authenticated %}{% url 'distributor_dashboard' %}{% else %}{% url 'portal_select' %}{% endif %}" style="color: #64748b; text-decoration: none;">Home</a>
+            <i class="fa-solid fa-chevron-right" style="font-size: 0.7rem;"></i>
+            <a href="{% url 'customer_list' %}" style="color: #64748b; text-decoration: none;">Customers</a>
+            <i class="fa-solid fa-chevron-right" style="font-size: 0.7rem;"></i>
+            <span style="color: #0f172a; font-weight: 600;">Registration</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="{% url 'customer_list' %}" class="btn-secondary-action" style="padding: 6px 14px; font-size: 0.85rem;">
+                <i class="fa-solid fa-users"></i> Directory
+            </a>
+            <a href="{% url 'create_invoice' %}" class="btn-secondary-action" style="padding: 6px 14px; font-size: 0.85rem; background: rgba(16, 185, 129, 0.1); color: #059669; border-color: rgba(16, 185, 129, 0.3);">
+                <i class="fa-solid fa-receipt"></i> Quick Bill
+            </a>
+        </div>
+    </div>
+
+    <div class="cust-reg-grid">
+        <!-- Left: Form -->
+        <div class="form-glass-card">
+            <div class="reg-header">
+                <div class="badge-pill-tag">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span>Distributor Portal • Customer API</span>
+                </div>
+                <h1 class="reg-title">Register Customer</h1>
+                <p class="reg-subtitle">Add a retail or wholesale buyer to generate GST invoices and dynamic UPI QR payment slips.</p>
+            </div>
+
+            <!-- Error Notification Banner -->
+            <div id="form-alert-error" class="alert-banner error" style="display: none;">
+                <i class="fa-solid fa-circle-exclamation" style="font-size: 1.1rem; margin-top: 2px;"></i>
+                <div id="error-alert-msg" style="flex: 1;"></div>
+            </div>
+
+            <!-- Success Notification Banner -->
+            <div id="form-alert-success" class="alert-banner success" style="display: none;">
+                <i class="fa-solid fa-circle-check" style="font-size: 1.1rem; margin-top: 2px;"></i>
+                <div id="success-alert-msg" style="flex: 1;"></div>
+            </div>
+
+            <form id="customer-registration-form" novalidate>
+                <div class="field-row-2">
+                    <!-- Customer Name -->
+                    <div class="input-field-wrap">
+                        <label for="cust-name" class="field-lbl">Customer / Business Name <span class="req">*</span></label>
+                        <div class="field-group">
+                            <input type="text" id="cust-name" name="name" class="field-input" placeholder="e.g. Ramesh Traders" required autocomplete="off">
+                            <i class="fa-solid fa-user field-icon"></i>
+                        </div>
+                        <div class="field-help">Full name of the shop owner or trading company.</div>
+                    </div>
+
+                    <!-- Customer Phone -->
+                    <div class="input-field-wrap">
+                        <label for="cust-phone" class="field-lbl">Phone Number <span class="req">*</span></label>
+                        <div class="field-group">
+                            <input type="tel" id="cust-phone" name="phone" class="field-input" placeholder="e.g. 9876543210" required maxlength="15" autocomplete="off">
+                            <i class="fa-solid fa-phone field-icon"></i>
+                        </div>
+                        <div class="field-help">Primary mobile number for SMS bills & WhatsApp receipts.</div>
+                    </div>
+                </div>
+
+                <div class="field-row-2">
+                    <!-- Email Address -->
+                    <div class="input-field-wrap">
+                        <label for="cust-email" class="field-lbl">Email Address (Optional)</label>
+                        <div class="field-group">
+                            <input type="email" id="cust-email" name="email" class="field-input" placeholder="client@example.com" autocomplete="off">
+                            <i class="fa-solid fa-envelope field-icon"></i>
+                        </div>
+                        <div class="field-help">For digital PDF invoice delivery.</div>
+                    </div>
+
+                    <!-- GSTIN -->
+                    <div class="input-field-wrap">
+                        <label for="cust-gstin" class="field-lbl">GSTIN (Tax ID) (Optional)</label>
+                        <div class="field-group">
+                            <input type="text" id="cust-gstin" name="gstin" class="field-input" placeholder="24AAAAA0000A1Z5" maxlength="15" style="text-transform: uppercase;">
+                            <i class="fa-solid fa-file-invoice-dollar field-icon"></i>
+                        </div>
+                        <div class="field-help">15-digit GST Identification Number for B2B input credit.</div>
+                    </div>
+                </div>
+
+                <div class="field-row-2">
+                    <!-- City -->
+                    <div class="input-field-wrap">
+                        <label for="cust-city" class="field-lbl">City / Town (Optional)</label>
+                        <div class="field-group">
+                            <input type="text" id="cust-city" name="city" class="field-input" placeholder="e.g. Ahmedabad, Mumbai">
+                            <i class="fa-solid fa-city field-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- Assigned Distributor -->
+                    <div class="input-field-wrap">
+                        <label for="cust-distributor" class="field-lbl">Distributor Association</label>
+                        <div class="field-group">
+                            {% if current_distributor %}
+                                <input type="text" id="cust-distributor-display" class="field-input" value="{{ current_distributor.username }} ({{ current_distributor.profile.business_name|default:'Distributor' }})" readonly style="background: #e2e8f0; cursor: not-allowed;">
+                                <input type="hidden" id="cust-distributor" name="distributor_username" value="{{ current_distributor.username }}">
+                            {% else %}
+                                <select id="cust-distributor" name="distributor_username" class="field-select">
+                                    {% for dist in distributors %}
+                                        <option value="{{ dist.username }}">{{ dist.username }} - {{ dist.profile.business_name|default:'Distribution Agency' }}</option>
+                                    {% empty %}
+                                        <option value="distributor">Default Distributor (distributor)</option>
+                                    {% endfor %}
+                                </select>
+                            {% endif %}
+                            <i class="fa-solid fa-building-wheat field-icon"></i>
+                        </div>
+                        <div class="field-help">The distributor managing this customer's account.</div>
+                    </div>
+                </div>
+
+                <!-- Full Billing Address -->
+                <div class="input-field-wrap">
+                    <label for="cust-address" class="field-lbl">Street / Billing Address (Optional)</label>
+                    <div class="field-group">
+                        <textarea id="cust-address" name="address" class="field-textarea" placeholder="Shop / Suite / Street Address, Area, Pincode..."></textarea>
+                        <i class="fa-solid fa-map-location-dot field-icon" style="top: 14px;"></i>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="btn-submit-customer" class="btn-submit-reg">
+                    <span id="btn-submit-text">Register Customer & Link to Distributor</span>
+                    <i class="fa-solid fa-arrow-right" id="btn-submit-icon"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- Right: Live Customer Card Preview -->
+        <div class="preview-card">
+            <div class="preview-card-header">
+                <div class="preview-badge">
+                    <i class="fa-solid fa-id-card"></i> Live Card Preview
+                </div>
+                <div id="preview-gst-status" style="font-size: 0.72rem; color: #94a3b8; font-weight: 600;">
+                    Unregistered GST
+                </div>
+            </div>
+
+            <div class="preview-avatar" id="preview-avatar">
+                ?
+            </div>
+
+            <h3 class="preview-name" id="preview-name">New Customer</h3>
+            <div class="preview-phone">
+                <i class="fa-solid fa-phone" style="color: #10b981;"></i>
+                <span id="preview-phone">+91 ••••• •••••</span>
+            </div>
+
+            <div class="preview-meta-list">
+                <div class="preview-meta-row">
+                    <span class="preview-meta-label"><i class="fa-solid fa-envelope"></i> Email</span>
+                    <span class="preview-meta-val" id="preview-email">—</span>
+                </div>
+                <div class="preview-meta-row">
+                    <span class="preview-meta-label"><i class="fa-solid fa-city"></i> City</span>
+                    <span class="preview-meta-val" id="preview-city">—</span>
+                </div>
+                <div class="preview-meta-row">
+                    <span class="preview-meta-label"><i class="fa-solid fa-file-invoice-dollar"></i> GSTIN</span>
+                    <span class="preview-meta-val" id="preview-gstin" style="font-family: monospace;">—</span>
+                </div>
+                <div class="preview-meta-row">
+                    <span class="preview-meta-label"><i class="fa-solid fa-store"></i> Distributor</span>
+                    <span class="preview-meta-val" id="preview-distributor" style="color: #38bdf8;">{{ current_distributor.username|default:"General" }}</span>
+                </div>
+            </div>
+
+            <div style="margin-top: 1.5rem; padding: 12px; background: rgba(255, 255, 255, 0.04); border-radius: 12px; border: 1px dashed rgba(255, 255, 255, 0.1); font-size: 0.8rem; color: #94a3b8; line-height: 1.4;">
+                <i class="fa-solid fa-bolt" style="color: #fbbf24; margin-right: 4px;"></i>
+                Instant sync: Once registered, this customer will immediately become available in QR Invoicing and Customer Directory.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal Popup -->
+<div id="success-modal-overlay" class="success-modal-overlay">
+    <div class="success-modal">
+        <div class="success-icon-badge">
+            <i class="fa-solid fa-check"></i>
+        </div>
+        <h2 style="font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;">Registration Complete!</h2>
+        <p id="modal-success-msg" style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem;">Customer has been saved successfully.</p>
+
+        <div id="modal-customer-summary" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem; margin-bottom: 1.5rem; text-align: left; font-size: 0.9rem;">
+            <!-- Injected via JS -->
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <a href="{% url 'create_invoice' %}" class="btn-submit-reg" style="text-decoration: none; margin-top: 0;">
+                <i class="fa-solid fa-receipt"></i> Create Bill For This Customer
+            </a>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <a href="{% url 'customer_list' %}" class="btn-secondary-action" style="padding: 10px; text-align: center; justify-content: center;">
+                    <i class="fa-solid fa-users"></i> Directory
+                </a>
+                <button type="button" id="btn-register-another" class="btn-secondary-action" style="padding: 10px; cursor: pointer; justify-content: center; background: #ffffff;">
+                    <i class="fa-solid fa-plus"></i> Add Another
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inputName = document.getElementById('cust-name');
+    const inputPhone = document.getElementById('cust-phone');
+    const inputEmail = document.getElementById('cust-email');
+    const inputGstin = document.getElementById('cust-gstin');
+    const inputCity = document.getElementById('cust-city');
+    const inputDistributor = document.getElementById('cust-distributor');
+
+    const previewAvatar = document.getElementById('preview-avatar');
+    const previewName = document.getElementById('preview-name');
+    const previewPhone = document.getElementById('preview-phone');
+    const previewEmail = document.getElementById('preview-email');
+    const previewCity = document.getElementById('preview-city');
+    const previewGstin = document.getElementById('preview-gstin');
+    const previewGstStatus = document.getElementById('preview-gst-status');
+    const previewDistributor = document.getElementById('preview-distributor');
+
+    const form = document.getElementById('customer-registration-form');
+    const btnSubmit = document.getElementById('btn-submit-customer');
+    const btnSubmitText = document.getElementById('btn-submit-text');
+    const btnSubmitIcon = document.getElementById('btn-submit-icon');
+
+    const alertError = document.getElementById('form-alert-error');
+    const alertErrorMsg = document.getElementById('error-alert-msg');
+    const alertSuccess = document.getElementById('form-alert-success');
+    const alertSuccessMsg = document.getElementById('success-alert-msg');
+
+    const modalOverlay = document.getElementById('success-modal-overlay');
+    const modalSummary = document.getElementById('modal-customer-summary');
+    const btnRegisterAnother = document.getElementById('btn-register-another');
+
+    // Real-time Card Updating
+    function updateLivePreview() {
+        const nameVal = inputName.value.trim();
+        const phoneVal = inputPhone.value.trim();
+        const emailVal = inputEmail.value.trim();
+        const cityVal = inputCity.value.trim();
+        const gstinVal = inputGstin.value.trim().toUpperCase();
+
+        // Avatar & Name
+        if (nameVal) {
+            previewName.textContent = nameVal;
+            previewAvatar.textContent = nameVal.charAt(0).toUpperCase();
+        } else {
+            previewName.textContent = 'New Customer';
+            previewAvatar.textContent = '?';
+        }
+
+        // Phone
+        if (phoneVal) {
+            previewPhone.innerHTML = `<i class="fa-solid fa-phone" style="color: #10b981;"></i> +91 ${phoneVal}`;
+        } else {
+            previewPhone.innerHTML = `<i class="fa-solid fa-phone" style="color: #10b981;"></i> +91 ••••• •••••`;
+        }
+
+        // Email
+        previewEmail.textContent = emailVal || '—';
+
+        // City
+        previewCity.textContent = cityVal || '—';
+
+        // GSTIN & Status
+        if (gstinVal) {
+            previewGstin.textContent = gstinVal;
+            if (gstinVal.length === 15) {
+                previewGstStatus.innerHTML = '<span style="color: #34d399;"><i class="fa-solid fa-circle-check"></i> GST Verified</span>';
+            } else {
+                previewGstStatus.innerHTML = `<span style="color: #fbbf24;">${gstinVal.length}/15 digits</span>`;
+            }
+        } else {
+            previewGstin.textContent = '—';
+            previewGstStatus.textContent = 'Unregistered GST';
+        }
+
+        // Distributor
+        if (inputDistributor) {
+            previewDistributor.textContent = inputDistributor.value || 'General';
+        }
+    }
+
+    // Attach listeners
+    [inputName, inputPhone, inputEmail, inputGstin, inputCity].forEach(input => {
+        input.addEventListener('input', updateLivePreview);
+    });
+    if (inputDistributor) {
+        inputDistributor.addEventListener('change', updateLivePreview);
+    }
+
+    // Auto-uppercase GSTIN
+    inputGstin.addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+
+    // Form Submission to API
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        alertError.style.display = 'none';
+        alertSuccess.style.display = 'none';
+
+        const name = inputName.value.trim();
+        const phone = inputPhone.value.trim();
+
+        if (!name) {
+            showError('Please enter the customer name.');
+            inputName.focus();
+            return;
+        }
+
+        if (!phone) {
+            showError('Please enter a valid phone number.');
+            inputPhone.focus();
+            return;
+        }
+
+        const payload = {
+            name: name,
+            phone: phone,
+            email: inputEmail.value.trim(),
+            address: document.getElementById('cust-address').value.trim(),
+            city: inputCity.value.trim(),
+            gstin: inputGstin.value.trim().toUpperCase(),
+            distributor_username: inputDistributor ? inputDistributor.value : ''
+        };
+
+        // Loading UI state
+        btnSubmit.disabled = true;
+        btnSubmitText.textContent = 'Registering Customer via API...';
+        btnSubmitIcon.className = 'fa-solid fa-spinner fa-spin';
+
+        try {
+            const response = await fetch('/api/customer/register/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                // Success modal popup
+                const cust = data.customer;
+                modalSummary.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="color: #64748b;">Customer ID:</span>
+                        <strong style="color: #0f172a;">#${cust.id}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="color: #64748b;">Name:</span>
+                        <strong style="color: #0f172a;">${cust.name}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="color: #64748b;">Phone:</span>
+                        <strong style="color: #10b981;">${cust.phone}</strong>
+                    </div>
+                    ${cust.gstin ? `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="color: #64748b;">GSTIN:</span>
+                        <strong style="color: #0f172a; font-family: monospace;">${cust.gstin}</strong>
+                    </div>` : ''}
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #64748b;">Distributor:</span>
+                        <strong style="color: #3b82f6;">${cust.distributor || 'General'}</strong>
+                    </div>
+                `;
+                modalOverlay.style.display = 'flex';
+            } else {
+                showError(data.message || 'Failed to register customer. Please try again.');
+            }
+        } catch (err) {
+            showError('Network connection error. Could not communicate with customer registration API.');
+        } finally {
+            btnSubmit.disabled = false;
+            btnSubmitText.textContent = 'Register Customer & Link to Distributor';
+            btnSubmitIcon.className = 'fa-solid fa-arrow-right';
+        }
+    });
+
+    function showError(msg) {
+        alertErrorMsg.innerHTML = msg;
+        alertError.style.display = 'flex';
+        alertError.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    btnRegisterAnother.addEventListener('click', function() {
+        modalOverlay.style.display = 'none';
+        form.reset();
+        updateLivePreview();
+        inputName.focus();
+    });
+});
+</script>
+{% endblock %}
