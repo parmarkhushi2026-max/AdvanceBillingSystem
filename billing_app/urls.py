@@ -16,6 +16,10 @@ urlpatterns = [
     
     # API endpoints
     path('api/register/admin/', views.api_register_admin, name='api_register_admin'),
+    path('api/register/distributor/', views.api_register_distributor, name='api_register_distributor'),
+    path('api/customer/register/', views.api_register_customer, name='api_register_customer'),
+    path('api/register/customer/', views.api_register_customer, name='api_register_customer_alt'),
+    path('api/distributor/customers/register/', views.api_register_customer, name='api_distributor_register_customer'),
 
 
     # Admin Portal

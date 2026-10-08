@@ -1134,3 +1134,176 @@ def api_register_admin(request):
         return JsonResponse({'success': False, 'message': 'Invalid JSON data.'}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_register_distributor(request):
+    """
+    API endpoint to register a new Distributor account.
+    """
+    try:
+        if request.content_type == 'application/json' or (request.body and request.body.strip().startswith(b'{')):
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({'success': False, 'message': 'Invalid JSON data.'}, status=400)
+        else:
+            data = request.POST.dict()
+
+        username = data.get('username', '').strip()
+        email = data.get('email', '').strip()
+        password = data.get('password', '')
+        full_name = data.get('full_name', '').strip()
+        first_name = data.get('first_name', '').strip()
+        last_name = data.get('last_name', '').strip()
+        business_name = data.get('business_name', '').strip()
+        phone = data.get('phone', '').strip()
+        upi_id = data.get('upi_id', 'merchant@upi').strip()
+
+        if full_name and not (first_name or last_name):
+            parts = full_name.split(' ', 1)
+            first_name = parts[0]
+            last_name = parts[1] if len(parts) > 1 else ''
+
+        if not username or not email or not password:
+            return JsonResponse({'success': False, 'message': 'Username, email, and password are required.'}, status=400)
+
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({'success': False, 'message': 'Username already exists.'}, status=400)
+
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name
+        )
+
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.role = 'DISTRIBUTOR'
+        profile.business_name = business_name or f"{first_name or username}'s Distribution"
+        profile.phone = phone
+        profile.upi_id = upi_id
+        profile.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Distributor {username} registered successfully.',
+            'distributor': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'full_name': user.get_full_name(),
+                'business_name': profile.business_name,
+                'phone': profile.phone,
+                'upi_id': profile.upi_id,
+                'role': profile.role
+            }
+        }, status=201)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_register_customer(request):
+    """
+    API endpoint for Distributors to register new retail/wholesale customers.
+    Accepts JSON or form-data:
+    - name: str (required)
+    - phone: str (required)
+    - email: str (optional)
+    - address: str (optional)
+    - city: str (optional)
+    - gstin: str (optional)
+    - distributor_username / distributor_id: str/int (optional, links customer to specific distributor)
+    """
+    try:
+        initialize_default_users()
+
+        if request.content_type == 'application/json' or (request.body and request.body.strip().startswith(b'{')):
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({'success': False, 'message': 'Invalid JSON format in request body.'}, status=400)
+        else:
+            data = request.POST.dict()
+
+        name = data.get('name', '').strip()
+        phone = data.get('phone', '').strip()
+        email = data.get('email', '').strip()
+        address = data.get('address', '').strip()
+        city = data.get('city', '').strip()
+        gstin = data.get('gstin', '').strip()
+
+        if not name:
+            return JsonResponse({'success': False, 'message': 'Customer name is required.'}, status=400)
+        if not phone:
+            return JsonResponse({'success': False, 'message': 'Customer phone number is required.'}, status=400)
+
+        # Associate with distributor
+        distributor_user = None
+        if request.user.is_authenticated:
+            distributor_user = request.user
+        else:
+            dist_user_param = data.get('distributor_username') or data.get('distributor')
+            dist_id_param = data.get('distributor_id')
+            if dist_user_param:
+                distributor_user = User.objects.filter(username=dist_user_param).first()
+            elif dist_id_param:
+                distributor_user = User.objects.filter(id=dist_id_param).first()
+
+            if not distributor_user:
+                # Default to system distributor if not specified
+                distributor_user = User.objects.filter(profile__role='DISTRIBUTOR').first()
+
+        # Check duplicate customer with same phone for this distributor
+        existing = Customer.objects.filter(phone=phone, created_by=distributor_user).first()
+        if existing:
+            return JsonResponse({
+                'success': False,
+                'message': f"Customer with phone number '{phone}' already registered under distributor '{distributor_user.username if distributor_user else 'General'}'.",
+                'customer': {
+                    'id': existing.id,
+                    'name': existing.name,
+                    'phone': existing.phone,
+                    'email': existing.email or '',
+                    'address': existing.address or '',
+                    'city': existing.city or '',
+                    'gstin': existing.gstin or '',
+                }
+            }, status=409)
+
+        customer = Customer.objects.create(
+            name=name,
+            phone=phone,
+            email=email if email else None,
+            address=address if address else None,
+            city=city if city else None,
+            gstin=gstin if gstin else None,
+            created_by=distributor_user
+        )
+
+        dist_profile = getattr(distributor_user, 'profile', None) if distributor_user else None
+
+        return JsonResponse({
+            'success': True,
+            'message': f"Customer '{customer.name}' registered successfully for Distributor.",
+            'customer': {
+                'id': customer.id,
+                'name': customer.name,
+                'phone': customer.phone,
+                'email': customer.email or '',
+                'address': customer.address or '',
+                'city': customer.city or '',
+                'gstin': customer.gstin or '',
+                'distributor': distributor_user.username if distributor_user else None,
+                'distributor_business_name': getattr(dist_profile, 'business_name', '') if dist_profile else '',
+                'created_at': customer.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        }, status=201)
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+

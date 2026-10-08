@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from billing_app.models import Product
+from billing_app.models import Product, UserProfile, Customer
 
 class ProductUpdateTestCase(TestCase):
     def setUp(self):
@@ -583,3 +583,135 @@ class PasswordRecoveryTestCase(TestCase):
         # 3. Verify password was updated
         self.admin.refresh_from_db()
         self.assertTrue(self.admin.check_password('NewPassword123!'))
+
+
+class CustomerRegistrationAPITestCase(TestCase):
+    def setUp(self):
+        # Create a test distributor
+        self.distributor = User.objects.create_user(
+            username='api_distributor',
+            email='api_dist@test.com',
+            password='distpass123'
+        )
+        self.profile, _ = UserProfile.objects.get_or_create(
+            user=self.distributor,
+            defaults={
+                'role': 'DISTRIBUTOR',
+                'business_name': 'API Distribution Ltd',
+                'phone': '9876543210'
+            }
+        )
+        self.profile.role = 'DISTRIBUTOR'
+        self.profile.save()
+
+    def test_customer_registration_success_json(self):
+        import json
+        payload = {
+            'name': 'Ramesh Patel',
+            'phone': '9876500001',
+            'email': 'ramesh@example.com',
+            'address': '45 MG Road',
+            'city': 'Ahmedabad',
+            'gstin': '24AAAAA0000A1Z5',
+            'distributor_username': 'api_distributor'
+        }
+        response = self.client.post(
+            reverse('api_register_customer'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 201)
+        res_data = response.json()
+        self.assertTrue(res_data.get('success'))
+        self.assertEqual(res_data['customer']['name'], 'Ramesh Patel')
+        self.assertEqual(res_data['customer']['phone'], '9876500001')
+        self.assertEqual(res_data['customer']['distributor'], 'api_distributor')
+
+        # Verify Customer in database
+        customer = Customer.objects.filter(phone='9876500001').first()
+        self.assertIsNotNone(customer)
+        self.assertEqual(customer.name, 'Ramesh Patel')
+        self.assertEqual(customer.city, 'Ahmedabad')
+        self.assertEqual(customer.created_by, self.distributor)
+
+    def test_customer_registration_with_authenticated_distributor(self):
+        import json
+        self.client.login(username='api_distributor', password='distpass123')
+        payload = {
+            'name': 'Suresh Mehta',
+            'phone': '9876500002',
+            'city': 'Surat'
+        }
+        response = self.client.post(
+            reverse('api_register_customer'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 201)
+        res_data = response.json()
+        self.assertTrue(res_data.get('success'))
+
+        customer = Customer.objects.filter(phone='9876500002').first()
+        self.assertIsNotNone(customer)
+        self.assertEqual(customer.created_by, self.distributor)
+
+    def test_customer_registration_validation_missing_name(self):
+        import json
+        payload = {
+            'phone': '9876500003'
+        }
+        response = self.client.post(
+            reverse('api_register_customer'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json().get('success'))
+
+    def test_customer_registration_duplicate_phone_prevention(self):
+        import json
+        Customer.objects.create(
+            name='First Registration',
+            phone='9876500004',
+            created_by=self.distributor
+        )
+        payload = {
+            'name': 'Duplicate Person',
+            'phone': '9876500004',
+            'distributor_username': 'api_distributor'
+        }
+        response = self.client.post(
+            reverse('api_register_customer'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 409)
+        self.assertFalse(response.json().get('success'))
+
+    def test_distributor_registration_api(self):
+        import json
+        payload = {
+            'username': 'new_distributor_api',
+            'email': 'newdist@test.com',
+            'password': 'Password123!',
+            'full_name': 'Kavita Verma',
+            'business_name': 'Verma Traders',
+            'phone': '9876500005',
+            'upi_id': 'verma@upi'
+        }
+        response = self.client.post(
+            reverse('api_register_distributor'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 201)
+        res = response.json()
+        self.assertTrue(res.get('success'))
+        self.assertEqual(res['distributor']['username'], 'new_distributor_api')
+
+        # Check DB
+        user = User.objects.filter(username='new_distributor_api').first()
+        self.assertIsNotNone(user)
+        self.assertEqual(user.profile.role, 'DISTRIBUTOR')
+        self.assertEqual(user.profile.business_name, 'Verma Traders')
+
