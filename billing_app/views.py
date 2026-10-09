@@ -963,7 +963,33 @@ def product_list_view(request):
     return render(request, 'billing/product_list.html', context)
 
 
+# 18.1 Interactive Product Management Workspace (API & Modals driven)
+def product_manage_frontend_view(request):
+    initialize_default_users()
+    products = Product.objects.all().order_by('-id')
+    categories = Product.objects.values_list('category', flat=True).distinct()
+    is_admin = request.user.is_authenticated and (request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'))
+
+    total_stock = products.aggregate(Sum('stock'))['stock__sum'] or 0
+    total_val = sum(float(p.price) * p.stock for p in products)
+    low_stock_count = products.filter(stock__lte=15, stock__gt=0).count()
+    out_of_stock_count = products.filter(stock=0).count()
+
+    context = {
+        'products': products,
+        'categories': [c for c in categories if c],
+        'total_count': products.count(),
+        'total_stock': total_stock,
+        'total_catalog_val': round(total_val, 2),
+        'low_stock_count': low_stock_count,
+        'out_of_stock_count': out_of_stock_count,
+        'role': 'Admin' if is_admin else 'Distributor',
+    }
+    return render(request, 'billing/manage_products.html', context)
+
+
 # 19. Product Management: Add Product
+
 @login_required
 def add_product_view(request):
     initialize_default_users()

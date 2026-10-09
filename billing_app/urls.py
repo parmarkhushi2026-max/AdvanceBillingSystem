@@ -51,10 +51,13 @@ urlpatterns = [
     
     # Product Management
     path('products/', views.product_list_view, name='product_list'),
+    path('products/manage/', views.product_manage_frontend_view, name='product_manage_frontend'),
+    path('manage/products/', views.product_manage_frontend_view, name='manage_products_alt'),
     path('products/add/', views.add_product_view, name='add_product'),
     path('products/<int:product_id>/edit/', views.edit_product_view, name='edit_product'),
     path('products/<int:product_id>/delete/', views.delete_product_view, name='delete_product'),
 ]
+
 
 
 

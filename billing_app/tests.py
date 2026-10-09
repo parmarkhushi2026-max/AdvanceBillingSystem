@@ -841,5 +841,14 @@ class ProductCRUDAPITestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Product.objects.filter(pk=pid).exists())
 
+    def test_product_manage_frontend_renders(self):
+        response = self.client.get(reverse('product_manage_frontend'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Product Management Workspace')
+        self.assertContains(response, 'modal-create-product')
+        self.assertContains(response, 'modal-edit-product')
+        self.assertContains(response, 'modal-delete-product')
+
+
 
 

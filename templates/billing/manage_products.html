@@ -1,0 +1,1053 @@
+{% extends 'base.html' %}
+
+{% block title %}Interactive Product Management - Advance Billing System{% endblock %}
+
+{% block content %}
+<style>
+    .prod-mgmt-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .prod-stats-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .prod-stat-box {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 1.25rem 1.5rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .prod-stat-box:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    .prod-stat-ico {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.35rem;
+    }
+
+    .prod-stat-ico.blue { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+    .prod-stat-ico.emerald { background: rgba(16, 185, 129, 0.12); color: #059669; }
+    .prod-stat-ico.amber { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+    .prod-stat-ico.purple { background: rgba(139, 92, 246, 0.12); color: #7c3aed; }
+
+    .control-toolbar {
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        padding: 1.25rem;
+        margin-bottom: 1.75rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+    }
+
+    .search-input-wrap {
+        position: relative;
+        flex: 1;
+        min-width: 260px;
+    }
+
+    .search-input-wrap i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+    }
+
+    .search-input-wrap input {
+        width: 100%;
+        padding: 11px 16px 11px 40px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        outline: none;
+        transition: all 0.2s;
+        background: #f8fafc;
+    }
+
+    .search-input-wrap input:focus {
+        border-color: #2563eb;
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .btn-create-modal {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: #ffffff;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 6px 18px rgba(37, 99, 235, 0.25);
+        transition: all 0.2s;
+    }
+
+    .btn-create-modal:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 22px rgba(37, 99, 235, 0.35);
+    }
+
+    .filter-chips {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+    }
+
+    .filter-chip {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .filter-chip.active, .filter-chip:hover {
+        background: #0f172a;
+        color: #ffffff;
+        border-color: #0f172a;
+    }
+
+    /* Product Grid Cards */
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .prod-card {
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #e2e8f0;
+        padding: 1.5rem;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .prod-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.09);
+        border-color: #cbd5e1;
+    }
+
+    .prod-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .prod-cat-badge {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 4px 10px;
+        border-radius: 6px;
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .stock-pill {
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .stock-pill.in-stock { background: #dcfce7; color: #15803d; }
+    .stock-pill.low-stock { background: #fef9c3; color: #a16207; }
+    .stock-pill.out-stock { background: #fee2e2; color: #b91c1c; }
+
+    .prod-name {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 6px 0;
+        line-height: 1.35;
+    }
+
+    .prod-sku-hsn {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        display: flex;
+        gap: 12px;
+        margin-bottom: 1rem;
+    }
+
+    .prod-sku-hsn strong {
+        color: #475569;
+    }
+
+    .prod-price-box {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 10px 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+    }
+
+    .price-num {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .price-unit {
+        font-size: 0.8rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .gst-tag {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #059669;
+        background: rgba(16, 185, 129, 0.1);
+        padding: 3px 8px;
+        border-radius: 6px;
+    }
+
+    .prod-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: auto;
+        padding-top: 1rem;
+        border-top: 1px solid #f1f5f9;
+    }
+
+    .btn-card-edit {
+        background: #ffffff;
+        color: #0f172a;
+        border: 1.5px solid #e2e8f0;
+        padding: 8px;
+        border-radius: 10px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+
+    .btn-card-edit:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+
+    .btn-card-delete {
+        background: #ffffff;
+        color: #dc2626;
+        border: 1.5px solid #fee2e2;
+        padding: 8px;
+        border-radius: 10px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+
+    .btn-card-delete:hover {
+        background: #fef2f2;
+        border-color: #fca5a5;
+    }
+
+    /* Modal Styling */
+    .app-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(5px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+    }
+
+    .app-modal-box {
+        background: #ffffff;
+        border-radius: 24px;
+        max-width: 650px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 2.25rem;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+        position: relative;
+        animation: modalScale 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalScale {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .modal-head h2 {
+        font-size: 1.45rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-close-btn {
+        background: #f1f5f9;
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        color: #64748b;
+        font-size: 1.1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+    }
+
+    .modal-close-btn:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+
+    .m-form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+
+    @media (max-width: 600px) {
+        .m-form-row { grid-template-columns: 1fr; }
+    }
+
+    .m-lbl {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 5px;
+    }
+
+    .m-input, .m-select, .m-textarea {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        background: #f8fafc;
+        outline: none;
+        transition: all 0.2s;
+        font-family: inherit;
+    }
+
+    .m-input:focus, .m-select:focus, .m-textarea:focus {
+        background: #ffffff;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .calc-summary-pill {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 12px;
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    /* Toast Notification */
+    .toast-popup {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: #0f172a;
+        color: #ffffff;
+        padding: 14px 22px;
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        z-index: 10000;
+        transform: translateY(100px);
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        pointer-events: none;
+    }
+
+    .toast-popup.show {
+        transform: translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .toast-popup.success i { color: #34d399; }
+    .toast-popup.error i { color: #f87171; }
+</style>
+
+<div style="max-width: 1280px; margin: 0 auto; padding: 0.5rem 0 3rem 0;">
+    <!-- Top Header -->
+    <div class="prod-mgmt-header">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #64748b; margin-bottom: 6px;">
+                <a href="{% if user.is_authenticated %}{% url 'distributor_dashboard' %}{% else %}{% url 'portal_select' %}{% endif %}" style="color: #64748b; text-decoration: none;">Dashboard</a>
+                <i class="fa-solid fa-chevron-right" style="font-size: 0.7rem;"></i>
+                <a href="{% url 'product_list' %}" style="color: #64748b; text-decoration: none;">Products</a>
+                <i class="fa-solid fa-chevron-right" style="font-size: 0.7rem;"></i>
+                <span style="color: #0f172a; font-weight: 600;">Interactive Manager</span>
+            </div>
+            <h1 style="font-size: 1.85rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 12px;">
+                <i class="fa-solid fa-boxes-stacked" style="color: #2563eb;"></i> Product Management Workspace
+            </h1>
+            <p style="color: #64748b; font-size: 0.95rem; margin: 4px 0 0 0;">Create, view, modify stock, and manage your inventory with instant real-time API sync.</p>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <a href="{% url 'product_list' %}" class="btn-secondary-action" style="padding: 10px 16px; font-size: 0.9rem;">
+                <i class="fa-solid fa-table-list"></i> Standard Table View
+            </a>
+            <button type="button" class="btn-create-modal" id="btn-open-create-modal">
+                <i class="fa-solid fa-plus"></i> Add New Product
+            </button>
+        </div>
+    </div>
+
+    <!-- Live Statistics Strip -->
+    <div class="prod-stats-strip">
+        <div class="prod-stat-box">
+            <div class="prod-stat-ico blue">
+                <i class="fa-solid fa-box-archive"></i>
+            </div>
+            <div>
+                <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;" id="stat-total-count">{{ total_count }}</div>
+                <div style="font-size: 0.8rem; color: #64748b; font-weight: 600;">Active Products</div>
+            </div>
+        </div>
+
+        <div class="prod-stat-box">
+            <div class="prod-stat-ico emerald">
+                <i class="fa-solid fa-cubes-stacked"></i>
+            </div>
+            <div>
+                <div style="font-size: 1.5rem; font-weight: 800; color: #059669;" id="stat-total-stock">{{ total_stock }}</div>
+                <div style="font-size: 0.8rem; color: #64748b; font-weight: 600;">Total Stock Units</div>
+            </div>
+        </div>
+
+        <div class="prod-stat-box">
+            <div class="prod-stat-ico purple">
+                <i class="fa-solid fa-indian-rupee-sign"></i>
+            </div>
+            <div>
+                <div style="font-size: 1.5rem; font-weight: 800; color: #7c3aed;">₹{{ total_catalog_val }}</div>
+                <div style="font-size: 0.8rem; color: #64748b; font-weight: 600;">Catalog Valuation</div>
+            </div>
+        </div>
+
+        <div class="prod-stat-box">
+            <div class="prod-stat-ico amber">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <div style="font-size: 1.5rem; font-weight: 800; color: #d97706;">{{ low_stock_count }} Low / {{ out_of_stock_count }} Out</div>
+                <div style="font-size: 0.8rem; color: #64748b; font-weight: 600;">Stock Attention Needed</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Control Toolbar (Search & Filter) -->
+    <div class="control-toolbar">
+        <div class="search-input-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="filter-search-input" placeholder="Search by product name, SKU or HSN code...">
+        </div>
+
+        <!-- Filter Chips -->
+        <div class="filter-chips" id="category-chips">
+            <button type="button" class="filter-chip active" data-category="">All Categories</button>
+            {% for cat in categories %}
+                <button type="button" class="filter-chip" data-category="{{ cat }}">{{ cat }}</button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Product Grid Cards Container -->
+    <div class="product-grid" id="product-grid-container">
+        {% for prod in products %}
+        <div class="prod-card" data-id="{{ prod.id }}" data-category="{{ prod.category|lower }}" data-name="{{ prod.name|lower }}" data-sku="{{ prod.sku|default:''|lower }}" data-hsn="{{ prod.hsn_code|default:''|lower }}">
+            <div>
+                <div class="prod-card-top">
+                    <span class="prod-cat-badge">{{ prod.category }}</span>
+                    {% if prod.stock > 15 %}
+                        <span class="stock-pill in-stock"><i class="fa-solid fa-check"></i> {{ prod.stock }} In Stock</span>
+                    {% elif prod.stock > 0 %}
+                        <span class="stock-pill low-stock"><i class="fa-solid fa-triangle-exclamation"></i> Low: {{ prod.stock }}</span>
+                    {% else %}
+                        <span class="stock-pill out-stock"><i class="fa-solid fa-circle-xmark"></i> Out of Stock</span>
+                    {% endif %}
+                </div>
+
+                <h3 class="prod-name">{{ prod.name }}</h3>
+                <div class="prod-sku-hsn">
+                    {% if prod.sku %}<span>SKU: <strong>{{ prod.sku }}</strong></span>{% endif %}
+                    {% if prod.hsn_code %}<span>HSN: <strong>{{ prod.hsn_code }}</strong></span>{% endif %}
+                </div>
+
+                <div class="prod-price-box">
+                    <div>
+                        <div class="price-num">₹{{ prod.price }}</div>
+                        <div class="price-unit">Per {{ prod.unit }}</div>
+                    </div>
+                    <span class="gst-tag">+{{ prod.gst_rate }}% GST</span>
+                </div>
+
+                {% if prod.description %}
+                    <p style="font-size: 0.85rem; color: #64748b; margin: 0 0 1rem 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                        {{ prod.description }}
+                    </p>
+                {% endif %}
+            </div>
+
+            <div class="prod-actions">
+                <button type="button" class="btn-card-edit" onclick="openEditModal({{ prod.id }})">
+                    <i class="fa-solid fa-pen-to-square"></i> Edit
+                </button>
+                <button type="button" class="btn-card-delete" onclick="openDeleteModal({{ prod.id }}, '{{ prod.name|escapejs }}')">
+                    <i class="fa-solid fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+        {% empty %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; background: #fff; border-radius: 16px; border: 1px dashed #cbd5e1;">
+            <i class="fa-solid fa-boxes-stacked" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+            <h3 style="color: #334155; margin: 0 0 0.5rem 0;">No Products in Catalog</h3>
+            <p style="color: #64748b; margin: 0 0 1.5rem 0;">Get started by adding your first product using the API modal.</p>
+            <button type="button" class="btn-create-modal" style="margin: 0 auto;" onclick="document.getElementById('btn-open-create-modal').click()">
+                <i class="fa-solid fa-plus"></i> Add First Product
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ================= MODALS ================= -->
+
+<!-- 1. CREATE PRODUCT MODAL -->
+<div id="modal-create-product" class="app-modal-overlay">
+    <div class="app-modal-box">
+        <div class="modal-head">
+            <h2><i class="fa-solid fa-plus-circle" style="color: #2563eb;"></i> Add New Product</h2>
+            <button type="button" class="modal-close-btn" onclick="closeModal('modal-create-product')">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form id="form-create-product">
+            <div class="m-form-row">
+                <div>
+                    <label class="m-lbl">Product Name <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="c-name" class="m-input" placeholder="e.g. Wireless Barcode Scanner" required>
+                </div>
+                <div>
+                    <label class="m-lbl">SKU / Barcode (Optional) <button type="button" id="btn-gen-sku" style="background: none; border: none; color: #2563eb; font-size: 0.75rem; cursor: pointer; float: right; font-weight: 700;">+ Auto-Gen</button></label>
+                    <input type="text" id="c-sku" class="m-input" placeholder="e.g. HW-SCN-01">
+                </div>
+            </div>
+
+            <div class="m-form-row">
+                <div>
+                    <label class="m-lbl">Category</label>
+                    <input type="text" id="c-category" class="m-input" placeholder="e.g. Hardware, Supplies, Electronics" list="category-datalist">
+                    <datalist id="category-datalist">
+                        {% for c in categories %}<option value="{{ c }}">{% endfor %}
+                    </datalist>
+                </div>
+                <div>
+                    <label class="m-lbl">Measurement Unit</label>
+                    <select id="c-unit" class="m-select">
+                        <option value="Pcs">Pcs (Pieces)</option>
+                        <option value="Box">Box</option>
+                        <option value="Kg">Kg (Kilograms)</option>
+                        <option value="Ltr">Ltr (Liters)</option>
+                        <option value="Mtr">Mtr (Meters)</option>
+                        <option value="License">License</option>
+                        <option value="Set">Set</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="m-form-row">
+                <div>
+                    <label class="m-lbl">Price (₹ INR) <span style="color: #ef4444;">*</span></label>
+                    <input type="number" id="c-price" step="0.01" class="m-input" placeholder="e.g. 1499.00" required min="0.01">
+                </div>
+                <div>
+                    <label class="m-lbl">Initial Stock</label>
+                    <input type="number" id="c-stock" class="m-input" placeholder="100" value="100" min="0">
+                </div>
+            </div>
+
+            <div class="m-form-row">
+                <div>
+                    <label class="m-lbl">GST Tax Rate (%)</label>
+                    <select id="c-gstrate" class="m-select">
+                        <option value="0.00">0% (Nil / Exempt)</option>
+                        <option value="5.00">5% GST</option>
+                        <option value="12.00">12% GST</option>
+                        <option value="18.00" selected>18% GST (Standard)</option>
+                        <option value="28.00">28% GST</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="m-lbl">HSN / SAC Code (Optional)</label>
+                    <input type="text" id="c-hsn" class="m-input" placeholder="e.g. 847160">
+                </div>
+            </div>
+
+            <!-- Tax Calculation Pill -->
+            <div class="calc-summary-pill">
+                <div>
+                    <span style="color: #64748b; font-size: 0.8rem;">Est. Final Price with GST:</span>
+                    <strong style="color: #0f172a; font-size: 1.1rem; display: block;" id="c-final-calc">₹0.00</strong>
+                </div>
+                <div style="font-size: 0.85rem; color: #059669; font-weight: 600;" id="c-tax-calc">
+                    + ₹0.00 Tax
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label class="m-lbl">Description (Optional)</label>
+                <textarea id="c-desc" class="m-textarea" rows="2" placeholder="Product features, warranty details..."></textarea>
+            </div>
+
+            <button type="submit" id="btn-submit-create" class="btn-create-modal" style="width: 100%; justify-content: center;">
+                <span>Create Product & Add to Inventory</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- 2. EDIT PRODUCT MODAL -->
+<div id="modal-edit-product" class="app-modal-overlay">
+    <div class="app-modal-box">
+        <div class="modal-head">
+            <h2><i class="fa-solid fa-pen-to-square" style="color: #059669;"></i> Edit Product Details</h2>
+            <button type="button" class="modal-close-btn" onclick="closeModal('modal-edit-product')">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form id="form-edit-product">
+            <input type="hidden" id="e-id">
+
+            <div class="m-form-row">
+                <div>
+                    <label class="m-lbl">Product Name <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="e-name" class="m-input" required>
+                </div>
+                <div>
+                    <label class="m-lbl">SKU / Barcode</label>
+                    <input type="text" id="e-sku" class="m-input">
+                </div>
+            </div>
+
+            <div class="m-form-row">
+                <div>
+                    <label class="m-lbl">Category</label>
+                    <input type="text" id="e-category" class="m-input">
+                </div>
+                <div>
+                    <label class="m-lbl">Measurement Unit</label>
+                    <select id="e-unit" class="m-select">
+                        <option value="Pcs">Pcs (Pieces)</option>
+                        <option value="Box">Box</option>
+                        <option value="Kg">Kg</option>
+                        <option value="Ltr">Ltr</option>
+                        <option value="Mtr">Mtr</option>
+                        <option value="License">License</option>
+                        <option value="Set">Set</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="m-form-row">
+                <div>
+                    <label class="m-lbl">Price (₹ INR) <span style="color: #ef4444;">*</span></label>
+                    <input type="number" id="e-price" step="0.01" class="m-input" required min="0.01">
+                </div>
+                <div>
+                    <label class="m-lbl">Stock Quantity</label>
+                    <input type="number" id="e-stock" class="m-input" min="0">
+                </div>
+            </div>
+
+            <div class="m-form-row">
+                <div>
+                    <label class="m-lbl">GST Tax Rate (%)</label>
+                    <select id="e-gstrate" class="m-select">
+                        <option value="0.0">0%</option>
+                        <option value="5.0">5%</option>
+                        <option value="12.0">12%</option>
+                        <option value="18.0">18%</option>
+                        <option value="28.0">28%</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="m-lbl">HSN / SAC Code</label>
+                    <input type="text" id="e-hsn" class="m-input">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label class="m-lbl">Description</label>
+                <textarea id="e-desc" class="m-textarea" rows="2"></textarea>
+            </div>
+
+            <button type="submit" id="btn-submit-edit" class="btn-create-modal" style="width: 100%; justify-content: center; background: linear-gradient(135deg, #059669 0%, #047857 100%);">
+                <span>Save Changes & Sync via API</span>
+                <i class="fa-solid fa-check"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- 3. DELETE CONFIRMATION MODAL -->
+<div id="modal-delete-product" class="app-modal-overlay">
+    <div class="app-modal-box" style="max-width: 440px; text-align: center;">
+        <div style="width: 64px; height: 64px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; margin: 0 auto 1.25rem auto;">
+            <i class="fa-solid fa-trash-can"></i>
+        </div>
+        <h2 style="font-size: 1.4rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;">Delete Product?</h2>
+        <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem;">
+            Are you sure you want to delete <strong id="del-prod-name" style="color: #0f172a;"></strong>? This action cannot be undone.
+        </p>
+        <input type="hidden" id="del-prod-id">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button type="button" class="btn-secondary-action" style="justify-content: center; padding: 12px;" onclick="closeModal('modal-delete-product')">
+                Cancel
+            </button>
+            <button type="button" id="btn-confirm-delete" class="btn-card-delete" style="justify-content: center; background: #dc2626; color: #fff; padding: 12px; border-color: #dc2626;">
+                Delete Now
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Toast Notification -->
+<div id="toast-notify" class="toast-popup">
+    <i class="fa-solid fa-circle-check" id="toast-icon"></i>
+    <span id="toast-msg">Operation successful</span>
+</div>
+
+<script>
+// Modal Helpers
+function openModal(id) {
+    document.getElementById(id).style.display = 'flex';
+}
+function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+}
+
+// Toast Helper
+function showToast(msg, isSuccess = true) {
+    const toast = document.getElementById('toast-notify');
+    const toastMsg = document.getElementById('toast-msg');
+    const toastIcon = document.getElementById('toast-icon');
+
+    toastMsg.textContent = msg;
+    toast.className = 'toast-popup ' + (isSuccess ? 'success' : 'error');
+    toastIcon.className = isSuccess ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-exclamation';
+
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3200);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Create Modal Open
+    const btnCreate = document.getElementById('btn-open-create-modal');
+    btnCreate.addEventListener('click', () => {
+        document.getElementById('form-create-product').reset();
+        calcFinalPrice();
+        openModal('modal-create-product');
+    });
+
+    // Auto-Gen SKU
+    document.getElementById('btn-gen-sku').addEventListener('click', () => {
+        const rand = Math.floor(1000 + Math.random() * 9000);
+        document.getElementById('c-sku').value = 'PRD-' + rand;
+    });
+
+    // Real-time Price Calc
+    const cPrice = document.getElementById('c-price');
+    const cGst = document.getElementById('c-gstrate');
+    function calcFinalPrice() {
+        const p = parseFloat(cPrice.value) || 0;
+        const g = parseFloat(cGst.value) || 0;
+        const tax = (p * g) / 100;
+        const total = p + tax;
+        document.getElementById('c-final-calc').textContent = '₹' + total.toFixed(2);
+        document.getElementById('c-tax-calc').textContent = '+ ₹' + tax.toFixed(2) + ' (' + g + '% GST)';
+    }
+    cPrice.addEventListener('input', calcFinalPrice);
+    cGst.addEventListener('change', calcFinalPrice);
+
+    // 2. Submit CREATE Product via API
+    document.getElementById('form-create-product').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btn-submit-create');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving to Catalog...';
+
+        const payload = {
+            name: document.getElementById('c-name').value.trim(),
+            sku: document.getElementById('c-sku').value.trim(),
+            category: document.getElementById('c-category').value.trim() || 'General',
+            unit: document.getElementById('c-unit').value,
+            price: parseFloat(document.getElementById('c-price').value),
+            stock: parseInt(document.getElementById('c-stock').value) || 0,
+            gst_rate: parseFloat(document.getElementById('c-gstrate').value) || 18.00,
+            hsn_code: document.getElementById('c-hsn').value.trim(),
+            description: document.getElementById('c-desc').value.trim()
+        };
+
+        try {
+            const resp = await fetch('/api/products/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await resp.json();
+
+            if (resp.ok && data.success) {
+                closeModal('modal-create-product');
+                showToast(data.message, true);
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast(data.message || 'Error creating product.', false);
+            }
+        } catch (err) {
+            showToast('Network error while communicating with Product API.', false);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<span>Create Product & Add to Inventory</span> <i class="fa-solid fa-arrow-right"></i>';
+        }
+    });
+
+    // 3. Search & Filter functionality
+    const searchInput = document.getElementById('filter-search-input');
+    const chips = document.querySelectorAll('.filter-chip');
+    let activeCategory = '';
+
+    function applyFilter() {
+        const query = searchInput.value.toLowerCase().trim();
+        const cards = document.querySelectorAll('.prod-card');
+
+        cards.forEach(card => {
+            const name = card.getAttribute('data-name');
+            const sku = card.getAttribute('data-sku');
+            const hsn = card.getAttribute('data-hsn');
+            const cat = card.getAttribute('data-category');
+
+            const matchQuery = !query || name.includes(query) || sku.includes(query) || hsn.includes(query);
+            const matchCat = !activeCategory || cat === activeCategory.toLowerCase();
+
+            if (matchQuery && matchCat) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    searchInput.addEventListener('input', applyFilter);
+
+    chips.forEach(chip => {
+        chip.addEventListener('click', function() {
+            chips.forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            activeCategory = this.getAttribute('data-category');
+            applyFilter();
+        });
+    });
+});
+
+// 4. Open EDIT Modal and Fetch Single Product via GET API
+async function openEditModal(prodId) {
+    try {
+        const res = await fetch(`/api/products/${prodId}/`);
+        const data = await res.json();
+        if (res.ok && data.success) {
+            const p = data.product;
+            document.getElementById('e-id').value = p.id;
+            document.getElementById('e-name').value = p.name;
+            document.getElementById('e-sku').value = p.sku;
+            document.getElementById('e-category').value = p.category;
+            document.getElementById('e-unit').value = p.unit;
+            document.getElementById('e-price').value = p.price;
+            document.getElementById('e-stock').value = p.stock;
+            document.getElementById('e-gstrate').value = p.gst_rate.toFixed(1);
+            document.getElementById('e-hsn').value = p.hsn_code;
+            document.getElementById('e-desc').value = p.description;
+
+            openModal('modal-edit-product');
+        } else {
+            showToast('Failed to fetch product details.', false);
+        }
+    } catch (e) {
+        showToast('Network error reading product details.', false);
+    }
+}
+
+// Submit UPDATE Product via API
+document.getElementById('form-edit-product').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const pid = document.getElementById('e-id').value;
+    const btn = document.getElementById('btn-submit-edit');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
+
+    const payload = {
+        name: document.getElementById('e-name').value.trim(),
+        sku: document.getElementById('e-sku').value.trim(),
+        category: document.getElementById('e-category').value.trim(),
+        unit: document.getElementById('e-unit').value,
+        price: parseFloat(document.getElementById('e-price').value),
+        stock: parseInt(document.getElementById('e-stock').value) || 0,
+        gst_rate: parseFloat(document.getElementById('e-gstrate').value) || 18.00,
+        hsn_code: document.getElementById('e-hsn').value.trim(),
+        description: document.getElementById('e-desc').value.trim()
+    };
+
+    try {
+        const resp = await fetch(`/api/products/${pid}/update/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.success) {
+            closeModal('modal-edit-product');
+            showToast(data.message, true);
+            setTimeout(() => window.location.reload(), 800);
+        } else {
+            showToast(data.message || 'Error updating product.', false);
+        }
+    } catch (err) {
+        showToast('Network error while updating product.', false);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Save Changes & Sync via API</span> <i class="fa-solid fa-check"></i>';
+    }
+});
+
+// 5. Open DELETE Modal & Confirm via DELETE API
+function openDeleteModal(prodId, prodName) {
+    document.getElementById('del-prod-id').value = prodId;
+    document.getElementById('del-prod-name').textContent = prodName;
+    openModal('modal-delete-product');
+}
+
+document.getElementById('btn-confirm-delete').addEventListener('click', async function() {
+    const pid = document.getElementById('del-prod-id').value;
+    this.disabled = true;
+    this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
+
+    try {
+        const resp = await fetch(`/api/products/${pid}/delete/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.success) {
+            closeModal('modal-delete-product');
+            showToast(data.message, true);
+            setTimeout(() => window.location.reload(), 800);
+        } else {
+            showToast(data.message || 'Error deleting product.', false);
+        }
+    } catch (err) {
+        showToast('Network error while deleting product.', false);
+    } finally {
+        this.disabled = false;
+        this.innerHTML = 'Delete Now';
+    }
+});
+</script>
+{% endblock %}
