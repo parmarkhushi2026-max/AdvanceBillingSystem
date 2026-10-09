@@ -8,11 +8,15 @@
         <h1 class="page-title">System Admin Dashboard</h1>
         <p class="page-subtitle">Centralized oversight, live revenue tracking, and distributor registry.</p>
     </div>
-    <div style="display: flex; gap: 10px;">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="{% url 'admin_reports' %}" class="btn-print" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); text-decoration: none;">
+            <i class="fa-solid fa-chart-line"></i> Dedicated Reports Studio
+        </a>
         <a href="/django-admin/" target="_blank" class="btn-print" style="background: #1e1b4b;">
             <i class="fa-solid fa-screwdriver-wrench"></i> Django Backend Admin
         </a>
     </div>
+
 </div>
 
 <!-- Metrics Cards -->
@@ -233,8 +237,75 @@
     </div>
 </div>
 
+<!-- ================= Dedicated Reports & Analytics Hub ================= -->
+<div class="dashboard-card" style="margin-bottom: 2rem; border-top: 4px solid #4f46e5; padding: 1.75rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(79, 70, 229, 0.1); color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+                <h2 style="font-size: 1.35rem; font-weight: 800; color: #0f172a; margin: 0;">Dedicated Reports & Financial Intelligence</h2>
+            </div>
+            <p style="color: #64748b; font-size: 0.9rem; margin: 4px 0 0 0;">Download certified audits, export tax data, and analyze distributor collection velocity.</p>
+        </div>
+        <a href="{% url 'admin_reports' %}" class="btn-primary-action" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); text-decoration: none; padding: 10px 18px; border-radius: 12px; font-weight: 700; font-size: 0.9rem;">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Full Reports Studio
+        </a>
+    </div>
+
+    <!-- Quick Report Tiles Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem;">
+        <!-- Card 1: Sales Report -->
+        <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #2563eb; background: #dbeafe; padding: 3px 8px; border-radius: 6px; text-transform: uppercase;">Revenue Audit</span>
+                    <i class="fa-solid fa-receipt" style="color: #2563eb; font-size: 1.2rem;"></i>
+                </div>
+                <h4 style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">Sales & Billing Ledger</h4>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 0 0 1rem 0; line-height: 1.4;">Comprehensive transaction history with payment modes, totals, and timestamps.</p>
+            </div>
+            <a href="{% url 'admin_reports_export_csv' %}?type=sales" style="background: #ffffff; color: #0f172a; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s;">
+                <i class="fa-solid fa-download"></i> Download Sales CSV
+            </a>
+        </div>
+
+        <!-- Card 2: GST Tax Report -->
+        <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #059669; background: #d1fae5; padding: 3px 8px; border-radius: 6px; text-transform: uppercase;">Tax Compliance</span>
+                    <i class="fa-solid fa-scale-balanced" style="color: #059669; font-size: 1.2rem;"></i>
+                </div>
+                <h4 style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">GST & Tax Breakdown</h4>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 0 0 1rem 0; line-height: 1.4;">Taxable base, CGST/SGST amounts, and invoice tax rates ready for CA filing.</p>
+            </div>
+            <a href="{% url 'admin_reports_export_csv' %}?type=gst" style="background: #ffffff; color: #065f46; border: 1px solid #a7f3d0; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s;">
+                <i class="fa-solid fa-file-shield"></i> Download GST Tax CSV
+            </a>
+        </div>
+
+        <!-- Card 3: Distributor Performance -->
+        <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #d97706; background: #fef3c7; padding: 3px 8px; border-radius: 6px; text-transform: uppercase;">Agent Analytics</span>
+                    <i class="fa-solid fa-users" style="color: #d97706; font-size: 1.2rem;"></i>
+                </div>
+                <h4 style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">Distributor Performance</h4>
+                <p style="font-size: 0.82rem; color: #64748b; margin: 0 0 1rem 0; line-height: 1.4;">Billed vs collected volume per distributor with realization metrics.</p>
+            </div>
+            <a href="{% url 'admin_reports_export_csv' %}?type=distributor" style="background: #ffffff; color: #92400e; border: 1px solid #fde68a; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s;">
+                <i class="fa-solid fa-download"></i> Download Distributor CSV
+            </a>
+        </div>
+    </div>
+</div>
+
 <!-- Global Recent Invoices -->
 <div class="dashboard-card">
+
     <div class="card-header-clean">
         <div class="card-title-clean">
             <i class="fa-solid fa-clock-rotate-left" style="color: #10b981;"></i>

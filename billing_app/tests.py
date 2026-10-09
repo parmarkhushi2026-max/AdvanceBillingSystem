@@ -980,6 +980,85 @@ class ProductModuleValidationTestCase(TestCase):
         self.assertEqual(data['products'][0]['name'], 'Barcode Ribbon')
 
 
+class AdminReportsModuleTestCase(TestCase):
+    """Test suite for Admin Reports and CSV Exports."""
+    def setUp(self):
+        self.admin_user = User.objects.create_superuser('test_admin_rep', 'admin_rep@test.com', 'adminpass123')
+        self.admin_profile, _ = UserProfile.objects.get_or_create(user=self.admin_user, defaults={'role': 'ADMIN'})
+        self.admin_profile.role = 'ADMIN'
+        self.admin_profile.save()
+
+        self.dist_user = User.objects.create_user('test_dist_rep', 'dist_rep@test.com', 'distpass123')
+        self.dist_profile, _ = UserProfile.objects.get_or_create(user=self.dist_user, defaults={'role': 'DISTRIBUTOR', 'business_name': 'Rep Distribution'})
+        self.dist_profile.role = 'DISTRIBUTOR'
+        self.dist_profile.save()
+
+        self.customer = Customer.objects.create(name='Report Customer', phone='9876512345', created_by=self.dist_user)
+        self.invoice = Invoice.objects.create(
+            invoice_number='INV-REP-001',
+            distributor=self.dist_user,
+            customer=self.customer,
+            customer_name='Report Customer',
+            customer_phone='9876512345',
+            subtotal=1000.00,
+            tax_amount=180.00,
+            discount=0.00,
+            grand_total=1180.00,
+            payment_status='PAID',
+            payment_method='UPI QR Code'
+        )
+
+    def test_admin_reports_view_accessible_by_admin(self):
+        self.client.login(username='test_admin_rep', password='adminpass123')
+        response = self.client.get(reverse('admin_reports'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Reports Studio')
+        self.assertContains(response, 'INV-REP-001')
+        self.assertContains(response, 'Sales Ledger')
+
+    def test_admin_reports_denied_for_regular_distributor(self):
+        self.client.login(username='test_dist_rep', password='distpass123')
+        response = self.client.get(reverse('admin_reports'))
+        # Should redirect to login or distributor dashboard
+        self.assertEqual(response.status_code, 302)
+
+    def test_admin_dashboard_renders_reports_section(self):
+        self.client.login(username='test_admin_rep', password='adminpass123')
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Dedicated Reports & Financial Intelligence')
+        self.assertContains(response, 'Open Full Reports Studio')
+
+    def test_admin_reports_export_sales_csv(self):
+        self.client.login(username='test_admin_rep', password='adminpass123')
+        response = self.client.get(reverse('admin_reports_export_csv') + '?type=sales')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv')
+        self.assertIn('AdvanceBilling_Sales_Report.csv', response['Content-Disposition'])
+        content = response.content.decode('utf-8')
+        self.assertIn('Invoice Number', content)
+        self.assertIn('INV-REP-001', content)
+
+    def test_admin_reports_export_gst_csv(self):
+        self.client.login(username='test_admin_rep', password='adminpass123')
+        response = self.client.get(reverse('admin_reports_export_csv') + '?type=gst')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('AdvanceBilling_GST_Report.csv', response['Content-Disposition'])
+        content = response.content.decode('utf-8')
+        self.assertIn('GST Tax Amount', content)
+        self.assertIn('INV-REP-001', content)
+
+    def test_admin_reports_export_distributors_csv(self):
+        self.client.login(username='test_admin_rep', password='adminpass123')
+        response = self.client.get(reverse('admin_reports_export_csv') + '?type=distributor')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('AdvanceBilling_Distributors_Report.csv', response['Content-Disposition'])
+        content = response.content.decode('utf-8')
+        self.assertIn('Distributor Username', content)
+        self.assertIn('test_dist_rep', content)
+
+
+
 
 
 

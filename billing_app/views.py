@@ -1,10 +1,11 @@
 import json
+import csv
 import uuid
 import random
 import time
 from decimal import Decimal, InvalidOperation
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
@@ -278,7 +279,157 @@ def admin_dashboard_view(request):
     }
     return render(request, 'dashboard/admin_dashboard.html', context)
 
+
+# 5.1 Dedicated Reports Section View for Admin Dashboard
+@admin_required
+def admin_reports_view(request):
+    """
+    Dedicated Reports & Financial Analytics View for System Admin.
+    Allows filtering by date range, distributor, payment status, and exports CSV.
+    """
+    initialize_default_users()
+    start_date_str = request.GET.get('start_date', '').strip()
+    end_date_str = request.GET.get('end_date', '').strip()
+    distributor_id = request.GET.get('distributor_id', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    report_type = request.GET.get('type', 'sales').strip()
+
+    invoices = Invoice.objects.all().select_related('distributor', 'distributor__profile')
+
+    if distributor_id:
+        invoices = invoices.filter(distributor_id=distributor_id)
+    if status_filter:
+        invoices = invoices.filter(payment_status=status_filter)
+    if start_date_str:
+        try:
+            invoices = invoices.filter(created_at__date__gte=start_date_str)
+        except Exception:
+            pass
+    if end_date_str:
+        try:
+            invoices = invoices.filter(created_at__date__lte=end_date_str)
+        except Exception:
+            pass
+
+    # Aggregated Financial Metrics
+    total_invoices_count = invoices.count()
+    total_billed_val = invoices.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+    total_tax_collected = invoices.aggregate(Sum('tax_amount'))['tax_amount__sum'] or Decimal('0.00')
+    total_subtotal = invoices.aggregate(Sum('subtotal'))['subtotal__sum'] or Decimal('0.00')
+    total_discount = invoices.aggregate(Sum('discount'))['discount__sum'] or Decimal('0.00')
+    
+    paid_qs = invoices.filter(payment_status='PAID')
+    total_paid_val = paid_qs.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+    pending_qs = invoices.filter(payment_status='PENDING')
+    total_pending_val = pending_qs.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+
+    avg_ticket_size = round(float(total_billed_val) / total_invoices_count, 2) if total_invoices_count > 0 else 0.0
+
+    # Distributor Performance Summary
+    distributor_perf = []
+    distributors = User.objects.filter(profile__role='DISTRIBUTOR').select_related('profile')
+    for d in distributors:
+        d_invoices = Invoice.objects.filter(distributor=d)
+        d_count = d_invoices.count()
+        d_billed = d_invoices.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+        d_collected = d_invoices.filter(payment_status='PAID').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+        distributor_perf.append({
+            'distributor': d,
+            'business_name': getattr(d.profile, 'business_name', '') or d.username,
+            'invoice_count': d_count,
+            'total_billed': d_billed,
+            'total_collected': d_collected,
+        })
+    distributor_perf.sort(key=lambda x: x['total_billed'], reverse=True)
+
+    # Top selling items
+    top_items = (
+        InvoiceItem.objects.values('product_name')
+        .annotate(total_qty=Sum('quantity'), total_sales=Sum('total'))
+        .order_by('-total_qty')[:10]
+    )
+
+    context = {
+        'invoices': invoices.order_by('-created_at')[:50],
+        'distributors': distributors,
+        'distributor_perf': distributor_perf,
+        'top_items': top_items,
+        'total_invoices_count': total_invoices_count,
+        'total_billed_val': total_billed_val,
+        'total_paid_val': total_paid_val,
+        'total_pending_val': total_pending_val,
+        'total_tax_collected': total_tax_collected,
+        'total_subtotal': total_subtotal,
+        'total_discount': total_discount,
+        'avg_ticket_size': avg_ticket_size,
+        'start_date': start_date_str,
+        'end_date': end_date_str,
+        'distributor_id': distributor_id,
+        'status_filter': status_filter,
+        'report_type': report_type,
+        'role': 'Admin',
+    }
+    return render(request, 'dashboard/admin_reports.html', context)
+
+
+@admin_required
+def admin_reports_export_csv_view(request):
+    """
+    Exports CSV reports for Sales, GST Tax, or Distributor Performance.
+    """
+    report_type = request.GET.get('type', 'sales').lower()
+    response = HttpResponse(content_type='text/csv')
+    
+    if report_type == 'gst':
+        response['Content-Disposition'] = 'attachment; filename="AdvanceBilling_GST_Report.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Invoice Number', 'Date', 'Distributor', 'Customer Name', 'Taxable Subtotal (INR)', 'GST Tax Amount (INR)', 'Grand Total (INR)', 'Status'])
+        for inv in Invoice.objects.all().order_by('-created_at'):
+            writer.writerow([
+                inv.invoice_number,
+                inv.created_at.strftime('%Y-%m-%d %H:%M'),
+                inv.distributor.username if inv.distributor else 'System',
+                inv.customer_name,
+                float(inv.subtotal),
+                float(inv.tax_amount),
+                float(inv.grand_total),
+                inv.payment_status
+            ])
+    elif report_type == 'distributor':
+        response['Content-Disposition'] = 'attachment; filename="AdvanceBilling_Distributors_Report.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Distributor Username', 'Business Name', 'Phone', 'Total Invoices', 'Total Billed (INR)', 'Total Collected (INR)'])
+        for d in User.objects.filter(profile__role='DISTRIBUTOR').select_related('profile'):
+            d_invs = Invoice.objects.filter(distributor=d)
+            b_name = getattr(d.profile, 'business_name', '') or d.username
+            phone = getattr(d.profile, 'phone', '')
+            inv_count = d_invs.count()
+            billed = float(d_invs.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00'))
+            collected = float(d_invs.filter(payment_status='PAID').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00'))
+            writer.writerow([d.username, b_name, phone, inv_count, billed, collected])
+    else: # sales
+        response['Content-Disposition'] = 'attachment; filename="AdvanceBilling_Sales_Report.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Invoice Number', 'Date', 'Distributor', 'Customer Name', 'Customer Phone', 'Payment Method', 'Subtotal', 'Tax Amount', 'Discount', 'Grand Total', 'Status'])
+        for inv in Invoice.objects.all().order_by('-created_at'):
+            writer.writerow([
+                inv.invoice_number,
+                inv.created_at.strftime('%Y-%m-%d %H:%M'),
+                inv.distributor.username if inv.distributor else 'System',
+                inv.customer_name,
+                inv.customer_phone,
+                inv.payment_method,
+                float(inv.subtotal),
+                float(inv.tax_amount),
+                float(inv.discount),
+                float(inv.grand_total),
+                inv.payment_status
+            ])
+    return response
+
+
 # 6. Distributor Dashboard (Protected by @distributor_required)
+
 @distributor_required
 def distributor_dashboard_view(request):
     initialize_default_users()

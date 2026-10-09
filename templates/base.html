@@ -205,6 +205,9 @@
                         <a href="{% url 'admin_dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
                             <i class="fa-solid fa-chart-pie"></i> <span>Dashboard</span>
                         </a>
+                        <a href="{% url 'admin_reports' %}" class="sidebar-link {% if request.resolver_match.url_name in 'admin_reports,admin_reports_export_csv' %}active{% endif %}">
+                            <i class="fa-solid fa-chart-column"></i> <span>Reports & Analytics</span>
+                        </a>
                         <a href="{% url 'invoice_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'invoice_list' %}active{% endif %}">
                             <i class="fa-solid fa-file-invoice"></i> <span>All Invoices</span>
                         </a>

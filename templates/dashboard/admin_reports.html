@@ -1,0 +1,561 @@
+{% extends 'base.html' %}
+
+{% block title %}Financial & System Reports - Admin Studio - Advance Billing System{% endblock %}
+
+{% block content %}
+<style>
+    .reports-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .export-btn-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .btn-export-csv {
+        background: #ffffff;
+        color: #0f172a;
+        border: 1.5px solid #cbd5e1;
+        padding: 9px 15px;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-export-csv:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+        transform: translateY(-1px);
+    }
+
+    .btn-export-csv.green {
+        background: #ecfdf5;
+        border-color: #a7f3d0;
+        color: #065f46;
+    }
+    .btn-export-csv.green:hover { background: #d1fae5; }
+
+    .btn-print-doc {
+        background: #0f172a;
+        color: #ffffff;
+        border: none;
+        padding: 9px 16px;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        transition: all 0.2s;
+    }
+
+    .btn-print-doc:hover { background: #1e293b; }
+
+    /* Filter Toolbar */
+    .report-filter-card {
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #e2e8f0;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
+    }
+
+    .filter-grid-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto;
+        gap: 1.25rem;
+        align-items: flex-end;
+    }
+
+    .f-lbl {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 6px;
+    }
+
+    .f-input, .f-select {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 0.92rem;
+        background: #f8fafc;
+        outline: none;
+        transition: all 0.2s;
+        font-family: inherit;
+    }
+
+    .f-input:focus, .f-select:focus {
+        background: #ffffff;
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    /* KPI Summary Strip */
+    .kpi-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2.25rem;
+    }
+
+    .kpi-card-box {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 1.25rem 1.5rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .kpi-card-box::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+
+    .kpi-card-box.indigo::before { background: #4f46e5; }
+    .kpi-card-box.emerald::before { background: #10b981; }
+    .kpi-card-box.amber::before { background: #f59e0b; }
+    .kpi-card-box.cyan::before { background: #06b6d4; }
+    .kpi-card-box.purple::before { background: #8b5cf6; }
+
+    .kpi-val {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-top: 4px;
+    }
+
+    .kpi-sub {
+        font-size: 0.78rem;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    /* Report Navigation Tabs */
+    .report-tabs {
+        display: flex;
+        gap: 8px;
+        border-bottom: 2px solid #e2e8f0;
+        margin-bottom: 1.75rem;
+        overflow-x: auto;
+    }
+
+    .report-tab-btn {
+        padding: 12px 20px;
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -2px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #64748b;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+
+    .report-tab-btn:hover { color: #0f172a; }
+    .report-tab-btn.active {
+        color: #4f46e5;
+        border-bottom-color: #4f46e5;
+    }
+
+    .report-tab-pane {
+        display: none;
+        animation: fadeIn 0.25s ease;
+    }
+
+    .report-tab-pane.active { display: block; }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media print {
+        .reports-header, .report-filter-card, .sidebar, .export-btn-group, .report-tabs {
+            display: none !important;
+        }
+        .main-content { margin-left: 0 !important; }
+        .report-tab-pane { display: block !important; }
+    }
+</style>
+
+<div style="max-width: 1320px; margin: 0 auto; padding-bottom: 3rem;">
+    <!-- Top Studio Header -->
+    <div class="reports-header">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #64748b; margin-bottom: 4px;">
+                <a href="{% url 'admin_dashboard' %}" style="color: #64748b; text-decoration: none;">Admin Dashboard</a>
+                <i class="fa-solid fa-chevron-right" style="font-size: 0.7rem;"></i>
+                <span style="color: #0f172a; font-weight: 600;">Reports Studio</span>
+            </div>
+            <h1 style="font-size: 1.85rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-chart-line" style="color: #4f46e5;"></i> Financial & System Reports Hub
+            </h1>
+            <p style="color: #64748b; font-size: 0.95rem; margin: 4px 0 0 0;">Audit invoices, monitor tax collections, track distributor performance, and export certified records.</p>
+        </div>
+
+        <!-- Export Buttons -->
+        <div class="export-btn-group">
+            <a href="{% url 'admin_reports_export_csv' %}?type=sales" class="btn-export-csv">
+                <i class="fa-solid fa-file-csv" style="color: #2563eb;"></i> Export Sales CSV
+            </a>
+            <a href="{% url 'admin_reports_export_csv' %}?type=gst" class="btn-export-csv green">
+                <i class="fa-solid fa-file-shield" style="color: #059669;"></i> Export GST Tax CSV
+            </a>
+            <a href="{% url 'admin_reports_export_csv' %}?type=distributor" class="btn-export-csv">
+                <i class="fa-solid fa-users" style="color: #d97706;"></i> Distributors CSV
+            </a>
+            <button type="button" class="btn-print-doc" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> Print
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Toolbar -->
+    <div class="report-filter-card">
+        <form method="GET" action="{% url 'admin_reports' %}">
+            <div class="filter-grid-row">
+                <!-- Start Date -->
+                <div>
+                    <label class="f-lbl">From Date</label>
+                    <input type="date" name="start_date" class="f-input" value="{{ start_date }}">
+                </div>
+
+                <!-- End Date -->
+                <div>
+                    <label class="f-lbl">To Date</label>
+                    <input type="date" name="end_date" class="f-input" value="{{ end_date }}">
+                </div>
+
+                <!-- Distributor Filter -->
+                <div>
+                    <label class="f-lbl">Distributor</label>
+                    <select name="distributor_id" class="f-select">
+                        <option value="">All Distributors</option>
+                        {% for dist in distributors %}
+                            <option value="{{ dist.id }}" {% if distributor_id == dist.id|stringformat:"s" %}selected{% endif %}>
+                                {{ dist.username }} ({{ dist.profile.business_name|default:"Distributor" }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <label class="f-lbl">Payment Status</label>
+                    <select name="status" class="f-select">
+                        <option value="">All Statuses</option>
+                        <option value="PAID" {% if status_filter == 'PAID' %}selected{% endif %}>PAID (Settled)</option>
+                        <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>PENDING (Due)</option>
+                        <option value="FAILED" {% if status_filter == 'FAILED' %}selected{% endif %}>FAILED</option>
+                    </select>
+                </div>
+
+                <!-- Actions -->
+                <div style="display: flex; gap: 8px;">
+                    <button type="submit" class="btn-print-doc" style="background: #4f46e5; padding: 11px 20px;">
+                        <i class="fa-solid fa-filter"></i> Apply Filter
+                    </button>
+                    {% if start_date or end_date or distributor_id or status_filter %}
+                        <a href="{% url 'admin_reports' %}" class="btn-export-csv" style="padding: 10px 14px;" title="Reset filters">
+                            <i class="fa-solid fa-arrow-rotate-left"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- KPI Summary Strip -->
+    <div class="kpi-summary-grid">
+        <div class="kpi-card-box indigo">
+            <div class="kpi-sub">Total Billed Revenue</div>
+            <div class="kpi-val">₹{{ total_billed_val|floatformat:2 }}</div>
+        </div>
+
+        <div class="kpi-card-box emerald">
+            <div class="kpi-sub">Net Realized (Paid)</div>
+            <div class="kpi-val" style="color: #059669;">₹{{ total_paid_val|floatformat:2 }}</div>
+        </div>
+
+        <div class="kpi-card-box amber">
+            <div class="kpi-sub">Outstanding Dues</div>
+            <div class="kpi-val" style="color: #d97706;">₹{{ total_pending_val|floatformat:2 }}</div>
+        </div>
+
+        <div class="kpi-card-box cyan">
+            <div class="kpi-sub">GST Tax Collected</div>
+            <div class="kpi-val" style="color: #0891b2;">₹{{ total_tax_collected|floatformat:2 }}</div>
+        </div>
+
+        <div class="kpi-card-box purple">
+            <div class="kpi-sub">Average Ticket Size</div>
+            <div class="kpi-val" style="color: #7c3aed;">₹{{ avg_ticket_size }}</div>
+        </div>
+    </div>
+
+    <!-- Report Tabs -->
+    <div class="report-tabs">
+        <button type="button" class="report-tab-btn active" onclick="switchReportTab('tab-sales')">
+            <i class="fa-solid fa-file-invoice-dollar"></i> Sales Ledger ({{ total_invoices_count }})
+        </button>
+        <button type="button" class="report-tab-btn" onclick="switchReportTab('tab-distributor')">
+            <i class="fa-solid fa-users-gear"></i> Distributor Performance ({{ distributor_perf|length }})
+        </button>
+        <button type="button" class="report-tab-btn" onclick="switchReportTab('tab-gst')">
+            <i class="fa-solid fa-scale-balanced"></i> GST & Tax Liability
+        </button>
+        <button type="button" class="report-tab-btn" onclick="switchReportTab('tab-products')">
+            <i class="fa-solid fa-boxes-stacked"></i> Top Inventory Volume
+        </button>
+    </div>
+
+    <!-- ================= TAB 1: SALES LEDGER ================= -->
+    <div id="tab-sales" class="report-tab-pane active">
+        <div class="dashboard-card">
+            <div class="table-responsive">
+                <table class="app-table">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Date & Time</th>
+                            <th>Distributor</th>
+                            <th>Customer Name</th>
+                            <th>Payment Method</th>
+                            <th>Taxable</th>
+                            <th>Tax (GST)</th>
+                            <th>Grand Total</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inv in invoices %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'invoice_detail' inv.id %}" style="font-weight: 700; color: #4f46e5; text-decoration: none;">
+                                    #{{ inv.invoice_number }}
+                                </a>
+                            </td>
+                            <td style="font-size: 0.85rem; color: #64748b;">{{ inv.created_at|date:"M d, Y H:i" }}</td>
+                            <td>
+                                <strong style="color: #0f172a;">{{ inv.distributor.username|default:"Direct" }}</strong>
+                                <div style="font-size: 0.75rem; color: #94a3b8;">{{ inv.distributor.profile.business_name|default:"" }}</div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: #0f172a;">{{ inv.customer_name }}</div>
+                                <div style="font-size: 0.78rem; color: #64748b;">{{ inv.customer_phone }}</div>
+                            </td>
+                            <td>
+                                <span style="font-size: 0.85rem; color: #475569;">
+                                    <i class="fa-solid fa-qrcode" style="color: #06b6d4; margin-right: 4px;"></i> {{ inv.payment_method }}
+                                </span>
+                            </td>
+                            <td style="font-size: 0.9rem;">₹{{ inv.subtotal|floatformat:2 }}</td>
+                            <td style="font-size: 0.9rem; color: #059669; font-weight: 600;">+₹{{ inv.tax_amount|floatformat:2 }}</td>
+                            <td style="font-weight: 800; font-size: 1rem; color: #0f172a;">₹{{ inv.grand_total|floatformat:2 }}</td>
+                            <td>
+                                {% if inv.payment_status == 'PAID' %}
+                                    <span class="badge-status paid"><i class="fa-solid fa-check"></i> PAID</span>
+                                {% else %}
+                                    <span class="badge-status pending"><i class="fa-solid fa-clock"></i> {{ inv.payment_status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
+                                <i class="fa-solid fa-file-circle-xmark" style="font-size: 2.5rem; margin-bottom: 0.75rem;"></i>
+                                <p style="margin: 0;">No sales records found matching this date or distributor criteria.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= TAB 2: DISTRIBUTOR PERFORMANCE ================= -->
+    <div id="tab-distributor" class="report-tab-pane">
+        <div class="dashboard-card">
+            <div class="table-responsive">
+                <table class="app-table">
+                    <thead>
+                        <tr>
+                            <th>Distributor</th>
+                            <th>Registered Business Name</th>
+                            <th>Contact Phone</th>
+                            <th>Invoices Count</th>
+                            <th>Total Billed</th>
+                            <th>Realized Collections</th>
+                            <th>Collection Efficiency</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dp in distributor_perf %}
+                        <tr>
+                            <td>
+                                <div style="font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                                    <div style="width: 32px; height: 32px; border-radius: 8px; background: #e0e7ff; color: #4338ca; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem;">
+                                        {{ dp.distributor.username|make_list|first|upper }}
+                                    </div>
+                                    {{ dp.distributor.username }}
+                                </div>
+                            </td>
+                            <td style="font-weight: 600; color: #334155;">{{ dp.business_name }}</td>
+                            <td style="color: #64748b;">{{ dp.distributor.profile.phone|default:"—" }}</td>
+                            <td>
+                                <span class="badge-status pending" style="background: #f1f5f9; color: #334155; border-color: #e2e8f0;">
+                                    {{ dp.invoice_count }} bills
+                                </span>
+                            </td>
+                            <td style="font-weight: 700; font-size: 0.95rem;">₹{{ dp.total_billed|floatformat:2 }}</td>
+                            <td style="font-weight: 700; font-size: 0.95rem; color: #059669;">₹{{ dp.total_collected|floatformat:2 }}</td>
+                            <td>
+                                {% if dp.total_billed > 0 %}
+                                    <span class="badge-status paid">
+                                        {{ dp.total_collected|stringformat:".2f" }}% Active
+                                    </span>
+                                {% else %}
+                                    <span style="color: #94a3b8; font-size: 0.85rem;">No activity</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 2rem; color: #94a3b8;">No registered distributors found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= TAB 3: GST TAX LIABILITY ================= -->
+    <div id="tab-gst" class="report-tab-pane">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="dashboard-card" style="padding: 1.5rem;">
+                <h3 style="font-size: 1.1rem; font-weight: 700; color: #0f172a; margin: 0 0 1rem 0;">GST Compliance & Liability Summary</h3>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
+                        <span style="color: #64748b;">Total Taxable Turnover (Base):</span>
+                        <strong style="color: #0f172a;">₹{{ total_subtotal|floatformat:2 }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
+                        <span style="color: #64748b;">Total Trade Discounts Granted:</span>
+                        <strong style="color: #dc2626;">- ₹{{ total_discount|floatformat:2 }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
+                        <span style="color: #64748b;">CGST (Central GST - 50%):</span>
+                        <strong style="color: #059669;">₹{{ total_tax_collected|floatformat:2 }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
+                        <span style="color: #64748b;">SGST (State GST - 50%):</span>
+                        <strong style="color: #059669;">₹{{ total_tax_collected|floatformat:2 }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-top: 6px; font-size: 1.05rem;">
+                        <span style="color: #0f172a; font-weight: 700;">Total Net GST Liability:</span>
+                        <strong style="color: #059669; font-weight: 800;">₹{{ total_tax_collected|floatformat:2 }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-card" style="padding: 1.5rem; background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border-color: #bbf7d0;">
+                <h3 style="font-size: 1.1rem; font-weight: 700; color: #065f46; margin: 0 0 0.5rem 0;">
+                    <i class="fa-solid fa-shield-halved"></i> 100% Tax Compliant
+                </h3>
+                <p style="color: #047857; font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.5rem;">
+                    All GST invoices generate unique QR codes and sequential billing numbers compliant with GST Rule 46 of the Central Goods and Services Tax Act.
+                </p>
+                <a href="{% url 'admin_reports_export_csv' %}?type=gst" class="btn-export-csv green" style="width: 100%; justify-content: center;">
+                    <i class="fa-solid fa-download"></i> Download Audit-Ready GST Tax CSV
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= TAB 4: TOP INVENTORY ================= -->
+    <div id="tab-products" class="report-tab-pane">
+        <div class="dashboard-card">
+            <div class="table-responsive">
+                <table class="app-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Product Name</th>
+                            <th>Total Units Invoiced</th>
+                            <th>Total Sales Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in top_items %}
+                        <tr>
+                            <td style="font-weight: 800; color: #64748b; width: 60px;">#{{ forloop.counter }}</td>
+                            <td style="font-weight: 700; color: #0f172a;">{{ item.product_name }}</td>
+                            <td>
+                                <span class="badge-status paid">
+                                    {{ item.total_qty }} units
+                                </span>
+                            </td>
+                            <td style="font-weight: 800; color: #0f172a; font-size: 1rem;">
+                                ₹{{ item.total_sales|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 2rem; color: #94a3b8;">No line-item product sales recorded yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function switchReportTab(tabId) {
+    document.querySelectorAll('.report-tab-pane').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.report-tab-btn').forEach(el => el.classList.remove('active'));
+
+    const targetPane = document.getElementById(tabId);
+    if (targetPane) targetPane.classList.add('active');
+
+    event.currentTarget.classList.add('active');
+}
+</script>
+{% endblock %}
