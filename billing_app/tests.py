@@ -850,5 +850,136 @@ class ProductCRUDAPITestCase(TestCase):
         self.assertContains(response, 'modal-delete-product')
 
 
+class CustomerModuleValidationTestCase(TestCase):
+    """Deep validation & edge-case testing for Customer module."""
+    def setUp(self):
+        self.distributor = User.objects.create_user(username='cust_val_dist', password='password123')
+        self.profile, _ = UserProfile.objects.get_or_create(
+            user=self.distributor,
+            defaults={'role': 'DISTRIBUTOR', 'business_name': 'Val Agency'}
+        )
+        self.profile.role = 'DISTRIBUTOR'
+        self.profile.business_name = 'Val Agency'
+        self.profile.save()
+        self.client.login(username='cust_val_dist', password='password123')
+
+
+
+    def test_customer_registration_missing_phone(self):
+        import json
+        payload = {'name': 'No Phone Customer'}
+        response = self.client.post(reverse('api_register_customer'), data=json.dumps(payload), content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertFalse(data['success'])
+        self.assertIn('phone', data['message'].lower())
+
+    def test_customer_registration_invalid_json(self):
+        response = self.client.post(reverse('api_register_customer'), data='{bad json:', content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertFalse(data['success'])
+
+    def test_customer_registration_form_data(self):
+        payload = {
+            'name': 'Form Data Customer',
+            'phone': '9811122233',
+            'city': 'Rajkot'
+        }
+        response = self.client.post(reverse('api_register_customer'), data=payload)
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['customer']['city'], 'Rajkot')
+
+    def test_customer_directory_search_and_filter(self):
+        Customer.objects.create(name='Pooja Electronics', phone='9899001122', city='Vadodara', created_by=self.distributor)
+        Customer.objects.create(name='Anil Kirana Store', phone='9899003344', city='Surat', created_by=self.distributor)
+
+        # Search by name
+        res = self.client.get(reverse('customer_list') + '?q=Pooja')
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Pooja Electronics')
+        self.assertNotContains(res, 'Anil Kirana Store')
+
+    def test_customer_edit_and_delete_operations(self):
+        cust = Customer.objects.create(name='Original Name', phone='9888877777', created_by=self.distributor)
+
+        # Edit customer
+        edit_res = self.client.post(reverse('edit_customer', args=[cust.id]), {
+            'name': 'Updated Customer Name',
+            'phone': '9888877777',
+            'city': 'Bhavnagar'
+        })
+        self.assertEqual(edit_res.status_code, 302)
+        cust.refresh_from_db()
+        self.assertEqual(cust.name, 'Updated Customer Name')
+        self.assertEqual(cust.city, 'Bhavnagar')
+
+        # Delete customer
+        del_res = self.client.post(reverse('delete_customer', args=[cust.id]))
+        self.assertEqual(del_res.status_code, 302)
+        self.assertFalse(Customer.objects.filter(pk=cust.id).exists())
+
+
+class ProductModuleValidationTestCase(TestCase):
+    """Deep validation & edge-case testing for Product module."""
+    def setUp(self):
+        self.user = User.objects.create_user(username='prod_val_user', password='password123')
+        self.product = Product.objects.create(
+            name='Thermal Rolls 57mm',
+            sku='ROLL-57MM',
+            price=45.00,
+            stock=100,
+            category='Supplies',
+            created_by=self.user
+        )
+
+    def test_product_creation_invalid_json(self):
+        response = self.client.post(reverse('api_products'), data='malformed-json-payload', content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()['success'])
+
+    def test_product_creation_negative_price(self):
+        import json
+        payload = {'name': 'Bad Price', 'price': -10.00}
+        response = self.client.post(reverse('api_products'), data=json.dumps(payload), content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()['success'])
+
+    def test_product_read_non_existent_404(self):
+        response = self.client.get(reverse('api_product_detail', args=[999999]))
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(response.json()['success'])
+
+    def test_product_update_invalid_price(self):
+        import json
+        response = self.client.post(reverse('api_product_update', args=[self.product.id]), data=json.dumps({'price': -5}), content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()['success'])
+
+    def test_product_update_duplicate_sku_conflict(self):
+        import json
+        Product.objects.create(name='Other Item', sku='UNIQUE-SKU-99', price=99.00, created_by=self.user)
+        # Attempt to set current product's SKU to the same as Other Item
+        response = self.client.post(reverse('api_product_update', args=[self.product.id]), data=json.dumps({'sku': 'UNIQUE-SKU-99'}), content_type='application/json')
+        self.assertEqual(response.status_code, 409)
+        self.assertFalse(response.json()['success'])
+
+    def test_product_delete_non_existent_404(self):
+        response = self.client.post(reverse('api_product_delete', args=[999999]))
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(response.json()['success'])
+
+    def test_product_category_filtering(self):
+        Product.objects.create(name='Barcode Ribbon', sku='RIB-01', category='Accessories', price=250.00, created_by=self.user)
+        res = self.client.get(reverse('api_products') + '?category=Accessories')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['count'], 1)
+        self.assertEqual(data['products'][0]['name'], 'Barcode Ribbon')
+
+
+
 
 
