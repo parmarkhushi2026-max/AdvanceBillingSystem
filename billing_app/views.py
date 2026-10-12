@@ -12,7 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
-from datetime import timedelta
+from datetime import datetime, date, timedelta
 from django.core.paginator import Paginator
 from .models import UserProfile, Product, Invoice, InvoiceItem, OTPToken, Customer
 from .forms import (
@@ -376,15 +376,37 @@ def admin_reports_view(request):
 def admin_reports_export_csv_view(request):
     """
     Exports CSV reports for Sales, GST Tax, or Distributor Performance.
+    Respects date range, distributor, and payment status filters if provided.
     """
     report_type = request.GET.get('type', 'sales').lower()
+    start_date_str = request.GET.get('start_date', '').strip()
+    end_date_str = request.GET.get('end_date', '').strip()
+    distributor_id = request.GET.get('distributor_id', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+
+    invoices = Invoice.objects.all().select_related('distributor', 'distributor__profile')
+    if distributor_id:
+        invoices = invoices.filter(distributor_id=distributor_id)
+    if status_filter:
+        invoices = invoices.filter(payment_status=status_filter)
+    if start_date_str:
+        try:
+            invoices = invoices.filter(created_at__date__gte=start_date_str)
+        except Exception:
+            pass
+    if end_date_str:
+        try:
+            invoices = invoices.filter(created_at__date__lte=end_date_str)
+        except Exception:
+            pass
+
     response = HttpResponse(content_type='text/csv')
     
     if report_type == 'gst':
         response['Content-Disposition'] = 'attachment; filename="AdvanceBilling_GST_Report.csv"'
         writer = csv.writer(response)
         writer.writerow(['Invoice Number', 'Date', 'Distributor', 'Customer Name', 'Taxable Subtotal (INR)', 'GST Tax Amount (INR)', 'Grand Total (INR)', 'Status'])
-        for inv in Invoice.objects.all().order_by('-created_at'):
+        for inv in invoices.order_by('-created_at'):
             writer.writerow([
                 inv.invoice_number,
                 inv.created_at.strftime('%Y-%m-%d %H:%M'),
@@ -399,8 +421,11 @@ def admin_reports_export_csv_view(request):
         response['Content-Disposition'] = 'attachment; filename="AdvanceBilling_Distributors_Report.csv"'
         writer = csv.writer(response)
         writer.writerow(['Distributor Username', 'Business Name', 'Phone', 'Total Invoices', 'Total Billed (INR)', 'Total Collected (INR)'])
-        for d in User.objects.filter(profile__role='DISTRIBUTOR').select_related('profile'):
-            d_invs = Invoice.objects.filter(distributor=d)
+        d_queryset = User.objects.filter(profile__role='DISTRIBUTOR').select_related('profile')
+        if distributor_id:
+            d_queryset = d_queryset.filter(id=distributor_id)
+        for d in d_queryset:
+            d_invs = invoices.filter(distributor=d)
             b_name = getattr(d.profile, 'business_name', '') or d.username
             phone = getattr(d.profile, 'phone', '')
             inv_count = d_invs.count()
@@ -411,7 +436,7 @@ def admin_reports_export_csv_view(request):
         response['Content-Disposition'] = 'attachment; filename="AdvanceBilling_Sales_Report.csv"'
         writer = csv.writer(response)
         writer.writerow(['Invoice Number', 'Date', 'Distributor', 'Customer Name', 'Customer Phone', 'Payment Method', 'Subtotal', 'Tax Amount', 'Discount', 'Grand Total', 'Status'])
-        for inv in Invoice.objects.all().order_by('-created_at'):
+        for inv in invoices.order_by('-created_at'):
             writer.writerow([
                 inv.invoice_number,
                 inv.created_at.strftime('%Y-%m-%d %H:%M'),
@@ -1271,6 +1296,9 @@ def generate_invoice_pdf_view(request, invoice_id):
 def invoice_list_view(request):
     initialize_default_users()
     query = request.GET.get('q', '').strip()
+    start_date = request.GET.get('start_date', '').strip()
+    end_date = request.GET.get('end_date', '').strip()
+    status_filter = request.GET.get('status', '').strip()
     
     if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'):
         invoices = Invoice.objects.prefetch_related('items').all().order_by('-created_at')
@@ -1282,19 +1310,388 @@ def invoice_list_view(request):
     if query:
         invoices = invoices.filter(
             Q(invoice_number__icontains=query) |
-            Q(customer_name__icontains=query)
+            Q(customer_name__icontains=query) |
+            Q(customer_phone__icontains=query)
         )
+    if start_date:
+        try:
+            invoices = invoices.filter(created_at__date__gte=start_date)
+        except Exception:
+            pass
+    if end_date:
+        try:
+            invoices = invoices.filter(created_at__date__lte=end_date)
+        except Exception:
+            pass
+    if status_filter:
+        invoices = invoices.filter(payment_status=status_filter)
         
     paginator = Paginator(invoices, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    has_filters = bool(query or start_date or end_date or status_filter)
+    
     context = {
         'invoices': page_obj,
         'query': query,
+        'start_date': start_date,
+        'end_date': end_date,
+        'status_filter': status_filter,
+        'has_filters': has_filters,
         'role': role,
     }
     return render(request, 'billing/invoice_list.html', context)
+
+
+# =========================================================================
+# DEDICATED INVOICE REPORT GENERATION & DATE RANGE FILTERING ENGINE
+# =========================================================================
+
+@login_required
+def invoice_report_view(request):
+    """
+    Dedicated Report Generation View for filtering invoices by date range,
+    payment status, payment method, distributor, customer query, and amount range.
+    Includes aggregated metrics and export to CSV/print.
+    """
+    initialize_default_users()
+    start_date_str = request.GET.get('start_date', '').strip()
+    end_date_str = request.GET.get('end_date', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    payment_method_filter = request.GET.get('payment_method', '').strip()
+    query = request.GET.get('q', '').strip()
+    distributor_id = request.GET.get('distributor_id', '').strip()
+    min_amount = request.GET.get('min_amount', '').strip()
+    max_amount = request.GET.get('max_amount', '').strip()
+    preset = request.GET.get('preset', '').strip()
+
+    # Automatic preset date calculation if preset provided and dates omitted
+    today = timezone.localdate() if hasattr(timezone, 'localdate') else date.today()
+    if preset and not start_date_str and not end_date_str:
+        if preset == 'today':
+            start_date_str = today.strftime('%Y-%m-%d')
+            end_date_str = today.strftime('%Y-%m-%d')
+        elif preset == 'yesterday':
+            yesterday = today - timedelta(days=1)
+            start_date_str = yesterday.strftime('%Y-%m-%d')
+            end_date_str = yesterday.strftime('%Y-%m-%d')
+        elif preset == '7days':
+            start_date_str = (today - timedelta(days=6)).strftime('%Y-%m-%d')
+            end_date_str = today.strftime('%Y-%m-%d')
+        elif preset == '30days':
+            start_date_str = (today - timedelta(days=29)).strftime('%Y-%m-%d')
+            end_date_str = today.strftime('%Y-%m-%d')
+        elif preset == 'this_month':
+            start_date_str = today.replace(day=1).strftime('%Y-%m-%d')
+            end_date_str = today.strftime('%Y-%m-%d')
+        elif preset == 'last_month':
+            first_this_month = today.replace(day=1)
+            last_day_last_month = first_this_month - timedelta(days=1)
+            start_date_str = last_day_last_month.replace(day=1).strftime('%Y-%m-%d')
+            end_date_str = last_day_last_month.strftime('%Y-%m-%d')
+        elif preset == 'this_year':
+            start_date_str = today.replace(month=1, day=1).strftime('%Y-%m-%d')
+            end_date_str = today.strftime('%Y-%m-%d')
+
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+
+    if is_admin:
+        invoices = Invoice.objects.select_related('distributor', 'distributor__profile', 'customer').prefetch_related('items').all()
+        role = 'Admin'
+    else:
+        invoices = Invoice.objects.select_related('distributor', 'distributor__profile', 'customer').prefetch_related('items').filter(distributor=request.user)
+        role = 'Distributor'
+
+    # Filter by Distributor (Admin only)
+    if is_admin and distributor_id:
+        invoices = invoices.filter(distributor_id=distributor_id)
+
+    # Filter by Date Range
+    if start_date_str:
+        try:
+            datetime.strptime(start_date_str, '%Y-%m-%d')
+            invoices = invoices.filter(created_at__date__gte=start_date_str)
+        except (ValueError, TypeError):
+            pass
+
+    if end_date_str:
+        try:
+            datetime.strptime(end_date_str, '%Y-%m-%d')
+            invoices = invoices.filter(created_at__date__lte=end_date_str)
+        except (ValueError, TypeError):
+            pass
+
+    # Filter by Payment Status
+    if status_filter:
+        invoices = invoices.filter(payment_status=status_filter)
+
+    # Filter by Payment Method
+    if payment_method_filter:
+        invoices = invoices.filter(payment_method__iexact=payment_method_filter)
+
+    # Min and Max Amount
+    if min_amount:
+        try:
+            invoices = invoices.filter(grand_total__gte=Decimal(min_amount))
+        except (InvalidOperation, ValueError):
+            pass
+
+    if max_amount:
+        try:
+            invoices = invoices.filter(grand_total__lte=Decimal(max_amount))
+        except (InvalidOperation, ValueError):
+            pass
+
+    # Search Query
+    if query:
+        invoices = invoices.filter(
+            Q(invoice_number__icontains=query) |
+            Q(customer_name__icontains=query) |
+            Q(customer_phone__icontains=query)
+        )
+
+    # Calculate Aggregated Financial Metrics
+    total_invoices_count = invoices.count()
+    total_billed_val = invoices.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+    total_tax_collected = invoices.aggregate(Sum('tax_amount'))['tax_amount__sum'] or Decimal('0.00')
+    total_subtotal = invoices.aggregate(Sum('subtotal'))['subtotal__sum'] or Decimal('0.00')
+    total_discount = invoices.aggregate(Sum('discount'))['discount__sum'] or Decimal('0.00')
+
+    paid_qs = invoices.filter(payment_status='PAID')
+    total_paid_val = paid_qs.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+
+    pending_qs = invoices.filter(payment_status='PENDING')
+    total_pending_val = pending_qs.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+
+    failed_qs = invoices.filter(payment_status='FAILED')
+    total_failed_val = failed_qs.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+
+    avg_ticket_size = round(float(total_billed_val) / total_invoices_count, 2) if total_invoices_count > 0 else 0.0
+
+    distributors = User.objects.filter(profile__role='DISTRIBUTOR').select_related('profile') if is_admin else []
+
+    # Order before pagination
+    invoices = invoices.order_by('-created_at')
+
+    # Pagination: 25 items per page
+    paginator = Paginator(invoices, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    available_payment_methods = ['UPI QR Code', 'Cash', 'Credit Card', 'Debit Card', 'Net Banking']
+    has_filters = bool(start_date_str or end_date_str or status_filter or payment_method_filter or query or distributor_id or min_amount or max_amount)
+
+    context = {
+        'invoices': page_obj,
+        'all_filtered_invoices': invoices[:200],  # for printable audit record
+        'total_invoices_count': total_invoices_count,
+        'total_billed_val': total_billed_val,
+        'total_paid_val': total_paid_val,
+        'total_pending_val': total_pending_val,
+        'total_failed_val': total_failed_val,
+        'total_tax_collected': total_tax_collected,
+        'total_subtotal': total_subtotal,
+        'total_discount': total_discount,
+        'avg_ticket_size': avg_ticket_size,
+        'start_date': start_date_str,
+        'end_date': end_date_str,
+        'status_filter': status_filter,
+        'payment_method_filter': payment_method_filter,
+        'query': query,
+        'distributor_id': distributor_id,
+        'min_amount': min_amount,
+        'max_amount': max_amount,
+        'preset': preset,
+        'distributors': distributors,
+        'available_payment_methods': available_payment_methods,
+        'has_filters': has_filters,
+        'role': role,
+        'is_admin': is_admin,
+    }
+    return render(request, 'billing/invoice_reports.html', context)
+
+
+@login_required
+def invoice_report_export_csv_view(request):
+    """
+    Exports filtered invoice reports to CSV based on the exact date range,
+    payment status, distributor, payment method, amount, and search filters.
+    """
+    initialize_default_users()
+    start_date_str = request.GET.get('start_date', '').strip()
+    end_date_str = request.GET.get('end_date', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    payment_method_filter = request.GET.get('payment_method', '').strip()
+    query = request.GET.get('q', '').strip()
+    distributor_id = request.GET.get('distributor_id', '').strip()
+    min_amount = request.GET.get('min_amount', '').strip()
+    max_amount = request.GET.get('max_amount', '').strip()
+    preset = request.GET.get('preset', '').strip()
+
+    # Preset logic
+    today = timezone.localdate() if hasattr(timezone, 'localdate') else date.today()
+    if preset and not start_date_str and not end_date_str:
+        if preset == 'today':
+            start_date_str = today.strftime('%Y-%m-%d')
+            end_date_str = today.strftime('%Y-%m-%d')
+        elif preset == 'yesterday':
+            yesterday = today - timedelta(days=1)
+            start_date_str = yesterday.strftime('%Y-%m-%d')
+            end_date_str = yesterday.strftime('%Y-%m-%d')
+        elif preset == '7days':
+            start_date_str = (today - timedelta(days=6)).strftime('%Y-%m-%d')
+            end_date_str = today.strftime('%Y-%m-%d')
+        elif preset == '30days':
+            start_date_str = (today - timedelta(days=29)).strftime('%Y-%m-%d')
+            end_date_str = today.strftime('%Y-%m-%d')
+        elif preset == 'this_month':
+            start_date_str = today.replace(day=1).strftime('%Y-%m-%d')
+            end_date_str = today.strftime('%Y-%m-%d')
+        elif preset == 'last_month':
+            first_this_month = today.replace(day=1)
+            last_day_last_month = first_this_month - timedelta(days=1)
+            start_date_str = last_day_last_month.replace(day=1).strftime('%Y-%m-%d')
+            end_date_str = last_day_last_month.strftime('%Y-%m-%d')
+        elif preset == 'this_year':
+            start_date_str = today.replace(month=1, day=1).strftime('%Y-%m-%d')
+            end_date_str = today.strftime('%Y-%m-%d')
+
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+
+    if is_admin:
+        invoices = Invoice.objects.select_related('distributor', 'distributor__profile').prefetch_related('items').all()
+    else:
+        invoices = Invoice.objects.select_related('distributor', 'distributor__profile').prefetch_related('items').filter(distributor=request.user)
+
+    if is_admin and distributor_id:
+        invoices = invoices.filter(distributor_id=distributor_id)
+
+    if start_date_str:
+        try:
+            datetime.strptime(start_date_str, '%Y-%m-%d')
+            invoices = invoices.filter(created_at__date__gte=start_date_str)
+        except (ValueError, TypeError):
+            pass
+
+    if end_date_str:
+        try:
+            datetime.strptime(end_date_str, '%Y-%m-%d')
+            invoices = invoices.filter(created_at__date__lte=end_date_str)
+        except (ValueError, TypeError):
+            pass
+
+    if status_filter:
+        invoices = invoices.filter(payment_status=status_filter)
+
+    if payment_method_filter:
+        invoices = invoices.filter(payment_method__iexact=payment_method_filter)
+
+    if min_amount:
+        try:
+            invoices = invoices.filter(grand_total__gte=Decimal(min_amount))
+        except (InvalidOperation, ValueError):
+            pass
+
+    if max_amount:
+        try:
+            invoices = invoices.filter(grand_total__lte=Decimal(max_amount))
+        except (InvalidOperation, ValueError):
+            pass
+
+    if query:
+        invoices = invoices.filter(
+            Q(invoice_number__icontains=query) |
+            Q(customer_name__icontains=query) |
+            Q(customer_phone__icontains=query)
+        )
+
+    invoices = invoices.order_by('-created_at')
+
+    # Filename
+    date_suffix = ""
+    if start_date_str and end_date_str:
+        date_suffix = f"_{start_date_str}_to_{end_date_str}"
+    elif start_date_str:
+        date_suffix = f"_from_{start_date_str}"
+    elif end_date_str:
+        date_suffix = f"_until_{end_date_str}"
+    else:
+        date_suffix = f"_{timezone.now().strftime('%Y%m%d')}"
+
+    filename = f"Invoice_Report{date_suffix}.csv"
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'Invoice Number',
+        'Date',
+        'Time',
+        'Distributor',
+        'Customer Name',
+        'Customer Phone',
+        'Payment Method',
+        'Taxable Subtotal (INR)',
+        'GST Tax Amount (INR)',
+        'Discount (INR)',
+        'Grand Total (INR)',
+        'Payment Status',
+        'Item Count'
+    ])
+
+    total_subtotal_sum = Decimal('0.00')
+    total_tax_sum = Decimal('0.00')
+    total_discount_sum = Decimal('0.00')
+    total_grand_sum = Decimal('0.00')
+
+    for inv in invoices:
+        dist_name = inv.distributor.username if inv.distributor else 'Direct / Admin'
+        created_time = inv.created_at.strftime('%H:%M:%S') if inv.created_at else ''
+        created_date = inv.created_at.strftime('%Y-%m-%d') if inv.created_at else ''
+        item_count = inv.items.count()
+
+        total_subtotal_sum += inv.subtotal
+        total_tax_sum += inv.tax_amount
+        total_discount_sum += inv.discount
+        total_grand_sum += inv.grand_total
+
+        writer.writerow([
+            inv.invoice_number,
+            created_date,
+            created_time,
+            dist_name,
+            inv.customer_name,
+            inv.customer_phone,
+            inv.payment_method,
+            f"{inv.subtotal:.2f}",
+            f"{inv.tax_amount:.2f}",
+            f"{inv.discount:.2f}",
+            f"{inv.grand_total:.2f}",
+            inv.payment_status,
+            item_count
+        ])
+
+    # Summary Row
+    writer.writerow([])
+    writer.writerow([
+        'TOTALS / SUMMARY',
+        f'{invoices.count()} invoices',
+        '',
+        '',
+        '',
+        '',
+        '',
+        f"{total_subtotal_sum:.2f}",
+        f"{total_tax_sum:.2f}",
+        f"{total_discount_sum:.2f}",
+        f"{total_grand_sum:.2f}",
+        '',
+        ''
+    ])
+
+    return response
 
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods

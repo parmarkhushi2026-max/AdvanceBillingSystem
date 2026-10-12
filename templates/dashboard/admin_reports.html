@@ -229,13 +229,16 @@
 
         <!-- Export Buttons -->
         <div class="export-btn-group">
-            <a href="{% url 'admin_reports_export_csv' %}?type=sales" class="btn-export-csv">
+            <a href="{% url 'invoice_reports' %}{% if start_date or end_date or status_filter %}?start_date={{ start_date }}&end_date={{ end_date }}&status={{ status_filter }}&distributor_id={{ distributor_id }}{% endif %}" class="btn-export-csv" style="background: #4f46e5; color: #ffffff; border-color: #4f46e5;">
+                <i class="fa-solid fa-filter"></i> Invoice Report Form
+            </a>
+            <a href="{% url 'admin_reports_export_csv' %}?type=sales{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if distributor_id %}&distributor_id={{ distributor_id }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn-export-csv">
                 <i class="fa-solid fa-file-csv" style="color: #2563eb;"></i> Export Sales CSV
             </a>
-            <a href="{% url 'admin_reports_export_csv' %}?type=gst" class="btn-export-csv green">
+            <a href="{% url 'admin_reports_export_csv' %}?type=gst{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if distributor_id %}&distributor_id={{ distributor_id }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn-export-csv green">
                 <i class="fa-solid fa-file-shield" style="color: #059669;"></i> Export GST Tax CSV
             </a>
-            <a href="{% url 'admin_reports_export_csv' %}?type=distributor" class="btn-export-csv">
+            <a href="{% url 'admin_reports_export_csv' %}?type=distributor{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if distributor_id %}&distributor_id={{ distributor_id }}{% endif %}" class="btn-export-csv">
                 <i class="fa-solid fa-users" style="color: #d97706;"></i> Distributors CSV
             </a>
             <button type="button" class="btn-print-doc" onclick="window.print()">

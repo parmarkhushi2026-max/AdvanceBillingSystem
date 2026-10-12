@@ -1,7 +1,8 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from billing_app.models import Product, UserProfile, Customer
+from django.utils import timezone
+from billing_app.models import Product, UserProfile, Customer, Invoice
 
 class ProductUpdateTestCase(TestCase):
     def setUp(self):
@@ -1056,6 +1057,92 @@ class AdminReportsModuleTestCase(TestCase):
         content = response.content.decode('utf-8')
         self.assertIn('Distributor Username', content)
         self.assertIn('test_dist_rep', content)
+
+
+class InvoiceReportGeneratorTestCase(TestCase):
+    """Test suite for Invoice Report Generation and Date Range Filtering."""
+    def setUp(self):
+        self.admin_user = User.objects.create_superuser('test_admin_rep2', 'admin_rep2@test.com', 'adminpass123')
+        self.admin_profile, _ = UserProfile.objects.get_or_create(user=self.admin_user, defaults={'role': 'ADMIN'})
+        self.admin_profile.role = 'ADMIN'
+        self.admin_profile.save()
+
+        self.dist_user = User.objects.create_user('test_dist_rep2', 'dist_rep2@test.com', 'distpass123')
+        self.dist_profile, _ = UserProfile.objects.get_or_create(user=self.dist_user, defaults={'role': 'DISTRIBUTOR', 'business_name': 'Rep Distribution 2'})
+        self.dist_profile.role = 'DISTRIBUTOR'
+        self.dist_profile.save()
+
+        self.customer = Customer.objects.create(name='Priya Sharma', phone='9876543210', created_by=self.dist_user)
+        
+        self.invoice_today = Invoice.objects.create(
+            invoice_number='INV-REP-101',
+            distributor=self.dist_user,
+            customer=self.customer,
+            customer_name='Priya Sharma',
+            customer_phone='9876543210',
+            subtotal=2000.00,
+            tax_amount=360.00,
+            discount=0.00,
+            grand_total=2360.00,
+            payment_status='PAID',
+            payment_method='UPI QR Code'
+        )
+
+    def test_invoice_report_view_accessible_by_distributor(self):
+        self.client.login(username='test_dist_rep2', password='distpass123')
+        response = self.client.get(reverse('invoice_reports'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Invoice Date Range Report Generator')
+        self.assertContains(response, 'INV-REP-101')
+        self.assertContains(response, 'Priya Sharma')
+
+    def test_invoice_report_view_accessible_by_admin(self):
+        self.client.login(username='test_admin_rep2', password='adminpass123')
+        response = self.client.get(reverse('invoice_reports'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Invoice Date Range Report Generator')
+        self.assertContains(response, 'INV-REP-101')
+
+    def test_invoice_report_filter_by_date_range_matching(self):
+        self.client.login(username='test_dist_rep2', password='distpass123')
+        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        response = self.client.get(reverse('invoice_reports') + f'?start_date={today_str}&end_date={today_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'INV-REP-101')
+
+    def test_invoice_report_filter_by_date_range_no_match(self):
+        self.client.login(username='test_dist_rep2', password='distpass123')
+        response = self.client.get(reverse('invoice_reports') + '?start_date=2020-01-01&end_date=2020-01-31')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'No Invoices Found Matching Criteria')
+        self.assertNotContains(response, 'INV-REP-101')
+
+    def test_invoice_report_export_csv_with_date_range(self):
+        self.client.login(username='test_dist_rep2', password='distpass123')
+        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        response = self.client.get(reverse('invoice_report_export_csv') + f'?start_date={today_str}&end_date={today_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv')
+        self.assertIn('attachment; filename="Invoice_Report', response['Content-Disposition'])
+        content = response.content.decode('utf-8')
+        self.assertIn('Invoice Number', content)
+        self.assertIn('INV-REP-101', content)
+        self.assertIn('Priya Sharma', content)
+        self.assertIn('2360.00', content)
+
+    def test_invoice_list_view_date_filtering(self):
+        self.client.login(username='test_dist_rep2', password='distpass123')
+        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        response = self.client.get(reverse('invoice_list') + f'?start_date={today_str}&end_date={today_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'INV-REP-101')
+        self.assertContains(response, 'Report Generator Studio')
+
+        # When filtering out of range
+        response_empty = self.client.get(reverse('invoice_list') + '?start_date=2020-01-01&end_date=2020-01-31')
+        self.assertEqual(response_empty.status_code, 200)
+        self.assertNotContains(response_empty, 'INV-REP-101')
+
 
 
 

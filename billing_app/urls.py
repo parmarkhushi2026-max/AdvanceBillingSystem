@@ -41,8 +41,11 @@ urlpatterns = [
     path('invoice/<int:invoice_id>/', views.invoice_detail_view, name='invoice_detail'),
     path('invoice/<int:invoice_id>/pdf/', views.generate_invoice_pdf_view, name='invoice_pdf'),
 
-    # Customer Management
+    # Invoices & Financial Reports
     path('invoices/', views.invoice_list_view, name='invoice_list'),
+    path('invoices/report/', views.invoice_report_view, name='invoice_reports_alias'),
+    path('reports/invoices/', views.invoice_report_view, name='invoice_reports'),
+    path('reports/invoices/export/csv/', views.invoice_report_export_csv_view, name='invoice_report_export_csv'),
     path('customers/', views.customer_list_view, name='customer_list'),
     path('customers/add/', views.add_customer_view, name='add_customer'),
     path('customers/register/', views.customer_register_frontend_view, name='customer_register_frontend'),

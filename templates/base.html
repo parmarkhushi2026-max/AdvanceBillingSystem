@@ -208,6 +208,9 @@
                         <a href="{% url 'admin_reports' %}" class="sidebar-link {% if request.resolver_match.url_name in 'admin_reports,admin_reports_export_csv' %}active{% endif %}">
                             <i class="fa-solid fa-chart-column"></i> <span>Reports & Analytics</span>
                         </a>
+                        <a href="{% url 'invoice_reports' %}" class="sidebar-link {% if request.resolver_match.url_name in 'invoice_reports,invoice_report_export_csv' %}active{% endif %}">
+                            <i class="fa-solid fa-file-invoice-dollar"></i> <span>Invoice Reports</span>
+                        </a>
                         <a href="{% url 'invoice_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'invoice_list' %}active{% endif %}">
                             <i class="fa-solid fa-file-invoice"></i> <span>All Invoices</span>
                         </a>
@@ -233,6 +236,9 @@
                         </a>
                         
                         <div style="font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; margin: 1.5rem 0 0.5rem 0; padding-left: 1rem;">Management</div>
+                        <a href="{% url 'invoice_reports' %}" class="sidebar-link {% if request.resolver_match.url_name in 'invoice_reports,invoice_report_export_csv' %}active{% endif %}">
+                            <i class="fa-solid fa-chart-line"></i> <span>Invoice Reports</span>
+                        </a>
                         <a href="{% url 'invoice_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'invoice_list' %}active{% endif %}">
                             <i class="fa-solid fa-file-invoice"></i> <span>All Invoices</span>
                         </a>

@@ -1,0 +1,773 @@
+{% extends 'base.html' %}
+
+{% block title %}Invoice Report Generator - Advance Billing System{% endblock %}
+
+{% block content %}
+<style>
+    /* Report Header & Actions */
+    .report-page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .report-breadcrumbs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-bottom: 6px;
+    }
+
+    .report-breadcrumbs a {
+        color: #64748b;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    .report-breadcrumbs a:hover {
+        color: #4f46e5;
+    }
+
+    .report-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-action-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 18px;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        cursor: pointer;
+        border: none;
+    }
+
+    .btn-action-pill.btn-csv {
+        background: #ffffff;
+        color: #0f172a;
+        border: 1.5px solid #cbd5e1;
+    }
+    .btn-action-pill.btn-csv:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+        transform: translateY(-1px);
+    }
+
+    .btn-action-pill.btn-print {
+        background: #0f172a;
+        color: #ffffff;
+    }
+    .btn-action-pill.btn-print:hover {
+        background: #1e293b;
+        transform: translateY(-1px);
+    }
+
+    /* Date Range Quick Presets Strip */
+    .date-presets-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 1rem 1.25rem;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+    }
+
+    .preset-label {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-right: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .preset-btn {
+        background: #f1f5f9;
+        color: #334155;
+        border: 1px solid #e2e8f0;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .preset-btn:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+        transform: translateY(-1px);
+    }
+
+    .preset-btn.active {
+        background: #4f46e5;
+        color: #ffffff;
+        border-color: #4f46e5;
+        box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+    }
+
+    /* Main Filter Form Card */
+    .filter-engine-card {
+        background: #ffffff;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        padding: 1.75rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+    }
+
+    .filter-grid-fields {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .f-field-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .f-field-lbl {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 7px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .f-control-input, .f-control-select {
+        width: 100%;
+        padding: 11px 14px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 0.92rem;
+        background: #f8fafc;
+        color: #0f172a;
+        outline: none;
+        transition: all 0.2s;
+        font-family: inherit;
+    }
+
+    .f-control-input:focus, .f-control-select:focus {
+        background: #ffffff;
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    }
+
+    .filter-action-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #f1f5f9;
+    }
+
+    .filter-btn-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-generate-report {
+        background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+        color: #ffffff;
+        border: none;
+        padding: 11px 24px;
+        border-radius: 12px;
+        font-size: 0.92rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+        transition: all 0.2s;
+    }
+
+    .btn-generate-report:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(79, 70, 229, 0.4);
+    }
+
+    .btn-reset-filters {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1.5px solid #cbd5e1;
+        padding: 11px 18px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+
+    .btn-reset-filters:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+
+    /* KPI Summary Strip */
+    .kpi-report-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .kpi-report-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 1.25rem 1.5rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s;
+    }
+
+    .kpi-report-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .kpi-report-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+
+    .kpi-report-card.indigo::before { background: #4f46e5; }
+    .kpi-report-card.emerald::before { background: #10b981; }
+    .kpi-report-card.amber::before { background: #f59e0b; }
+    .kpi-report-card.cyan::before { background: #06b6d4; }
+    .kpi-report-card.purple::before { background: #8b5cf6; }
+
+    .kpi-report-lbl {
+        font-size: 0.78rem;
+        color: #64748b;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .kpi-report-val {
+        font-size: 1.65rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-top: 6px;
+        letter-spacing: -0.02em;
+    }
+
+    /* Active Filter Indicator */
+    .active-filter-banner {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1e40af;
+        padding: 12px 18px;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 0.88rem;
+    }
+
+    /* Print only section */
+    .print-report-header {
+        display: none;
+    }
+
+    @media print {
+        body { background: #ffffff !important; }
+        .sidebar, .topbar, .report-page-header, .date-presets-card, .filter-engine-card, .btn-action-pill, .pagination-box {
+            display: none !important;
+        }
+        .main-content { margin-left: 0 !important; padding: 0 !important; width: 100% !important; }
+        .print-report-header {
+            display: block !important;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 1rem;
+        }
+        .dashboard-card { border: none !important; box-shadow: none !important; }
+        .app-table { width: 100% !important; border-collapse: collapse !important; }
+        .app-table th, .app-table td { border-bottom: 1px solid #cbd5e1 !important; font-size: 0.8rem !important; }
+    }
+</style>
+
+<div style="max-width: 1360px; margin: 0 auto; padding-bottom: 3rem;">
+    <!-- Printable Header (Visible only when printing) -->
+    <div class="print-report-header">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+            <div>
+                <h1 style="font-size: 1.75rem; margin: 0; color: #0f172a; font-weight: 800;">Advance Billing System</h1>
+                <h3 style="font-size: 1.1rem; margin: 4px 0 0 0; color: #475569; font-weight: 600;">Official Invoices Audit & Sales Report</h3>
+            </div>
+            <div style="text-align: right; font-size: 0.85rem; color: #64748b;">
+                <div><strong>Generated Date:</strong> {% now "Y-m-d H:i" %}</div>
+                <div><strong>Scope:</strong> {{ role }} Ledger</div>
+            </div>
+        </div>
+        <div style="margin-top: 12px; font-size: 0.88rem; color: #334155; background: #f8fafc; padding: 8px 12px; border-radius: 6px;">
+            <strong>Filtered Range:</strong> 
+            {% if start_date %}From {{ start_date }}{% else %}Start of Records{% endif %}
+            to 
+            {% if end_date %}{{ end_date }}{% else %}Present{% endif %}
+            &bull; <strong>Total Invoices:</strong> {{ total_invoices_count }}
+            &bull; <strong>Total Value:</strong> ₹{{ total_billed_val|floatformat:2 }}
+        </div>
+    </div>
+
+    <!-- Top Page Header -->
+    <div class="report-page-header">
+        <div>
+            <div class="report-breadcrumbs">
+                {% if is_admin %}
+                    <a href="{% url 'admin_dashboard' %}"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+                {% else %}
+                    <a href="{% url 'distributor_dashboard' %}"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+                {% endif %}
+                <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;"></i>
+                <a href="{% url 'invoice_list' %}">Invoices</a>
+                <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;"></i>
+                <span style="color: #0f172a; font-weight: 700;">Report Generator</span>
+            </div>
+            <h1 style="font-size: 1.85rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 12px;">
+                <i class="fa-solid fa-file-invoice-dollar" style="color: #4f46e5;"></i> Invoice Date Range Report Generator
+            </h1>
+            <p style="color: #64748b; font-size: 0.95rem; margin: 6px 0 0 0;">
+                Filter invoices by custom date range, inspect real-time billing aggregates, audit tax collections, and export certified records.
+            </p>
+        </div>
+
+        <!-- Export Buttons Group -->
+        <div class="report-header-actions">
+            <a href="{% url 'invoice_report_export_csv' %}?start_date={{ start_date }}&end_date={{ end_date }}&status={{ status_filter }}&payment_method={{ payment_method_filter }}&distributor_id={{ distributor_id }}&q={{ query }}&min_amount={{ min_amount }}&max_amount={{ max_amount }}&preset={{ preset }}" class="btn-action-pill btn-csv" title="Export matching invoices as CSV spreadsheet">
+                <i class="fa-solid fa-file-csv" style="color: #2563eb; font-size: 1rem;"></i> Export Filtered CSV
+            </a>
+            <button type="button" class="btn-action-pill btn-print" onclick="window.print()" title="Print formal report or save as PDF">
+                <i class="fa-solid fa-print"></i> Print Report
+            </button>
+            <a href="{% url 'invoice_list' %}" class="btn-action-pill" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">
+                <i class="fa-solid fa-list"></i> All Invoices
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Date Range Presets Bar -->
+    <div class="date-presets-card">
+        <span class="preset-label">
+            <i class="fa-regular fa-calendar-check" style="color: #4f46e5;"></i> Quick Presets:
+        </span>
+        <button type="button" class="preset-btn {% if preset == 'today' %}active{% endif %}" onclick="applyDatePreset('today')">Today</button>
+        <button type="button" class="preset-btn {% if preset == 'yesterday' %}active{% endif %}" onclick="applyDatePreset('yesterday')">Yesterday</button>
+        <button type="button" class="preset-btn {% if preset == '7days' %}active{% endif %}" onclick="applyDatePreset('7days')">Last 7 Days</button>
+        <button type="button" class="preset-btn {% if preset == '30days' %}active{% endif %}" onclick="applyDatePreset('30days')">Last 30 Days</button>
+        <button type="button" class="preset-btn {% if preset == 'this_month' %}active{% endif %}" onclick="applyDatePreset('this_month')">This Month</button>
+        <button type="button" class="preset-btn {% if preset == 'last_month' %}active{% endif %}" onclick="applyDatePreset('last_month')">Last Month</button>
+        <button type="button" class="preset-btn {% if preset == 'this_year' %}active{% endif %}" onclick="applyDatePreset('this_year')">This Year</button>
+        <a href="{% url 'invoice_reports' %}" class="preset-btn" style="color: #64748b;">All Time</a>
+    </div>
+
+    <!-- Main Filter Form -->
+    <div class="filter-engine-card">
+        <form id="reportFilterForm" method="GET" action="{% url 'invoice_reports' %}">
+            <input type="hidden" id="presetInput" name="preset" value="{{ preset }}">
+            
+            <div class="filter-grid-fields">
+                <!-- From Date -->
+                <div class="f-field-group">
+                    <label class="f-field-lbl" for="id_start_date">
+                        <i class="fa-regular fa-calendar"></i> From Date
+                    </label>
+                    <input type="date" id="id_start_date" name="start_date" class="f-control-input" value="{{ start_date }}">
+                </div>
+
+                <!-- To Date -->
+                <div class="f-field-group">
+                    <label class="f-field-lbl" for="id_end_date">
+                        <i class="fa-regular fa-calendar-days"></i> To Date
+                    </label>
+                    <input type="date" id="id_end_date" name="end_date" class="f-control-input" value="{{ end_date }}">
+                </div>
+
+                <!-- Payment Status -->
+                <div class="f-field-group">
+                    <label class="f-field-lbl" for="id_status">
+                        <i class="fa-solid fa-circle-check"></i> Payment Status
+                    </label>
+                    <select id="id_status" name="status" class="f-control-select">
+                        <option value="">All Statuses</option>
+                        <option value="PAID" {% if status_filter == 'PAID' %}selected{% endif %}>PAID (Settled)</option>
+                        <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>PENDING (Due)</option>
+                        <option value="FAILED" {% if status_filter == 'FAILED' %}selected{% endif %}>FAILED</option>
+                    </select>
+                </div>
+
+                <!-- Payment Method -->
+                <div class="f-field-group">
+                    <label class="f-field-lbl" for="id_payment_method">
+                        <i class="fa-solid fa-credit-card"></i> Payment Method
+                    </label>
+                    <select id="id_payment_method" name="payment_method" class="f-control-select">
+                        <option value="">All Payment Methods</option>
+                        {% for pm in available_payment_methods %}
+                            <option value="{{ pm }}" {% if payment_method_filter == pm %}selected{% endif %}>{{ pm }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Admin: Distributor Filter -->
+                {% if is_admin %}
+                <div class="f-field-group">
+                    <label class="f-field-lbl" for="id_distributor">
+                        <i class="fa-solid fa-user-tag"></i> Distributor
+                    </label>
+                    <select id="id_distributor" name="distributor_id" class="f-control-select">
+                        <option value="">All Distributors</option>
+                        {% for dist in distributors %}
+                            <option value="{{ dist.id }}" {% if distributor_id == dist.id|stringformat:"s" %}selected{% endif %}>
+                                {{ dist.username }} ({{ dist.profile.business_name|default:"Distributor" }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <!-- Customer / Invoice Query -->
+                <div class="f-field-group">
+                    <label class="f-field-lbl" for="id_q">
+                        <i class="fa-solid fa-magnifying-glass"></i> Search Criteria
+                    </label>
+                    <input type="text" id="id_q" name="q" class="f-control-input" placeholder="Invoice #, Customer, Phone..." value="{{ query }}">
+                </div>
+
+                <!-- Minimum Amount -->
+                <div class="f-field-group">
+                    <label class="f-field-lbl" for="id_min_amount">
+                        <i class="fa-solid fa-indian-rupee-sign"></i> Min Amount (₹)
+                    </label>
+                    <input type="number" step="0.01" id="id_min_amount" name="min_amount" class="f-control-input" placeholder="0.00" value="{{ min_amount }}">
+                </div>
+
+                <!-- Maximum Amount -->
+                <div class="f-field-group">
+                    <label class="f-field-lbl" for="id_max_amount">
+                        <i class="fa-solid fa-indian-rupee-sign"></i> Max Amount (₹)
+                    </label>
+                    <input type="number" step="0.01" id="id_max_amount" name="max_amount" class="f-control-input" placeholder="e.g. 50000" value="{{ max_amount }}">
+                </div>
+            </div>
+
+            <div class="filter-action-row">
+                <div style="font-size: 0.88rem; color: #64748b;">
+                    <i class="fa-solid fa-filter" style="color: #4f46e5; margin-right: 4px;"></i>
+                    Configure parameters to generate targeted invoice ledger.
+                </div>
+                <div class="filter-btn-group">
+                    {% if has_filters %}
+                        <a href="{% url 'invoice_reports' %}" class="btn-reset-filters">
+                            <i class="fa-solid fa-arrow-rotate-left"></i> Reset Filters
+                        </a>
+                    {% endif %}
+                    <button type="submit" class="btn-generate-report">
+                        <i class="fa-solid fa-bolt"></i> Generate Report
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Real-Time KPI Aggregates Strip -->
+    <div class="kpi-report-strip">
+        <div class="kpi-report-card indigo">
+            <div class="kpi-report-lbl">
+                <i class="fa-solid fa-file-invoice" style="color: #4f46e5;"></i> Total Invoices
+            </div>
+            <div class="kpi-report-val">{{ total_invoices_count }}</div>
+        </div>
+
+        <div class="kpi-report-card emerald">
+            <div class="kpi-report-lbl">
+                <i class="fa-solid fa-circle-dollar-to-slot" style="color: #10b981;"></i> Net Billed Value
+            </div>
+            <div class="kpi-report-val" style="color: #059669;">₹{{ total_billed_val|floatformat:2 }}</div>
+        </div>
+
+        <div class="kpi-report-card emerald">
+            <div class="kpi-report-lbl">
+                <i class="fa-solid fa-check-double" style="color: #059669;"></i> Paid / Collected
+            </div>
+            <div class="kpi-report-val" style="color: #047857;">₹{{ total_paid_val|floatformat:2 }}</div>
+        </div>
+
+        <div class="kpi-report-card amber">
+            <div class="kpi-report-lbl">
+                <i class="fa-solid fa-clock-rotate-left" style="color: #d97706;"></i> Pending Dues
+            </div>
+            <div class="kpi-report-val" style="color: #d97706;">₹{{ total_pending_val|floatformat:2 }}</div>
+        </div>
+
+        <div class="kpi-report-card cyan">
+            <div class="kpi-report-lbl">
+                <i class="fa-solid fa-scale-balanced" style="color: #0891b2;"></i> GST Tax Collected
+            </div>
+            <div class="kpi-report-val" style="color: #0891b2;">₹{{ total_tax_collected|floatformat:2 }}</div>
+        </div>
+
+        <div class="kpi-report-card purple">
+            <div class="kpi-report-lbl">
+                <i class="fa-solid fa-chart-pie" style="color: #7c3aed;"></i> Average Invoice Size
+            </div>
+            <div class="kpi-report-val" style="color: #7c3aed;">₹{{ avg_ticket_size }}</div>
+        </div>
+    </div>
+
+    <!-- Active Filters Notification Banner -->
+    {% if has_filters %}
+    <div class="active-filter-banner">
+        <div>
+            <i class="fa-solid fa-circle-info" style="margin-right: 6px;"></i>
+            <strong>Active Criteria:</strong>
+            {% if start_date %} From <strong>{{ start_date }}</strong>{% endif %}
+            {% if end_date %} To <strong>{{ end_date }}</strong>{% endif %}
+            {% if status_filter %} | Status: <strong>{{ status_filter }}</strong>{% endif %}
+            {% if payment_method_filter %} | Method: <strong>{{ payment_method_filter }}</strong>{% endif %}
+            {% if query %} | Query: "<strong>{{ query }}</strong>"{% endif %}
+            &bull; Showing <strong>{{ total_invoices_count }}</strong> matching record{{ total_invoices_count|pluralize }}.
+        </div>
+        <a href="{% url 'invoice_reports' %}" style="color: #1e40af; font-weight: 700; text-decoration: underline; font-size: 0.85rem;">Clear All</a>
+    </div>
+    {% endif %}
+
+    <!-- Report Invoices Table Card -->
+    <div class="dashboard-card" style="border-radius: 18px; overflow: hidden;">
+        <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">
+                    Filtered Invoice Ledger Records
+                </h3>
+                <span style="font-size: 0.85rem; color: #64748b;">
+                    Chronological audit ledger matching date range criteria.
+                </span>
+            </div>
+            <div style="font-size: 0.85rem; color: #475569; font-weight: 600;">
+                Showing {{ invoices|length }} of {{ total_invoices_count }} invoices
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="app-table">
+                <thead>
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Date & Time</th>
+                        {% if is_admin %}
+                            <th>Distributor</th>
+                        {% endif %}
+                        <th>Customer Name</th>
+                        <th>Payment Method</th>
+                        <th style="text-align: right;">Taxable Subtotal</th>
+                        <th style="text-align: right;">GST Tax</th>
+                        <th style="text-align: right;">Grand Total</th>
+                        <th style="text-align: center;">Status</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inv in invoices %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'invoice_detail' inv.id %}" style="font-weight: 800; color: #4f46e5; text-decoration: none;">
+                                #{{ inv.invoice_number }}
+                            </a>
+                        </td>
+                        <td style="font-size: 0.85rem; color: #64748b;">
+                            {{ inv.created_at|date:"M d, Y" }}
+                            <div style="font-size: 0.75rem; color: #94a3b8;">{{ inv.created_at|date:"H:i" }}</div>
+                        </td>
+                        {% if is_admin %}
+                        <td>
+                            <strong style="color: #0f172a;">{{ inv.distributor.username|default:"Direct / Admin" }}</strong>
+                            <div style="font-size: 0.75rem; color: #94a3b8;">{{ inv.distributor.profile.business_name|default:"" }}</div>
+                        </td>
+                        {% endif %}
+                        <td>
+                            <div style="font-weight: 700; color: #0f172a;">{{ inv.customer_name }}</div>
+                            <div style="font-size: 0.78rem; color: #64748b;">{{ inv.customer_phone }}</div>
+                        </td>
+                        <td>
+                            <span style="font-size: 0.85rem; color: #475569; display: inline-flex; align-items: center; gap: 5px;">
+                                {% if 'UPI' in inv.payment_method %}
+                                    <i class="fa-solid fa-qrcode" style="color: #06b6d4;"></i>
+                                {% elif 'Cash' in inv.payment_method %}
+                                    <i class="fa-solid fa-money-bill-wave" style="color: #10b981;"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-credit-card" style="color: #8b5cf6;"></i>
+                                {% endif %}
+                                {{ inv.payment_method }}
+                            </span>
+                        </td>
+                        <td style="text-align: right; font-size: 0.9rem;">
+                            ₹{{ inv.subtotal|floatformat:2 }}
+                        </td>
+                        <td style="text-align: right; font-size: 0.9rem; color: #059669; font-weight: 600;">
+                            +₹{{ inv.tax_amount|floatformat:2 }}
+                        </td>
+                        <td style="text-align: right; font-weight: 800; font-size: 1rem; color: #0f172a;">
+                            ₹{{ inv.grand_total|floatformat:2 }}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if inv.payment_status == 'PAID' %}
+                                <span class="badge-status paid">
+                                    <i class="fa-solid fa-check"></i> PAID
+                                </span>
+                            {% elif inv.payment_status == 'PENDING' %}
+                                <span class="badge-status pending">
+                                    <i class="fa-solid fa-clock"></i> PENDING
+                                </span>
+                            {% else %}
+                                <span class="badge-status" style="background: #fef2f2; color: #dc2626; border-color: #fecaca;">
+                                    <i class="fa-solid fa-xmark"></i> {{ inv.payment_status }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{% url 'invoice_detail' inv.id %}" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem; margin-right: 4px;" title="View Invoice">
+                                <i class="fa-solid fa-eye"></i> View
+                            </a>
+                            <a href="{% url 'invoice_pdf' inv.id %}" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem; color: #dc2626;" title="Download PDF">
+                                <i class="fa-solid fa-file-pdf"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if is_admin %}10{% else %}9{% endif %}" style="text-align: center; padding: 4rem 1rem; color: #94a3b8;">
+                            <i class="fa-solid fa-filter-circle-xmark" style="font-size: 3rem; margin-bottom: 1rem; color: #cbd5e1; display: block;"></i>
+                            <h4 style="font-size: 1.2rem; color: #475569; margin-bottom: 0.5rem;">No Invoices Found Matching Criteria</h4>
+                            <p style="font-size: 0.9rem; color: #94a3b8; max-width: 480px; margin: 0 auto 1.5rem auto;">
+                                Try expanding your date range, clearing filters, or choosing a different quick preset to view invoices.
+                            </p>
+                            {% if has_filters %}
+                                <a href="{% url 'invoice_reports' %}" class="btn-action-pill btn-print" style="text-decoration: none;">
+                                    <i class="fa-solid fa-arrow-rotate-left"></i> Reset All Filters
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        {% if invoices.has_other_pages %}
+        <div class="pagination-box" style="padding: 1.25rem; display: flex; justify-content: center; border-top: 1px solid #f1f5f9;">
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                {% if invoices.has_previous %}
+                    <a href="?page={{ invoices.previous_page_number }}&start_date={{ start_date }}&end_date={{ end_date }}&status={{ status_filter }}&payment_method={{ payment_method_filter }}&distributor_id={{ distributor_id }}&q={{ query }}&min_amount={{ min_amount }}&max_amount={{ max_amount }}&preset={{ preset }}" class="btn-secondary-action" style="padding: 0.5rem 1rem;">
+                        <i class="fa-solid fa-chevron-left"></i> Previous
+                    </a>
+                {% endif %}
+                
+                <span style="padding: 0.5rem 1.25rem; font-size: 0.88rem; font-weight: 700; color: #475569;">
+                    Page {{ invoices.number }} of {{ invoices.paginator.num_pages }}
+                </span>
+                
+                {% if invoices.has_next %}
+                    <a href="?page={{ invoices.next_page_number }}&start_date={{ start_date }}&end_date={{ end_date }}&status={{ status_filter }}&payment_method={{ payment_method_filter }}&distributor_id={{ distributor_id }}&q={{ query }}&min_amount={{ min_amount }}&max_amount={{ max_amount }}&preset={{ preset }}" class="btn-secondary-action" style="padding: 0.5rem 1rem;">
+                        Next <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+/**
+ * Interactive Date Preset Helper
+ * Computes date range and submits the form
+ */
+function applyDatePreset(presetKey) {
+    const today = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const formatDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    let startDate = '';
+    let endDate = formatDate(today);
+
+    if (presetKey === 'today') {
+        startDate = formatDate(today);
+    } else if (presetKey === 'yesterday') {
+        const y = new Date(today);
+        y.setDate(today.getDate() - 1);
+        startDate = formatDate(y);
+        endDate = formatDate(y);
+    } else if (presetKey === '7days') {
+        const d7 = new Date(today);
+        d7.setDate(today.getDate() - 6);
+        startDate = formatDate(d7);
+    } else if (presetKey === '30days') {
+        const d30 = new Date(today);
+        d30.setDate(today.getDate() - 29);
+        startDate = formatDate(d30);
+    } else if (presetKey === 'this_month') {
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        startDate = formatDate(firstDay);
+    } else if (presetKey === 'last_month') {
+        const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+        startDate = formatDate(firstDayLastMonth);
+        endDate = formatDate(lastDayLastMonth);
+    } else if (presetKey === 'this_year') {
+        const firstDayYear = new Date(today.getFullYear(), 0, 1);
+        startDate = formatDate(firstDayYear);
+    }
+
+    document.getElementById('id_start_date').value = startDate;
+    document.getElementById('id_end_date').value = endDate;
+    document.getElementById('presetInput').value = presetKey;
+    document.getElementById('reportFilterForm').submit();
+}
+</script>
+{% endblock %}
