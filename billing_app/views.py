@@ -21,6 +21,8 @@ from .forms import (
     CustomerForm, ProductForm, InvoiceCreationForm, InvoiceItemForm
 )
 from .decorators import admin_required, distributor_required
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 
 
 def initialize_default_users():
@@ -1291,6 +1293,9 @@ def generate_invoice_pdf_view(request, invoice_id):
     response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
     
     pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('Error generating PDF', status=500)
+    return response
     
 @login_required
 def invoice_list_view(request):
@@ -1704,7 +1709,168 @@ def invoice_report_export_csv_view(request):
 
     return response
 
-from django.views.decorators.csrf import csrf_exempt
+
+@login_required
+def invoice_report_download_pdf_view(request):
+    """
+    Generates and downloads an official Invoice Report as a PDF using xhtml2pdf.
+    Filters invoices by date range, payment status, distributor, payment method, and amount.
+    Includes selected range summary KPIs: Total Invoices and Amount Collected.
+    """
+    initialize_default_users()
+    if not pisa:
+        messages.error(request, "PDF generation library (xhtml2pdf) is not installed.")
+        return redirect('invoice_reports')
+
+    start_date_str = request.GET.get('start_date', '').strip()
+    end_date_str = request.GET.get('end_date', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    payment_method_filter = request.GET.get('payment_method', '').strip()
+    query = request.GET.get('q', '').strip()
+    distributor_id = request.GET.get('distributor_id', '').strip()
+    min_amount = request.GET.get('min_amount', '').strip()
+    max_amount = request.GET.get('max_amount', '').strip()
+    preset = request.GET.get('preset', '').strip()
+
+    # Preset logic
+    today = timezone.localdate() if hasattr(timezone, 'localdate') else date.today()
+    if preset and not start_date_str and not end_date_str:
+        if preset == 'today':
+            start_date_str = today.strftime('%Y-%m-%d')
+            end_date_str = today.strftime('%Y-%m-%d')
+        elif preset == 'yesterday':
+            yesterday = today - timedelta(days=1)
+            start_date_str = yesterday.strftime('%Y-%m-%d')
+            end_date_str = yesterday.strftime('%Y-%m-%d')
+        elif preset == '7days':
+            start_date_str = (today - timedelta(days=6)).strftime('%Y-%m-%d')
+            end_date_str = today.strftime('%Y-%m-%d')
+        elif preset == '30days':
+            start_date_str = (today - timedelta(days=29)).strftime('%Y-%m-%d')
+            end_date_str = today.strftime('%Y-%m-%d')
+        elif preset == 'this_month':
+            start_date_str = today.replace(day=1).strftime('%Y-%m-%d')
+            end_date_str = today.strftime('%Y-%m-%d')
+        elif preset == 'last_month':
+            first_this_month = today.replace(day=1)
+            last_day_last_month = first_this_month - timedelta(days=1)
+            start_date_str = last_day_last_month.replace(day=1).strftime('%Y-%m-%d')
+            end_date_str = last_day_last_month.strftime('%Y-%m-%d')
+        elif preset == 'this_year':
+            start_date_str = today.replace(month=1, day=1).strftime('%Y-%m-%d')
+            end_date_str = today.strftime('%Y-%m-%d')
+
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+
+    if is_admin:
+        invoices = Invoice.objects.select_related('distributor', 'distributor__profile').prefetch_related('items').all()
+        role = 'Admin'
+    else:
+        invoices = Invoice.objects.select_related('distributor', 'distributor__profile').prefetch_related('items').filter(distributor=request.user)
+        role = 'Distributor'
+
+    if is_admin and distributor_id:
+        invoices = invoices.filter(distributor_id=distributor_id)
+
+    if start_date_str:
+        try:
+            datetime.strptime(start_date_str, '%Y-%m-%d')
+            invoices = invoices.filter(created_at__date__gte=start_date_str)
+        except (ValueError, TypeError):
+            pass
+
+    if end_date_str:
+        try:
+            datetime.strptime(end_date_str, '%Y-%m-%d')
+            invoices = invoices.filter(created_at__date__lte=end_date_str)
+        except (ValueError, TypeError):
+            pass
+
+    if status_filter:
+        invoices = invoices.filter(payment_status=status_filter)
+
+    if payment_method_filter:
+        invoices = invoices.filter(payment_method__iexact=payment_method_filter)
+
+    if min_amount:
+        try:
+            invoices = invoices.filter(grand_total__gte=Decimal(min_amount))
+        except (InvalidOperation, ValueError):
+            pass
+
+    if max_amount:
+        try:
+            invoices = invoices.filter(grand_total__lte=Decimal(max_amount))
+        except (InvalidOperation, ValueError):
+            pass
+
+    if query:
+        invoices = invoices.filter(
+            Q(invoice_number__icontains=query) |
+            Q(customer_name__icontains=query) |
+            Q(customer_phone__icontains=query)
+        )
+
+    invoices = invoices.order_by('-created_at')
+
+    # Aggregates for PDF report
+    total_invoices_count = invoices.count()
+    total_billed_val = invoices.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+    total_tax_collected = invoices.aggregate(Sum('tax_amount'))['tax_amount__sum'] or Decimal('0.00')
+    total_subtotal = invoices.aggregate(Sum('subtotal'))['subtotal__sum'] or Decimal('0.00')
+    total_discount = invoices.aggregate(Sum('discount'))['discount__sum'] or Decimal('0.00')
+
+    paid_qs = invoices.filter(payment_status='PAID')
+    total_amount_collected = paid_qs.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+
+    pending_qs = invoices.filter(payment_status='PENDING')
+    total_pending_val = pending_qs.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+
+    now = timezone.now()
+    generated_at = now.strftime('%Y-%m-%d %H:%M:%S')
+
+    context = {
+        'invoices': invoices[:300],  # safety ceiling for single PDF render
+        'total_invoices_count': total_invoices_count,
+        'total_amount_collected': total_amount_collected,
+        'total_billed_val': total_billed_val,
+        'total_pending_val': total_pending_val,
+        'total_tax_collected': total_tax_collected,
+        'total_subtotal': total_subtotal,
+        'total_discount': total_discount,
+        'start_date': start_date_str,
+        'end_date': end_date_str,
+        'status_filter': status_filter,
+        'payment_method_filter': payment_method_filter,
+        'role': role,
+        'is_admin': is_admin,
+        'generated_at': generated_at,
+        'generated_by': request.user.get_full_name() or request.user.username,
+    }
+
+    template = get_template('billing/invoice_report_pdf.html')
+    html = template.render(context)
+
+    # Date suffix for download filename
+    date_suffix = ""
+    if start_date_str and end_date_str:
+        date_suffix = f"_{start_date_str}_to_{end_date_str}"
+    elif start_date_str:
+        date_suffix = f"_from_{start_date_str}"
+    elif end_date_str:
+        date_suffix = f"_until_{end_date_str}"
+    else:
+        date_suffix = f"_{now.strftime('%Y%m%d')}"
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="Invoice_Report{date_suffix}.pdf"'
+
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('Error generating PDF report with xhtml2pdf', status=500)
+    return response
+
+
 from django.views.decorators.http import require_http_methods
 
 @csrf_exempt

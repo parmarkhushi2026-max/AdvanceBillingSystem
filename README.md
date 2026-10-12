@@ -23,8 +23,9 @@ Generate custom financial ledgers, audit invoices by date range, and export cert
   - Outstanding Dues / Pending (₹)
   - Total GST Tax Collected (₹)
   - Average Invoice Ticket Size (₹)
+- **Download PDF Report (xhtml2pdf)**: Download certified landscape audit PDF reports with selected range summary KPIs, tax breakdowns, and complete invoice ledger tables generated via the `xhtml2pdf` engine (`GET /reports/invoices/pdf/`).
 - **Export Filtered CSV**: Download audit-ready CSV spreadsheets filtered exactly by the selected date range and criteria.
-- **Printable Audit Ledger**: Formatted print view (`@media print`) for clean paper or PDF ledger export.
+- **Printable Audit Ledger**: Formatted print view (`@media print`) for clean paper or browser PDF ledger export.
 - **Direct Route**: `http://127.0.0.1:8000/reports/invoices/`
 
 ---

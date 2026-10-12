@@ -1155,6 +1155,16 @@ class InvoiceReportGeneratorTestCase(TestCase):
         self.assertEqual(response_empty.context['total_invoices_count'], 0)
         self.assertEqual(response_empty.context['total_amount_collected'], 0.00)
 
+    def test_invoice_report_download_pdf_with_xhtml2pdf(self):
+        self.client.login(username='test_dist_rep2', password='distpass123')
+        today_str = timezone.localdate().strftime('%Y-%m-%d')
+        response = self.client.get(reverse('invoice_report_pdf') + f'?start_date={today_str}&end_date={today_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertIn('attachment; filename="Invoice_Report', response['Content-Disposition'])
+        self.assertTrue(response.content.startswith(b'%PDF'))
+
+
 
 
 

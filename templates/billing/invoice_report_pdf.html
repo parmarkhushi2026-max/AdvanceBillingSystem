@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Advance Billing - Invoices Report</title>
+    <style>
+        @page {
+            size: a4 landscape;
+            margin: 1.2cm;
+            @frame footer {
+                -pdf-frame-content: footerContent;
+                bottom: 0.8cm;
+                margin-left: 1.2cm;
+                margin-right: 1.2cm;
+                height: 0.8cm;
+            }
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 11px;
+            color: #1e293b;
+            line-height: 1.4;
+        }
+        .header-table {
+            width: 100%;
+            border-bottom: 3px solid #4f46e5;
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+        }
+        .brand-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1e1b4b;
+        }
+        .report-subtitle {
+            font-size: 13px;
+            font-weight: bold;
+            color: #4f46e5;
+            margin-top: 2px;
+        }
+        .meta-text {
+            text-align: right;
+            font-size: 10px;
+            color: #64748b;
+        }
+        .meta-bold {
+            font-size: 11px;
+            font-weight: bold;
+            color: #0f172a;
+        }
+
+        /* Summary KPI Cards Table */
+        .summary-table {
+            width: 100%;
+            margin-bottom: 16px;
+            border-collapse: separate;
+        }
+        .summary-box {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            padding: 8px 12px;
+            text-align: center;
+        }
+        .summary-box.highlight {
+            background-color: #eef2ff;
+            border: 2px solid #6366f1;
+        }
+        .summary-box.success {
+            background-color: #ecfdf5;
+            border: 2px solid #10b981;
+        }
+        .summary-title {
+            font-size: 9px;
+            text-transform: uppercase;
+            color: #64748b;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        .summary-val {
+            font-size: 16px;
+            font-weight: bold;
+            color: #0f172a;
+        }
+        .summary-val.primary { color: #4338ca; }
+        .summary-val.green { color: #047857; }
+        .summary-val.amber { color: #b45309; }
+
+        /* Main Ledger Table */
+        .ledger-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .ledger-table th {
+            background-color: #1e293b;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 10px;
+            padding: 7px 6px;
+            text-align: left;
+            text-transform: uppercase;
+        }
+        .ledger-table td {
+            padding: 6px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 10px;
+            vertical-align: middle;
+        }
+        .ledger-table tr:nth-child(even) td {
+            background-color: #f8fafc;
+        }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .font-bold { font-weight: bold; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        .status-paid { background-color: #d1fae5; color: #065f46; }
+        .status-pending { background-color: #fef3c7; color: #92400e; }
+        .status-failed { background-color: #fee2e2; color: #991b1b; }
+
+        .total-row td {
+            background-color: #f1f5f9 !important;
+            font-weight: bold;
+            font-size: 11px;
+            border-top: 2px solid #0f172a;
+            border-bottom: 2px solid #0f172a;
+        }
+
+        #footerContent {
+            text-align: center;
+            font-size: 9px;
+            color: #94a3b8;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Header -->
+    <table class="header-table">
+        <tr>
+            <td style="width: 60%;">
+                <div class="brand-title">ADVANCE BILLING SYSTEM</div>
+                <div class="report-subtitle">Official Invoices & Collections Audit Report</div>
+                <div style="font-size: 9px; color: #64748b; margin-top: 4px;">
+                    Date Range: <strong>{% if start_date %}{{ start_date }}{% else %}All Time{% endif %}</strong> to <strong>{% if end_date %}{{ end_date }}{% else %}Present{% endif %}</strong>
+                    {% if status_filter %} | Status: <strong>{{ status_filter }}</strong>{% endif %}
+                    {% if payment_method_filter %} | Method: <strong>{{ payment_method_filter }}</strong>{% endif %}
+                </div>
+            </td>
+            <td style="width: 40%;" class="meta-text">
+                <div>Generated On: <span class="meta-bold">{{ generated_at }}</span></div>
+                <div>Account Role: <span class="meta-bold">{{ role }}</span></div>
+                <div>Generated By: <span class="meta-bold">{{ generated_by }}</span></div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Selected Range Summary KPI Blocks -->
+    <table class="summary-table">
+        <tr>
+            <td class="summary-box highlight" style="width: 25%;">
+                <div class="summary-title">Total Invoices in Range</div>
+                <div class="summary-val primary">{{ total_invoices_count }}</div>
+            </td>
+            <td class="summary-box success" style="width: 25%;">
+                <div class="summary-title">Amount Collected (Paid)</div>
+                <div class="summary-val green">Rs. {{ total_amount_collected|floatformat:2 }}</div>
+            </td>
+            <td class="summary-box" style="width: 25%;">
+                <div class="summary-title">Total Billed Gross Value</div>
+                <div class="summary-val">Rs. {{ total_billed_val|floatformat:2 }}</div>
+            </td>
+            <td class="summary-box" style="width: 25%;">
+                <div class="summary-title">Outstanding / Pending Dues</div>
+                <div class="summary-val amber">Rs. {{ total_pending_val|floatformat:2 }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Invoices Ledger Table -->
+    <table class="ledger-table">
+        <thead>
+            <tr>
+                <th style="width: 14%;">Invoice #</th>
+                <th style="width: 12%;">Date & Time</th>
+                {% if is_admin %}
+                    <th style="width: 14%;">Distributor</th>
+                {% endif %}
+                <th style="width: 16%;">Customer Name</th>
+                <th style="width: 13%;">Payment Method</th>
+                <th class="text-right" style="width: 10%;">Subtotal</th>
+                <th class="text-right" style="width: 9%;">GST Tax</th>
+                <th class="text-right" style="width: 12%;">Grand Total</th>
+                <th class="text-center" style="width: 10%;">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inv in invoices %}
+            <tr>
+                <td class="font-bold">{{ inv.invoice_number }}</td>
+                <td>{{ inv.created_at|date:"Y-m-d H:i" }}</td>
+                {% if is_admin %}
+                    <td>{{ inv.distributor.username|default:"Admin" }}</td>
+                {% endif %}
+                <td>{{ inv.customer_name }}</td>
+                <td>{{ inv.payment_method }}</td>
+                <td class="text-right">Rs. {{ inv.subtotal|floatformat:2 }}</td>
+                <td class="text-right">Rs. {{ inv.tax_amount|floatformat:2 }}</td>
+                <td class="text-right font-bold">Rs. {{ inv.grand_total|floatformat:2 }}</td>
+                <td class="text-center">
+                    {% if inv.payment_status == 'PAID' %}
+                        <span class="status-badge status-paid">PAID</span>
+                    {% elif inv.payment_status == 'PENDING' %}
+                        <span class="status-badge status-pending">PENDING</span>
+                    {% else %}
+                        <span class="status-badge status-failed">{{ inv.payment_status }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="{% if is_admin %}9{% else %}8{% endif %}" class="text-center" style="padding: 20px; color: #94a3b8;">
+                    No invoices found matching the selected date range criteria.
+                </td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td colspan="{% if is_admin %}5{% else %}4{% endif %}">
+                    TOTAL SUMMARY ({{ total_invoices_count }} INVOICES)
+                </td>
+                <td class="text-right">Rs. {{ total_subtotal|floatformat:2 }}</td>
+                <td class="text-right">Rs. {{ total_tax_collected|floatformat:2 }}</td>
+                <td class="text-right font-bold">Rs. {{ total_billed_val|floatformat:2 }}</td>
+                <td class="text-center font-bold" style="color: #047857;">
+                    Rs. {{ total_amount_collected|floatformat:2 }} PAID
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div id="footerContent">
+        Advance Billing System &bull; Certified Automated Audit Report &bull; Page <pdf:pagenumber> of <pdf:pagecount>
+    </div>
+</body>
+</html>

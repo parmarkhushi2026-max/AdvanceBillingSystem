@@ -46,6 +46,7 @@ urlpatterns = [
     path('invoices/report/', views.invoice_report_view, name='invoice_reports_alias'),
     path('reports/invoices/', views.invoice_report_view, name='invoice_reports'),
     path('reports/invoices/export/csv/', views.invoice_report_export_csv_view, name='invoice_report_export_csv'),
+    path('reports/invoices/pdf/', views.invoice_report_download_pdf_view, name='invoice_report_pdf'),
     path('customers/', views.customer_list_view, name='customer_list'),
     path('customers/add/', views.add_customer_view, name='add_customer'),
     path('customers/register/', views.customer_register_frontend_view, name='customer_register_frontend'),
