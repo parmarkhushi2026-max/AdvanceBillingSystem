@@ -517,32 +517,44 @@
 
     <!-- Real-Time KPI Aggregates Strip -->
     <div class="kpi-report-strip">
-        <div class="kpi-report-card indigo">
-            <div class="kpi-report-lbl">
-                <i class="fa-solid fa-file-invoice" style="color: #4f46e5;"></i> Total Invoices
+        <div class="kpi-report-card indigo" style="border: 2px solid #6366f1; background: linear-gradient(180deg, #ffffff 0%, #eef2ff 100%);">
+            <div class="kpi-report-lbl" style="color: #4338ca;">
+                <i class="fa-solid fa-file-invoice" style="color: #4f46e5;"></i> Total Invoices in Range
             </div>
-            <div class="kpi-report-val">{{ total_invoices_count }}</div>
+            <div class="kpi-report-val" style="color: #3730a3;">{{ total_invoices_count }}</div>
+            <div style="font-size: 0.78rem; color: #6366f1; margin-top: 4px; font-weight: 700;">
+                {% if start_date or end_date %}Selected Range Total{% else %}All Invoices{% endif %}
+            </div>
         </div>
 
-        <div class="kpi-report-card emerald">
-            <div class="kpi-report-lbl">
-                <i class="fa-solid fa-circle-dollar-to-slot" style="color: #10b981;"></i> Net Billed Value
+        <div class="kpi-report-card emerald" style="border: 2px solid #10b981; background: linear-gradient(180deg, #ffffff 0%, #ecfdf5 100%);">
+            <div class="kpi-report-lbl" style="color: #065f46;">
+                <i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Amount Collected (Paid)
             </div>
-            <div class="kpi-report-val" style="color: #059669;">₹{{ total_billed_val|floatformat:2 }}</div>
+            <div class="kpi-report-val" style="color: #047857;">₹{{ total_amount_collected|floatformat:2 }}</div>
+            <div style="font-size: 0.78rem; color: #059669; margin-top: 4px; font-weight: 700;">
+                Settled in selected range
+            </div>
         </div>
 
-        <div class="kpi-report-card emerald">
+        <div class="kpi-report-card cyan">
             <div class="kpi-report-lbl">
-                <i class="fa-solid fa-check-double" style="color: #059669;"></i> Paid / Collected
+                <i class="fa-solid fa-circle-dollar-to-slot" style="color: #0891b2;"></i> Total Billed Value
             </div>
-            <div class="kpi-report-val" style="color: #047857;">₹{{ total_paid_val|floatformat:2 }}</div>
+            <div class="kpi-report-val" style="color: #0f172a;">₹{{ total_billed_val|floatformat:2 }}</div>
+            <div style="font-size: 0.78rem; color: #64748b; margin-top: 4px; font-weight: 600;">
+                Gross turnover in range
+            </div>
         </div>
 
         <div class="kpi-report-card amber">
             <div class="kpi-report-lbl">
-                <i class="fa-solid fa-clock-rotate-left" style="color: #d97706;"></i> Pending Dues
+                <i class="fa-solid fa-clock-rotate-left" style="color: #d97706;"></i> Outstanding Dues
             </div>
             <div class="kpi-report-val" style="color: #d97706;">₹{{ total_pending_val|floatformat:2 }}</div>
+            <div style="font-size: 0.78rem; color: #b45309; margin-top: 4px; font-weight: 600;">
+                Pending collections
+            </div>
         </div>
 
         <div class="kpi-report-card cyan">
@@ -550,6 +562,9 @@
                 <i class="fa-solid fa-scale-balanced" style="color: #0891b2;"></i> GST Tax Collected
             </div>
             <div class="kpi-report-val" style="color: #0891b2;">₹{{ total_tax_collected|floatformat:2 }}</div>
+            <div style="font-size: 0.78rem; color: #0e7490; margin-top: 4px; font-weight: 600;">
+                Compliant GST levy
+            </div>
         </div>
 
         <div class="kpi-report-card purple">
@@ -557,25 +572,46 @@
                 <i class="fa-solid fa-chart-pie" style="color: #7c3aed;"></i> Average Invoice Size
             </div>
             <div class="kpi-report-val" style="color: #7c3aed;">₹{{ avg_ticket_size }}</div>
+            <div style="font-size: 0.78rem; color: #6d28d9; margin-top: 4px; font-weight: 600;">
+                Per ticket average
+            </div>
         </div>
     </div>
 
-    <!-- Active Filters Notification Banner -->
-    {% if has_filters %}
-    <div class="active-filter-banner">
-        <div>
-            <i class="fa-solid fa-circle-info" style="margin-right: 6px;"></i>
-            <strong>Active Criteria:</strong>
-            {% if start_date %} From <strong>{{ start_date }}</strong>{% endif %}
-            {% if end_date %} To <strong>{{ end_date }}</strong>{% endif %}
-            {% if status_filter %} | Status: <strong>{{ status_filter }}</strong>{% endif %}
-            {% if payment_method_filter %} | Method: <strong>{{ payment_method_filter }}</strong>{% endif %}
-            {% if query %} | Query: "<strong>{{ query }}</strong>"{% endif %}
-            &bull; Showing <strong>{{ total_invoices_count }}</strong> matching record{{ total_invoices_count|pluralize }}.
+    <!-- Active Filters & Range Summary Notification Banner -->
+    <div class="active-filter-banner" style="background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 1.5px solid #93c5fd; padding: 14px 20px;">
+        <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+            <div>
+                <i class="fa-solid fa-calendar-days" style="color: #2563eb; margin-right: 6px;"></i>
+                <strong>Selected Range:</strong>
+                {% if start_date or end_date %}
+                    <span style="font-weight: 700; color: #1e40af;">{{ start_date|default:"Start" }}</span> to <span style="font-weight: 700; color: #1e40af;">{{ end_date|default:"Present" }}</span>
+                {% else %}
+                    <span style="font-weight: 700; color: #1e40af;">All Time</span>
+                {% endif %}
+            </div>
+            <div style="height: 18px; width: 1px; background: #cbd5e1;"></div>
+            <div>
+                <i class="fa-solid fa-file-invoice" style="color: #4f46e5; margin-right: 6px;"></i>
+                <strong>Total Invoices:</strong> <span style="background: #e0e7ff; color: #3730a3; padding: 3px 10px; border-radius: 8px; font-weight: 800; font-size: 0.95rem;">{{ total_invoices_count }}</span>
+            </div>
+            <div style="height: 18px; width: 1px; background: #cbd5e1;"></div>
+            <div>
+                <i class="fa-solid fa-circle-check" style="color: #059669; margin-right: 6px;"></i>
+                <strong>Amount Collected:</strong> <span style="background: #dcfce7; color: #166534; padding: 3px 10px; border-radius: 8px; font-weight: 800; font-size: 0.95rem;">₹{{ total_amount_collected|floatformat:2 }}</span>
+            </div>
+            {% if status_filter or query or payment_method_filter %}
+                <div style="font-size: 0.82rem; color: #64748b;">
+                    (Criteria: {% if status_filter %}Status={{ status_filter }} {% endif %}{% if payment_method_filter %}Method={{ payment_method_filter }} {% endif %}{% if query %}Q="{{ query }}"{% endif %})
+                </div>
+            {% endif %}
         </div>
-        <a href="{% url 'invoice_reports' %}" style="color: #1e40af; font-weight: 700; text-decoration: underline; font-size: 0.85rem;">Clear All</a>
+        {% if has_filters %}
+            <a href="{% url 'invoice_reports' %}" style="color: #dc2626; font-weight: 700; text-decoration: none; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">
+                <i class="fa-solid fa-arrow-rotate-left"></i> Reset Filters
+            </a>
+        {% endif %}
     </div>
-    {% endif %}
 
     <!-- Report Invoices Table Card -->
     <div class="dashboard-card" style="border-radius: 18px; overflow: hidden;">

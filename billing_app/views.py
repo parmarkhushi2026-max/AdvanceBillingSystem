@@ -1325,6 +1325,12 @@ def invoice_list_view(request):
             pass
     if status_filter:
         invoices = invoices.filter(payment_status=status_filter)
+
+    # Compute metrics for the selected range
+    total_invoices_count = invoices.count()
+    total_amount_collected = invoices.filter(payment_status='PAID').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+    total_amount_billed = invoices.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+    total_pending_amount = invoices.filter(payment_status='PENDING').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
         
     paginator = Paginator(invoices, 10)
     page_number = request.GET.get('page')
@@ -1334,6 +1340,10 @@ def invoice_list_view(request):
     
     context = {
         'invoices': page_obj,
+        'total_invoices_count': total_invoices_count,
+        'total_amount_collected': total_amount_collected,
+        'total_amount_billed': total_amount_billed,
+        'total_pending_amount': total_pending_amount,
         'query': query,
         'start_date': start_date,
         'end_date': end_date,
@@ -1486,6 +1496,7 @@ def invoice_report_view(request):
         'invoices': page_obj,
         'all_filtered_invoices': invoices[:200],  # for printable audit record
         'total_invoices_count': total_invoices_count,
+        'total_amount_collected': total_paid_val,
         'total_billed_val': total_billed_val,
         'total_paid_val': total_paid_val,
         'total_pending_val': total_pending_val,

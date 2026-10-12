@@ -49,6 +49,61 @@
     </form>
 </div>
 
+<!-- Selected Range Summary KPI Strip -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <div class="dashboard-card" style="padding: 1.25rem 1.5rem; border-left: 4px solid #4f46e5; margin: 0; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em;">
+            <i class="fa-solid fa-file-invoice" style="color: #4f46e5; margin-right: 6px;"></i> Total Invoices in Range
+        </div>
+        <div style="font-size: 1.65rem; font-weight: 800; color: #0f172a; margin-top: 4px;">
+            {{ total_invoices_count }}
+        </div>
+        <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 2px;">
+            {% if start_date or end_date %}
+                Range: {{ start_date|default:"Start" }} to {{ end_date|default:"Present" }}
+            {% else %}
+                All time total
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="dashboard-card" style="padding: 1.25rem 1.5rem; border-left: 4px solid #10b981; margin: 0; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #065f46; text-transform: uppercase; letter-spacing: 0.04em;">
+            <i class="fa-solid fa-circle-check" style="color: #10b981; margin-right: 6px;"></i> Amount Collected (Paid)
+        </div>
+        <div style="font-size: 1.65rem; font-weight: 800; color: #059669; margin-top: 4px;">
+            ₹{{ total_amount_collected|floatformat:2 }}
+        </div>
+        <div style="font-size: 0.78rem; color: #10b981; margin-top: 2px;">
+            Settled collections in range
+        </div>
+    </div>
+
+    <div class="dashboard-card" style="padding: 1.25rem 1.5rem; border-left: 4px solid #06b6d4; margin: 0; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #0e7490; text-transform: uppercase; letter-spacing: 0.04em;">
+            <i class="fa-solid fa-wallet" style="color: #06b6d4; margin-right: 6px;"></i> Total Billed Value
+        </div>
+        <div style="font-size: 1.65rem; font-weight: 800; color: #0f172a; margin-top: 4px;">
+            ₹{{ total_amount_billed|floatformat:2 }}
+        </div>
+        <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 2px;">
+            Gross value in range
+        </div>
+    </div>
+
+    <div class="dashboard-card" style="padding: 1.25rem 1.5rem; border-left: 4px solid #f59e0b; margin: 0; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #92400e; text-transform: uppercase; letter-spacing: 0.04em;">
+            <i class="fa-solid fa-clock-rotate-left" style="color: #f59e0b; margin-right: 6px;"></i> Outstanding Dues
+        </div>
+        <div style="font-size: 1.65rem; font-weight: 800; color: #d97706; margin-top: 4px;">
+            ₹{{ total_pending_amount|floatformat:2 }}
+        </div>
+        <div style="font-size: 0.78rem; color: #d97706; margin-top: 2px;">
+            Pending payments in range
+        </div>
+    </div>
+</div>
+
 <div class="dashboard-card" id="tableViewContainer">
     <div class="table-responsive">
         <table class="app-table">

@@ -1109,6 +1109,10 @@ class InvoiceReportGeneratorTestCase(TestCase):
         response = self.client.get(reverse('invoice_reports') + f'?start_date={today_str}&end_date={today_str}')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'INV-REP-101')
+        self.assertEqual(response.context['total_invoices_count'], 1)
+        self.assertEqual(response.context['total_amount_collected'], 2360.00)
+        self.assertContains(response, 'Total Invoices in Range')
+        self.assertContains(response, 'Amount Collected (Paid)')
 
     def test_invoice_report_filter_by_date_range_no_match(self):
         self.client.login(username='test_dist_rep2', password='distpass123')
@@ -1116,6 +1120,8 @@ class InvoiceReportGeneratorTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'No Invoices Found Matching Criteria')
         self.assertNotContains(response, 'INV-REP-101')
+        self.assertEqual(response.context['total_invoices_count'], 0)
+        self.assertEqual(response.context['total_amount_collected'], 0.00)
 
     def test_invoice_report_export_csv_with_date_range(self):
         self.client.login(username='test_dist_rep2', password='distpass123')
@@ -1137,11 +1143,17 @@ class InvoiceReportGeneratorTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'INV-REP-101')
         self.assertContains(response, 'Report Generator Studio')
+        self.assertEqual(response.context['total_invoices_count'], 1)
+        self.assertEqual(response.context['total_amount_collected'], 2360.00)
+        self.assertContains(response, 'Total Invoices in Range')
+        self.assertContains(response, 'Amount Collected (Paid)')
 
         # When filtering out of range
         response_empty = self.client.get(reverse('invoice_list') + '?start_date=2020-01-01&end_date=2020-01-31')
         self.assertEqual(response_empty.status_code, 200)
         self.assertNotContains(response_empty, 'INV-REP-101')
+        self.assertEqual(response_empty.context['total_invoices_count'], 0)
+        self.assertEqual(response_empty.context['total_amount_collected'], 0.00)
 
 
 
