@@ -1,6 +1,31 @@
 # 🧾 Advance Billing System
 
-A feature-packed, production-ready Django Billing and Invoice Management System designed for managing distributors, customers, dynamic QR code billing, tax receipts, and payment tracking.
+[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+[![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
+[![Tests](https://img.shields.io/badge/Tests-58%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+
+A feature-packed, production-ready Django Billing, QR Payment, and Financial Intelligence System designed for managing distributors, customers, dynamic UPI QR code billing, audit reporting, tax receipts, and ledger tracking.
+
+🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+
+---
+
+## 📊 🌟 New Feature: Invoice Report Generator & Date Range Filtering Engine
+
+Generate custom financial ledgers, audit invoices by date range, and export certified records:
+- **Date Range Filter Form**: Filter invoices seamlessly by custom `start_date` (From Date) and `end_date` (To Date).
+- **1-Click Quick Presets**: Instant filter buttons for *Today*, *Yesterday*, *Last 7 Days*, *Last 30 Days*, *This Month*, *Last Month*, *This Year*, and *All Time*.
+- **Comprehensive Multi-Criteria Filters**: Filter by Payment Status (*PAID*, *PENDING*, *FAILED*), Payment Method (*UPI QR Code*, *Cash*, *Card*, *Net Banking*), Customer Name/Phone/Invoice # search, and Min/Max amount range.
+- **Real-Time Financial Aggregates**:
+  - Total Invoices Count
+  - Total Net Billed Revenue (₹)
+  - Realized Collections / Paid (₹)
+  - Outstanding Dues / Pending (₹)
+  - Total GST Tax Collected (₹)
+  - Average Invoice Ticket Size (₹)
+- **Export Filtered CSV**: Download audit-ready CSV spreadsheets filtered exactly by the selected date range and criteria.
+- **Printable Audit Ledger**: Formatted print view (`@media print`) for clean paper or PDF ledger export.
+- **Direct Route**: `http://127.0.0.1:8000/reports/invoices/`
 
 ---
 
