@@ -22,16 +22,22 @@
 </div>
 
 <div class="dashboard-card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
-    <form method="GET" action="{% url 'invoice_list' %}" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+    <!-- Date validation alert banner -->
+    <div id="invoiceListDateAlert" style="display: {% if date_range_error %}flex{% else %}none{% endif %}; background: #fef2f2; border: 1.5px solid #fca5a5; color: #991b1b; padding: 0.75rem 1rem; border-radius: 12px; margin-bottom: 1rem; font-size: 0.88rem; font-weight: 600; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-triangle-exclamation" style="color: #dc2626;"></i>
+        <span id="invoiceListDateMsg">{% if date_range_error %}{{ date_range_error }}{% endif %}</span>
+    </div>
+
+    <form id="invoiceListFilterForm" method="GET" action="{% url 'invoice_list' %}" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
         <div class="input-icon-group" style="flex: 2; min-width: 220px;">
             <i class="fa-solid fa-magnifying-glass"></i>
             <input type="text" name="q" class="form-input" placeholder="Search by Invoice # or Customer..." value="{{ query }}">
         </div>
         <div style="flex: 1; min-width: 150px;">
-            <input type="date" name="start_date" class="form-input" title="From Date" value="{{ start_date }}" placeholder="From Date">
+            <input type="date" id="id_inv_start_date" name="start_date" class="form-input" title="From Date" value="{{ start_date }}" placeholder="From Date">
         </div>
         <div style="flex: 1; min-width: 150px;">
-            <input type="date" name="end_date" class="form-input" title="To Date" value="{{ end_date }}" placeholder="To Date">
+            <input type="date" id="id_inv_end_date" name="end_date" class="form-input" title="To Date" value="{{ end_date }}" placeholder="To Date">
         </div>
         <div style="flex: 1; min-width: 140px;">
             <select name="status" class="form-input">
@@ -175,4 +181,83 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sInput = document.getElementById('id_inv_start_date');
+    const eInput = document.getElementById('id_inv_end_date');
+    const alertBox = document.getElementById('invoiceListDateAlert');
+    const msgBox = document.getElementById('invoiceListDateMsg');
+    const form = document.getElementById('invoiceListFilterForm');
+
+    function showError(msg, target) {
+        if (alertBox && msgBox) {
+            msgBox.textContent = msg;
+            alertBox.style.display = 'flex';
+        }
+        if (target) {
+            target.style.borderColor = '#ef4444';
+            target.focus();
+        }
+    }
+
+    function clearError() {
+        if (alertBox) alertBox.style.display = 'none';
+        if (sInput) sInput.style.borderColor = '';
+        if (eInput) eInput.style.borderColor = '';
+    }
+
+    function syncLimits() {
+        clearError();
+        if (sInput && sInput.value) {
+            eInput.min = sInput.value;
+        } else if (eInput) {
+            eInput.removeAttribute('min');
+        }
+        if (eInput && eInput.value) {
+            sInput.max = eInput.value;
+        } else if (sInput) {
+            sInput.removeAttribute('max');
+        }
+
+        if (sInput && eInput && sInput.value && eInput.value && sInput.value > eInput.value) {
+            showError("Invalid Date Range: From Date (" + sInput.value + ") cannot be after To Date (" + eInput.value + ").", sInput);
+            return false;
+        }
+        return true;
+    }
+
+    if (sInput && eInput) {
+        sInput.addEventListener('change', syncLimits);
+        eInput.addEventListener('change', syncLimits);
+        sInput.addEventListener('input', syncLimits);
+        eInput.addEventListener('input', syncLimits);
+        syncLimits();
+    }
+
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const sVal = sInput ? sInput.value.trim() : '';
+            const eVal = eInput ? eInput.value.trim() : '';
+
+            if (sVal && !eVal) {
+                e.preventDefault();
+                showError("Please select 'To Date' to complete the date range filter.", eInput);
+                return false;
+            }
+            if (!sVal && eVal) {
+                e.preventDefault();
+                showError("Please select 'From Date' to complete the date range filter.", sInput);
+                return false;
+            }
+            if (sVal && eVal && sVal > eVal) {
+                e.preventDefault();
+                showError("Invalid Date Range: From Date (" + sVal + ") cannot be after To Date (" + eVal + ").", sInput);
+                return false;
+            }
+            return true;
+        });
+    }
+});
+</script>
 {% endblock %}

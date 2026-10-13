@@ -1164,6 +1164,49 @@ class InvoiceReportGeneratorTestCase(TestCase):
         self.assertIn('attachment; filename="Invoice_Report', response['Content-Disposition'])
         self.assertTrue(response.content.startswith(b'%PDF'))
 
+    def test_invoice_report_invalid_date_range_validation(self):
+        self.client.login(username='test_dist_rep2', password='distpass123')
+        # start_date is later than end_date (2026-12-31 > 2026-01-01)
+        response = self.client.get(reverse('invoice_reports') + '?start_date=2026-12-31&end_date=2026-01-01')
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(response.context.get('date_range_error'))
+        self.assertIn('Invalid date range', response.context['date_range_error'])
+
+    def test_invoice_report_partial_date_warning(self):
+        self.client.login(username='test_dist_rep2', password='distpass123')
+        # Only start_date provided
+        response = self.client.get(reverse('invoice_reports') + '?start_date=2026-01-01')
+        self.assertEqual(response.status_code, 200)
+        messages_list = list(response.context['messages'])
+        self.assertTrue(any("Please provide both From Date and To Date" in str(m) for m in messages_list))
+
+    def test_invoice_report_export_csv_invalid_date_range_redirect(self):
+        self.client.login(username='test_dist_rep2', password='distpass123')
+        response = self.client.get(reverse('invoice_report_export_csv') + '?start_date=2026-12-31&end_date=2026-01-01')
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('invoice_reports'), response.url)
+
+    def test_invoice_report_pdf_invalid_date_range_redirect(self):
+        self.client.login(username='test_dist_rep2', password='distpass123')
+        response = self.client.get(reverse('invoice_report_pdf') + '?start_date=2026-12-31&end_date=2026-01-01')
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('invoice_reports'), response.url)
+
+    def test_invoice_list_invalid_date_range_validation(self):
+        self.client.login(username='test_dist_rep2', password='distpass123')
+        response = self.client.get(reverse('invoice_list') + '?start_date=2026-12-31&end_date=2026-01-01')
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(response.context.get('date_range_error'))
+        self.assertIn('Invalid date range', response.context['date_range_error'])
+
+    def test_admin_reports_invalid_date_range_validation(self):
+        self.client.login(username='test_admin_rep2', password='adminpass123')
+        response = self.client.get(reverse('admin_reports') + '?start_date=2026-12-31&end_date=2026-01-01')
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(response.context.get('date_range_error'))
+        self.assertIn('Invalid date range', response.context['date_range_error'])
+
+
 
 
 

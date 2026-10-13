@@ -148,6 +148,35 @@
         flex-direction: column;
     }
 
+    /* Date validation feedback */
+    .date-validation-alert {
+        background: #fef2f2;
+        border: 1.5px solid #fca5a5;
+        color: #991b1b;
+        padding: 0.85rem 1.25rem;
+        border-radius: 12px;
+        margin-bottom: 1.25rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        display: none;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.08);
+        animation: fadeInDown 0.25s ease-out;
+    }
+    .date-input-error {
+        border-color: #ef4444 !important;
+        background-color: #fef2f2 !important;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+    }
+    .date-field-hint {
+        font-size: 0.75rem;
+        color: #ef4444;
+        font-weight: 600;
+        margin-top: 4px;
+        display: none;
+    }
+
     .f-field-lbl {
         font-size: 0.8rem;
         font-weight: 700;
@@ -414,6 +443,12 @@
         <form id="reportFilterForm" method="GET" action="{% url 'invoice_reports' %}">
             <input type="hidden" id="presetInput" name="preset" value="{{ preset }}">
             
+            <!-- Interactive Date Validation Alert Banner -->
+            <div id="dateValidationAlert" class="date-validation-alert" {% if date_range_error %}style="display: flex;"{% endif %}>
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.15rem; color: #dc2626;"></i>
+                <span id="dateValidationMsg">{% if date_range_error %}{{ date_range_error }}{% else %}Please select a valid date range.{% endif %}</span>
+            </div>
+
             <div class="filter-grid-fields">
                 <!-- From Date -->
                 <div class="f-field-group">
@@ -421,6 +456,7 @@
                         <i class="fa-regular fa-calendar"></i> From Date
                     </label>
                     <input type="date" id="id_start_date" name="start_date" class="f-control-input" value="{{ start_date }}">
+                    <div id="start_date_hint" class="date-field-hint"></div>
                 </div>
 
                 <!-- To Date -->
@@ -429,6 +465,7 @@
                         <i class="fa-regular fa-calendar-days"></i> To Date
                     </label>
                     <input type="date" id="id_end_date" name="end_date" class="f-control-input" value="{{ end_date }}">
+                    <div id="end_date_hint" class="date-field-hint"></div>
                 </div>
 
                 <!-- Payment Status -->
@@ -806,7 +843,126 @@ function applyDatePreset(presetKey) {
     document.getElementById('id_start_date').value = startDate;
     document.getElementById('id_end_date').value = endDate;
     document.getElementById('presetInput').value = presetKey;
+    validateDateInputs();
     document.getElementById('reportFilterForm').submit();
+}
+
+// Client-side Date Range Validation and Input Constraints
+const startDateInput = document.getElementById('id_start_date');
+const endDateInput = document.getElementById('id_end_date');
+const validationAlert = document.getElementById('dateValidationAlert');
+const validationMsg = document.getElementById('dateValidationMsg');
+const reportFilterForm = document.getElementById('reportFilterForm');
+const startHint = document.getElementById('start_date_hint');
+const endHint = document.getElementById('end_date_hint');
+
+function showDateError(message, targetInput = null) {
+    if (validationAlert && validationMsg) {
+        validationMsg.textContent = message;
+        validationAlert.style.display = 'flex';
+        validationAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    if (targetInput) {
+        targetInput.classList.add('date-input-error');
+        targetInput.focus();
+    }
+}
+
+function clearDateError() {
+    if (validationAlert && !document.querySelector('.toast-banner.error')) {
+        validationAlert.style.display = 'none';
+    }
+    if (startDateInput) startDateInput.classList.remove('date-input-error');
+    if (endDateInput) endDateInput.classList.remove('date-input-error');
+    if (startHint) { startHint.style.display = 'none'; startHint.textContent = ''; }
+    if (endHint) { endHint.style.display = 'none'; endHint.textContent = ''; }
+}
+
+function validateDateInputs() {
+    clearDateError();
+    const startVal = startDateInput ? startDateInput.value.trim() : '';
+    const endVal = endDateInput ? endDateInput.value.trim() : '';
+
+    // Synchronize min / max constraints
+    if (startVal) {
+        endDateInput.min = startVal;
+    } else {
+        endDateInput.removeAttribute('min');
+    }
+    if (endVal) {
+        startDateInput.max = endVal;
+    } else {
+        startDateInput.removeAttribute('max');
+    }
+
+    if (startVal && endVal) {
+        if (startVal > endVal) {
+            showDateError("Invalid Date Range: 'From Date' (" + startVal + ") cannot be later than 'To Date' (" + endVal + ").", startDateInput);
+            endDateInput.classList.add('date-input-error');
+            if (endHint) {
+                endHint.textContent = "To Date must be on or after From Date (" + startVal + ")";
+                endHint.style.display = 'block';
+            }
+            return false;
+        }
+    }
+    return true;
+}
+
+if (startDateInput && endDateInput) {
+    startDateInput.addEventListener('change', validateDateInputs);
+    endDateInput.addEventListener('change', validateDateInputs);
+    startDateInput.addEventListener('input', validateDateInputs);
+    endDateInput.addEventListener('input', validateDateInputs);
+
+    // Initial check on page load to apply constraints
+    if (startDateInput.value) endDateInput.min = startDateInput.value;
+    if (endDateInput.value) startDateInput.max = endDateInput.value;
+}
+
+if (reportFilterForm) {
+    reportFilterForm.addEventListener('submit', function(e) {
+        const startVal = startDateInput ? startDateInput.value.trim() : '';
+        const endVal = endDateInput ? endDateInput.value.trim() : '';
+        const presetVal = document.getElementById('presetInput') ? document.getElementById('presetInput').value.trim() : '';
+
+        // Check if both dates are empty and no preset or other filter criteria
+        if (!startVal && !endVal && !presetVal) {
+            const statusVal = document.getElementById('id_status') ? document.getElementById('id_status').value : '';
+            const qVal = document.getElementById('id_q') ? document.getElementById('id_q').value.trim() : '';
+            const distVal = document.getElementById('id_distributor') ? document.getElementById('id_distributor').value : '';
+            const minAmt = document.getElementById('id_min_amount') ? document.getElementById('id_min_amount').value.trim() : '';
+            const maxAmt = document.getElementById('id_max_amount') ? document.getElementById('id_max_amount').value.trim() : '';
+
+            if (!statusVal && !qVal && !distVal && !minAmt && !maxAmt) {
+                e.preventDefault();
+                showDateError("Please select a date range (From Date and To Date) or choose a preset range before generating a report.", startDateInput);
+                return false;
+            }
+        }
+
+        // Empty date selection check: if one date is provided but not the other
+        if (startVal && !endVal) {
+            e.preventDefault();
+            showDateError("Please select 'To Date' to complete the date range filter.", endDateInput);
+            return false;
+        }
+        if (!startVal && endVal) {
+            e.preventDefault();
+            showDateError("Please select 'From Date' to complete the date range filter.", startDateInput);
+            return false;
+        }
+
+        // Invalid date range check
+        if (startVal && endVal && startVal > endVal) {
+            e.preventDefault();
+            showDateError("Invalid Date Range: 'From Date' (" + startVal + ") cannot be later than 'To Date' (" + endVal + ").", startDateInput);
+            endDateInput.classList.add('date-input-error');
+            return false;
+        }
+
+        return true;
+    });
 }
 </script>
 {% endblock %}

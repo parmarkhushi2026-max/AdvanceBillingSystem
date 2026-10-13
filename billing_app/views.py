@@ -302,12 +302,27 @@ def admin_reports_view(request):
         invoices = invoices.filter(distributor_id=distributor_id)
     if status_filter:
         invoices = invoices.filter(payment_status=status_filter)
-    if start_date_str:
+    date_range_error = None
+    if start_date_str and end_date_str:
+        try:
+            d_start = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            d_end = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            if d_start > d_end:
+                date_range_error = f"Invalid date range: From Date ({start_date_str}) cannot be after To Date ({end_date_str})."
+                messages.error(request, date_range_error)
+            else:
+                invoices = invoices.filter(created_at__date__gte=d_start, created_at__date__lte=d_end)
+        except (ValueError, TypeError):
+            date_range_error = "Invalid date format. Please use YYYY-MM-DD."
+            messages.error(request, date_range_error)
+    elif start_date_str and not end_date_str:
+        messages.warning(request, "Please provide both From Date and To Date for complete date filtering.")
         try:
             invoices = invoices.filter(created_at__date__gte=start_date_str)
         except Exception:
             pass
-    if end_date_str:
+    elif end_date_str and not start_date_str:
+        messages.warning(request, "Please provide both From Date and To Date for complete date filtering.")
         try:
             invoices = invoices.filter(created_at__date__lte=end_date_str)
         except Exception:
@@ -369,6 +384,7 @@ def admin_reports_view(request):
         'distributor_id': distributor_id,
         'status_filter': status_filter,
         'report_type': report_type,
+        'date_range_error': date_range_error,
         'role': 'Admin',
     }
     return render(request, 'dashboard/admin_reports.html', context)
@@ -391,12 +407,23 @@ def admin_reports_export_csv_view(request):
         invoices = invoices.filter(distributor_id=distributor_id)
     if status_filter:
         invoices = invoices.filter(payment_status=status_filter)
-    if start_date_str:
+    if start_date_str and end_date_str:
+        try:
+            d_start = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            d_end = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            if d_start > d_end:
+                messages.error(request, f"Cannot export CSV: Invalid date range (From Date {start_date_str} is after To Date {end_date_str}).")
+                return redirect('admin_reports')
+            invoices = invoices.filter(created_at__date__gte=d_start, created_at__date__lte=d_end)
+        except (ValueError, TypeError):
+            messages.error(request, "Invalid date format for CSV export.")
+            return redirect('admin_reports')
+    elif start_date_str:
         try:
             invoices = invoices.filter(created_at__date__gte=start_date_str)
         except Exception:
             pass
-    if end_date_str:
+    elif end_date_str:
         try:
             invoices = invoices.filter(created_at__date__lte=end_date_str)
         except Exception:
@@ -1318,12 +1345,27 @@ def invoice_list_view(request):
             Q(customer_name__icontains=query) |
             Q(customer_phone__icontains=query)
         )
-    if start_date:
+    date_range_error = None
+    if start_date and end_date:
+        try:
+            d_start = datetime.strptime(start_date, '%Y-%m-%d').date()
+            d_end = datetime.strptime(end_date, '%Y-%m-%d').date()
+            if d_start > d_end:
+                date_range_error = f"Invalid date range: From Date ({start_date}) cannot be after To Date ({end_date})."
+                messages.error(request, date_range_error)
+            else:
+                invoices = invoices.filter(created_at__date__gte=d_start, created_at__date__lte=d_end)
+        except (ValueError, TypeError):
+            date_range_error = "Invalid date format. Please use YYYY-MM-DD."
+            messages.error(request, date_range_error)
+    elif start_date and not end_date:
+        messages.warning(request, "Please provide both From Date and To Date for complete date filtering.")
         try:
             invoices = invoices.filter(created_at__date__gte=start_date)
         except Exception:
             pass
-    if end_date:
+    elif end_date and not start_date:
+        messages.warning(request, "Please provide both From Date and To Date for complete date filtering.")
         try:
             invoices = invoices.filter(created_at__date__lte=end_date)
         except Exception:
@@ -1354,6 +1396,7 @@ def invoice_list_view(request):
         'end_date': end_date,
         'status_filter': status_filter,
         'has_filters': has_filters,
+        'date_range_error': date_range_error,
         'role': role,
     }
     return render(request, 'billing/invoice_list.html', context)
@@ -1423,14 +1466,28 @@ def invoice_report_view(request):
         invoices = invoices.filter(distributor_id=distributor_id)
 
     # Filter by Date Range
-    if start_date_str:
+    date_range_error = None
+    if start_date_str and end_date_str:
+        try:
+            d_start = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            d_end = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            if d_start > d_end:
+                date_range_error = f"Invalid date range: From Date ({start_date_str}) cannot be after To Date ({end_date_str})."
+                messages.error(request, date_range_error)
+            else:
+                invoices = invoices.filter(created_at__date__gte=d_start, created_at__date__lte=d_end)
+        except (ValueError, TypeError):
+            date_range_error = "Invalid date format provided. Please use YYYY-MM-DD."
+            messages.error(request, date_range_error)
+    elif start_date_str and not end_date_str:
+        messages.warning(request, "Please provide both From Date and To Date for complete date filtering.")
         try:
             datetime.strptime(start_date_str, '%Y-%m-%d')
             invoices = invoices.filter(created_at__date__gte=start_date_str)
         except (ValueError, TypeError):
             pass
-
-    if end_date_str:
+    elif end_date_str and not start_date_str:
+        messages.warning(request, "Please provide both From Date and To Date for complete date filtering.")
         try:
             datetime.strptime(end_date_str, '%Y-%m-%d')
             invoices = invoices.filter(created_at__date__lte=end_date_str)
@@ -1522,6 +1579,7 @@ def invoice_report_view(request):
         'distributors': distributors,
         'available_payment_methods': available_payment_methods,
         'has_filters': has_filters,
+        'date_range_error': date_range_error,
         'role': role,
         'is_admin': is_admin,
     }
@@ -1583,14 +1641,24 @@ def invoice_report_export_csv_view(request):
     if is_admin and distributor_id:
         invoices = invoices.filter(distributor_id=distributor_id)
 
-    if start_date_str:
+    if start_date_str and end_date_str:
+        try:
+            d_start = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            d_end = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            if d_start > d_end:
+                messages.error(request, f"Cannot export CSV: Invalid date range (From Date {start_date_str} is after To Date {end_date_str}).")
+                return redirect('invoice_reports')
+            invoices = invoices.filter(created_at__date__gte=d_start, created_at__date__lte=d_end)
+        except (ValueError, TypeError):
+            messages.error(request, "Invalid date format for CSV export.")
+            return redirect('invoice_reports')
+    elif start_date_str:
         try:
             datetime.strptime(start_date_str, '%Y-%m-%d')
             invoices = invoices.filter(created_at__date__gte=start_date_str)
         except (ValueError, TypeError):
             pass
-
-    if end_date_str:
+    elif end_date_str:
         try:
             datetime.strptime(end_date_str, '%Y-%m-%d')
             invoices = invoices.filter(created_at__date__lte=end_date_str)
@@ -1772,14 +1840,24 @@ def invoice_report_download_pdf_view(request):
     if is_admin and distributor_id:
         invoices = invoices.filter(distributor_id=distributor_id)
 
-    if start_date_str:
+    if start_date_str and end_date_str:
+        try:
+            d_start = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            d_end = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            if d_start > d_end:
+                messages.error(request, f"Cannot generate PDF: Invalid date range (From Date {start_date_str} is after To Date {end_date_str}).")
+                return redirect('invoice_reports')
+            invoices = invoices.filter(created_at__date__gte=d_start, created_at__date__lte=d_end)
+        except (ValueError, TypeError):
+            messages.error(request, "Invalid date format for PDF report.")
+            return redirect('invoice_reports')
+    elif start_date_str:
         try:
             datetime.strptime(start_date_str, '%Y-%m-%d')
             invoices = invoices.filter(created_at__date__gte=start_date_str)
         except (ValueError, TypeError):
             pass
-
-    if end_date_str:
+    elif end_date_str:
         try:
             datetime.strptime(end_date_str, '%Y-%m-%d')
             invoices = invoices.filter(created_at__date__lte=end_date_str)
