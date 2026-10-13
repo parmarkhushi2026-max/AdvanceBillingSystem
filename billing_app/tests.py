@@ -1280,6 +1280,23 @@ class QRCodeDecoderTests(TestCase):
         self.assertContains(response, 'advancebilling@upi')
         self.assertContains(response, 'Decoded Successfully')
 
+    def test_api_qr_decode_with_opencv_rotated_image(self):
+        from PIL import Image
+        from io import BytesIO
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        # Load and rotate QR image by 20 degrees to verify OpenCV detector handles rotation
+        pil_img = Image.open(BytesIO(self.qr_bytes)).rotate(20, expand=True, fillcolor='white')
+        rot_buf = BytesIO()
+        pil_img.save(rot_buf, format='PNG')
+        upload = SimpleUploadedFile('rotated_qr.png', rot_buf.getvalue(), content_type='image/png')
+
+        response = self.client.post(reverse('api_qr_decode'), {'image': upload}, format='multipart')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['data'], self.test_payload)
+        self.assertIn('OpenCV', data['decoded_by'])
+
 
 
 

@@ -350,8 +350,12 @@
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem;">
                         <span class="result-badge badge-upi">Type: {{ result.payload_type }}</span>
                         <span class="result-badge badge-inv">Format: {{ result.format }}</span>
-                        <span class="result-badge badge-txt">Version {{ result.version }} ({{ result.grid_size }})</span>
-                        <span class="result-badge badge-txt">Mask #{{ result.mask_pattern }}</span>
+                        {% if result.decoded_by %}
+                            <span class="result-badge" style="background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe;"><i class="fa-solid fa-eye"></i> Engine: {{ result.decoded_by }}</span>
+                        {% endif %}
+                        {% if result.version %}
+                            <span class="result-badge badge-txt">Version {{ result.version }} ({{ result.grid_size }})</span>
+                        {% endif %}
                     </div>
 
                     <!-- Raw Decoded Text -->

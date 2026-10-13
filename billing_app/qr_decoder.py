@@ -1,8 +1,23 @@
 import base64
+import os
 import re
 from io import BytesIO
 from urllib.parse import urlparse, parse_qs
 from PIL import Image
+import numpy as np
+
+# Optional / Primary Computer Vision Engines
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+
+try:
+    # Attempt loading pyzbar if available
+    from pyzbar import pyzbar
+except Exception:
+    pyzbar = None
+
 import qrcode
 from qrcode import util, base
 from qrcode.main import QRCode
@@ -93,9 +108,75 @@ def parse_qr_payload(raw_text: str) -> dict:
     return result
 
 
-def _decode_qr_matrix(grid: list[list[bool]], v: int, best_mask: int, ec_level: int) -> str | None:
+def _decode_with_opencv(pil_img: Image.Image) -> tuple[str | None, list | None]:
     """
-    Decodes the unmasked payload bitstream from an extracted binary QR module grid.
+    Decodes QR code using OpenCV (cv2.QRCodeDetector).
+    Applies multiple adaptive vision strategies (color, grayscale, contrast enhancement).
+    """
+    if cv2 is None:
+        return None, None
+
+    try:
+        # Convert PIL to BGR OpenCV format
+        rgb_arr = np.array(pil_img.convert('RGB'))
+        bgr_img = cv2.cvtColor(rgb_arr, cv2.COLOR_RGB2BGR)
+
+        detector = cv2.QRCodeDetector()
+
+        # Strategy 1: Standard color image
+        data, bbox, _ = detector.detectAndDecode(bgr_img)
+        if data and data.strip():
+            bbox_list = bbox.tolist() if bbox is not None else None
+            return data.strip(), bbox_list
+
+        # Strategy 2: Grayscale image
+        gray_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2GRAY)
+        data, bbox, _ = detector.detectAndDecode(gray_img)
+        if data and data.strip():
+            bbox_list = bbox.tolist() if bbox is not None else None
+            return data.strip(), bbox_list
+
+        # Strategy 3: Otsu thresholding
+        _, otsu_img = cv2.threshold(gray_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        data, bbox, _ = detector.detectAndDecode(otsu_img)
+        if data and data.strip():
+            bbox_list = bbox.tolist() if bbox is not None else None
+            return data.strip(), bbox_list
+
+        # Strategy 4: Inverted Otsu (for white-on-dark QR codes)
+        inv_otsu = cv2.bitwise_not(otsu_img)
+        data, bbox, _ = detector.detectAndDecode(inv_otsu)
+        if data and data.strip():
+            bbox_list = bbox.tolist() if bbox is not None else None
+            return data.strip(), bbox_list
+
+    except Exception:
+        pass
+
+    return None, None
+
+
+def _decode_with_pyzbar(pil_img: Image.Image) -> str | None:
+    """
+    Decodes QR code using pyzbar if available.
+    """
+    if pyzbar is None:
+        return None
+
+    try:
+        decoded_objs = pyzbar.decode(pil_img)
+        for obj in decoded_objs:
+            if obj.type == 'QRCODE' and obj.data:
+                return obj.data.decode('utf-8', errors='replace').strip()
+    except Exception:
+        pass
+
+    return None
+
+
+def _decode_qr_matrix_fallback(grid: list[list[bool]], v: int, best_mask: int, ec_level: int) -> str | None:
+    """
+    Pure Python fallback bitstream decoder for sampled QR module grids.
     """
     N = len(grid)
     ec_map = {
@@ -121,7 +202,6 @@ def _decode_qr_matrix(grid: list[list[bool]], v: int, best_mask: int, ec_level: 
 
     mask_func = util.mask_func(best_mask)
 
-    # Read raw bits in reverse zigzag order
     raw_bits = []
     inc = -1
     row = N - 1
@@ -253,50 +333,20 @@ def _decode_qr_matrix(grid: list[list[bool]], v: int, best_mask: int, ec_level: 
     return None
 
 
-def decode_qr_image(img_input) -> dict:
+def _decode_native_grid(img_gray: Image.Image) -> tuple[str | None, int, str, int]:
     """
-    Decodes a QR code from an image file, file-like buffer, base64 string, or PIL Image.
-    Returns a structured dictionary with success status, extracted data, and parsed metadata.
+    Detects and samples QR grid using pure Python PIL module analysis.
     """
-    try:
-        if isinstance(img_input, str):
-            if img_input.startswith('data:image'):
-                img_input = img_input.split(',', 1)[1]
-            img_bytes = base64.b64decode(img_input)
-            img = Image.open(BytesIO(img_bytes))
-        elif isinstance(img_input, bytes):
-            img = Image.open(BytesIO(img_input))
-        elif hasattr(img_input, 'read'):
-            # File-like object (e.g. Django UploadedFile)
-            img_input.seek(0)
-            img = Image.open(BytesIO(img_input.read()))
-        elif isinstance(img_input, Image.Image):
-            img = img_input
-        else:
-            return {'success': False, 'error': 'Invalid image format provided.'}
-    except Exception as e:
-        return {'success': False, 'error': f'Failed to open image: {str(e)}'}
-
-    # Normalize to grayscale
-    img_gray = img.convert('L')
     w, h = img_gray.size
-
-    # Check for minimum reasonable dimension
-    if w < 20 or h < 20:
-        return {'success': False, 'error': 'Image is too small to contain a valid QR code.'}
-
     min_val, max_val = img_gray.getextrema()
     if min_val == max_val:
-        return {'success': False, 'error': 'Blank or uniform image; no QR pattern detected.'}
+        return None, 0, "", 0
 
-    # Try normal polarity (dark modules on white) and inverted (white modules on dark)
     polarities = [False, True]
-
     for invert in polarities:
         pixels = img_gray.load()
         threshold = (min_val + max_val) // 2
 
-        # Bounding box of target modules
         min_x, min_y = w, h
         max_x, max_y = 0, 0
         for y in range(h):
@@ -314,7 +364,6 @@ def decode_qr_image(img_input) -> dict:
         qr_w = max_x - min_x + 1
         qr_h = max_y - min_y + 1
 
-        # Search for valid version N using timing patterns
         best_N = None
         best_v = None
         best_score = -1
@@ -328,7 +377,6 @@ def decode_qr_image(img_input) -> dict:
 
             timing_matches = 0
             total_timing = 0
-            # Horizontal timing pattern check on row 6
             for c in range(8, N - 8):
                 sx = int(min_x + (c + 0.5) * m_size_x)
                 sy = int(min_y + (6 + 0.5) * m_size_y)
@@ -338,7 +386,6 @@ def decode_qr_image(img_input) -> dict:
                         timing_matches += 1
                     total_timing += 1
 
-            # Vertical timing pattern check on col 6
             for r in range(8, N - 8):
                 sx = int(min_x + (6 + 0.5) * m_size_x)
                 sy = int(min_y + (r + 0.5) * m_size_y)
@@ -365,7 +412,6 @@ def decode_qr_image(img_input) -> dict:
         m_size_x = qr_w / N
         m_size_y = qr_h / N
 
-        # Sample grid modules with 5-point voting
         grid = []
         for r in range(N):
             row = []
@@ -388,7 +434,6 @@ def decode_qr_image(img_input) -> dict:
                 row.append(dark_count >= 3)
             grid.append(row)
 
-        # Read format bits
         format_coords = [
             (8, 0), (8, 1), (8, 2), (8, 3), (8, 4), (8, 5), (8, 7), (8, 8),
             (7, 8), (5, 8), (4, 8), (3, 8), (2, 8), (1, 8), (0, 8)
@@ -400,22 +445,90 @@ def decode_qr_image(img_input) -> dict:
         best_mask = (unmasked_fmt >> 10) & 0b111
         ec_level = (unmasked_fmt >> 13) & 0b11
 
-        decoded_text = _decode_qr_matrix(grid, v, best_mask, ec_level)
+        decoded_text = _decode_qr_matrix_fallback(grid, v, best_mask, ec_level)
         if decoded_text is not None:
-            parsed_meta = parse_qr_payload(decoded_text)
-            return {
-                'success': True,
-                'data': decoded_text,
-                'format': 'QR_CODE',
-                'version': v,
-                'grid_size': f'{N}x{N}',
-                'mask_pattern': best_mask,
-                'payload_type': parsed_meta['type'],
-                'summary': parsed_meta['summary'],
-                'parsed': parsed_meta['fields'],
-                'image_size': f'{w}x{h}',
-                'inverted': invert,
-            }
+            return decoded_text, v, f'{N}x{N}', best_mask
+
+    return None, 0, "", 0
+
+
+def decode_qr_image(img_input) -> dict:
+    """
+    Decodes a QR code from an uploaded image using OpenCV (cv2.QRCodeDetector) or pyzbar,
+    with an automatic pure-Python fallback.
+    Returns structured JSON with decoded payload, parser metadata, and engine details.
+    """
+    try:
+        if isinstance(img_input, str):
+            if img_input.startswith('data:image'):
+                img_input = img_input.split(',', 1)[1]
+            img_bytes = base64.b64decode(img_input)
+            img = Image.open(BytesIO(img_bytes))
+        elif isinstance(img_input, bytes):
+            img = Image.open(BytesIO(img_input))
+        elif hasattr(img_input, 'read'):
+            img_input.seek(0)
+            img = Image.open(BytesIO(img_input.read()))
+        elif isinstance(img_input, Image.Image):
+            img = img_input
+        else:
+            return {'success': False, 'error': 'Invalid image format provided.'}
+    except Exception as e:
+        return {'success': False, 'error': f'Failed to open image: {str(e)}'}
+
+    w, h = img.size
+    if w < 20 or h < 20:
+        return {'success': False, 'error': 'Image is too small to contain a valid QR code.'}
+
+    decoded_text = None
+    engine_used = None
+    bounding_box = None
+    version = None
+    grid_size = None
+    mask_pattern = None
+
+    # Step 1: Attempt decoding using OpenCV (cv2.QRCodeDetector)
+    if cv2 is not None:
+        cv_text, cv_bbox = _decode_with_opencv(img)
+        if cv_text:
+            decoded_text = cv_text
+            engine_used = f"OpenCV {cv2.__version__} (cv2.QRCodeDetector)"
+            bounding_box = cv_bbox
+
+    # Step 2: Attempt decoding using pyzbar (if available and not yet decoded)
+    if not decoded_text and pyzbar is not None:
+        pz_text = _decode_with_pyzbar(img)
+        if pz_text:
+            decoded_text = pz_text
+            engine_used = "pyzbar"
+
+    # Step 3: Attempt decoding using Native Pure-Python Matrix Scanner
+    if not decoded_text:
+        img_gray = img.convert('L')
+        native_text, v, g_size, mask = _decode_native_grid(img_gray)
+        if native_text:
+            decoded_text = native_text
+            engine_used = "Native Matrix Engine"
+            version = v
+            grid_size = g_size
+            mask_pattern = mask
+
+    if decoded_text:
+        parsed_meta = parse_qr_payload(decoded_text)
+        return {
+            'success': True,
+            'data': decoded_text,
+            'decoded_by': engine_used,
+            'format': 'QR_CODE',
+            'version': version,
+            'grid_size': grid_size,
+            'mask_pattern': mask_pattern,
+            'payload_type': parsed_meta['type'],
+            'summary': parsed_meta['summary'],
+            'parsed': parsed_meta['fields'],
+            'image_size': f'{w}x{h}',
+            'bounding_box': bounding_box,
+        }
 
     return {
         'success': False,
