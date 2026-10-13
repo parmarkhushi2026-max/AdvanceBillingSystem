@@ -2394,3 +2394,123 @@ def api_product_delete(request, product_id):
     }, status=200)
 
 
+# =========================================================================
+# QR CODE DECODER STUDIO & UPLOADED IMAGE API ENDPOINTS
+# =========================================================================
+
+from .qr_decoder import decode_qr_image, parse_qr_payload
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_qr_decode(request):
+    """
+    Dedicated API endpoint for decoding QR codes from uploaded images.
+    Accepts:
+    - Multipart file upload under 'image', 'file', or 'qr_image'
+    - JSON payload with base64 encoded image string under 'image'
+    Returns structured JSON with decoded string, version, type, and parsed metadata.
+    """
+    uploaded_file = (
+        request.FILES.get('image') or
+        request.FILES.get('file') or
+        request.FILES.get('qr_image')
+    )
+
+    image_input = None
+
+    if uploaded_file:
+        image_input = uploaded_file
+    elif request.content_type == 'application/json':
+        try:
+            body_data = json.loads(request.body.decode('utf-8'))
+            image_input = body_data.get('image') or body_data.get('file')
+        except Exception:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON request payload.'}, status=400)
+    elif request.POST.get('image_base64'):
+        image_input = request.POST.get('image_base64')
+
+    if not image_input:
+        return JsonResponse({
+            'success': False,
+            'error': 'No image provided. Please upload an image file using multipart/form-data or provide a base64 image string.'
+        }, status=400)
+
+    result = decode_qr_image(image_input)
+    status_code = 200 if result.get('success') else 422
+    return JsonResponse(result, status=status_code)
+
+
+def qr_decoder_view(request):
+    """
+    Interactive Web Studio for uploading and decoding QR code images.
+    Includes instant preview, format breakdown, and 1-click test samples.
+    """
+    initialize_default_users()
+    result = None
+    uploaded_b64 = None
+
+    if request.method == 'POST':
+        uploaded_file = (
+            request.FILES.get('image') or
+            request.FILES.get('file') or
+            request.FILES.get('qr_image')
+        )
+        if uploaded_file:
+            # Generate base64 for browser preview
+            try:
+                uploaded_file.seek(0)
+                file_bytes = uploaded_file.read()
+                uploaded_b64 = f"data:image/png;base64,{base64.b64encode(file_bytes).decode('utf-8')}"
+                result = decode_qr_image(BytesIO(file_bytes))
+            except Exception as e:
+                result = {'success': False, 'error': f"Failed to process uploaded file: {str(e)}"}
+        else:
+            result = {'success': False, 'error': 'Please select an image file to upload.'}
+
+    # Generate sample QR codes for immediate testing in the UI
+    sample_qrs = []
+    sample_payloads = [
+        {
+            'title': 'UPI Payment QR',
+            'desc': 'Advance Billing UPI payment string with amount and VPA',
+            'data': 'upi://pay?pa=advancebilling@upi&pn=AdvanceBillingAgency&am=2499.00&cu=INR&tn=InvoiceSettlement'
+        },
+        {
+            'title': 'Invoice Record QR',
+            'desc': 'Formal invoice verification ledger data with customer info',
+            'data': 'Invoice No: INV-2026-8801\nDate: 2026-10-13 12:30\nCustomer: Priya Sharma\nTotal Bill: Rs.2499.00'
+        },
+        {
+            'title': 'Direct Portal Link',
+            'desc': 'Secure direct HTTPS URL to customer billing receipt',
+            'data': 'https://advancebilling.com/invoice/verify/INV-2026-8801'
+        }
+    ]
+
+    for sp in sample_payloads:
+        try:
+            q = qrcode.QRCode(box_size=6, border=2)
+            q.add_data(sp['data'])
+            q.make(fit=True)
+            buf = BytesIO()
+            q.make_image(fill_color='black', back_color='white').save(buf, format='PNG')
+            b64_str = f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode('utf-8')}"
+            sample_qrs.append({
+                'title': sp['title'],
+                'desc': sp['desc'],
+                'data': sp['data'],
+                'b64': b64_str
+            })
+        except Exception:
+            pass
+
+    context = {
+        'result': result,
+        'uploaded_b64': uploaded_b64,
+        'sample_qrs': sample_qrs,
+    }
+    return render(request, 'billing/qr_decoder.html', context)
+
+
+

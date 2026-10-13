@@ -29,6 +29,12 @@ urlpatterns = [
     path('api/products/<int:product_id>/delete/', views.api_product_delete, name='api_product_delete'),
 
 
+    # QR Code Decoder Endpoints
+    path('api/qr/decode/', views.api_qr_decode, name='api_qr_decode'),
+    path('api/qr-decode/', views.api_qr_decode, name='api_qr_decode_alt'),
+    path('qr-decoder/', views.qr_decoder_view, name='qr_decoder_view'),
+    path('qr/decoder/', views.qr_decoder_view, name='qr_decoder_view_alt'),
+
     # Admin Portal
     path('admin/dashboard/', views.admin_dashboard_view, name='admin_dashboard'),
     path('admin/reports/', views.admin_reports_view, name='admin_reports'),

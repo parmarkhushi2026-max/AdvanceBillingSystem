@@ -1,0 +1,515 @@
+{% extends 'base.html' %}
+
+{% block title %}QR Code Decoder Studio - Advance Billing System{% endblock %}
+
+{% block content %}
+<style>
+    .qr-page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .qr-breadcrumbs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-bottom: 6px;
+    }
+
+    .qr-breadcrumbs a {
+        color: #64748b;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    .qr-breadcrumbs a:hover {
+        color: #4f46e5;
+    }
+
+    .qr-grid-layout {
+        display: grid;
+        grid-template-columns: 1fr 1.2fr;
+        gap: 1.5rem;
+        align-items: start;
+    }
+
+    @media (max-width: 992px) {
+        .qr-grid-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .qr-card {
+        background: #ffffff;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+        padding: 1.75rem;
+        transition: box-shadow 0.2s ease;
+    }
+
+    /* Drag and Drop Zone */
+    .dropzone-container {
+        border: 2px dashed #cbd5e1;
+        border-radius: 16px;
+        padding: 2.5rem 1.5rem;
+        text-align: center;
+        background: #f8fafc;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        position: relative;
+    }
+
+    .dropzone-container:hover, .dropzone-container.dragover {
+        border-color: #4f46e5;
+        background: #eef2ff;
+        transform: translateY(-2px);
+    }
+
+    .dropzone-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+        color: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 8px 16px rgba(79, 70, 229, 0.2);
+    }
+
+    .dropzone-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 0.35rem;
+    }
+
+    .dropzone-sub {
+        font-size: 0.85rem;
+        color: #64748b;
+    }
+
+    .preview-box {
+        margin-top: 1.25rem;
+        text-align: center;
+        display: none;
+        background: #ffffff;
+        padding: 1rem;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .preview-img {
+        max-width: 220px;
+        max-height: 220px;
+        border-radius: 10px;
+        object-fit: contain;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .btn-decode-submit {
+        width: 100%;
+        background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+        color: #ffffff;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 1.25rem;
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+        transition: all 0.2s;
+    }
+
+    .btn-decode-submit:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(79, 70, 229, 0.35);
+    }
+
+    /* Result Panel */
+    .result-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .badge-upi { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+    .badge-inv { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .badge-url { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .badge-txt { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+    .decoded-raw-box {
+        background: #0f172a;
+        color: #38bdf8;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.9rem;
+        padding: 1.25rem;
+        border-radius: 14px;
+        word-break: break-all;
+        white-space: pre-wrap;
+        position: relative;
+        margin: 1rem 0;
+        max-height: 220px;
+        overflow-y: auto;
+    }
+
+    .btn-copy-code {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .btn-copy-code:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    .parsed-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+
+    .parsed-table td {
+        padding: 10px 14px;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.88rem;
+    }
+
+    .parsed-table td.col-key {
+        font-weight: 700;
+        color: #64748b;
+        width: 35%;
+        text-transform: capitalize;
+    }
+
+    .parsed-table td.col-val {
+        color: #0f172a;
+        font-weight: 600;
+    }
+
+    /* Samples Strip */
+    .sample-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0.85rem;
+        background: #f8fafc;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: 0.75rem;
+    }
+
+    .sample-card:hover {
+        border-color: #4f46e5;
+        background: #ffffff;
+        transform: translateX(4px);
+        box-shadow: 0 2px 8px rgba(79, 70, 229, 0.08);
+    }
+
+    .sample-thumb {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        object-fit: contain;
+    }
+</style>
+
+<div class="qr-page-header">
+    <div>
+        <div class="qr-breadcrumbs">
+            <a href="{% url 'portal_select' %}"><i class="fa-solid fa-house"></i> Home</a>
+            <span>/</span>
+            <span style="color: #0f172a; font-weight: 600;">QR Decoder Studio</span>
+        </div>
+        <h1 style="font-size: 1.85rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.02em;">
+            <i class="fa-solid fa-qrcode" style="color: #4f46e5; margin-right: 8px;"></i> QR Code Decoder Studio
+        </h1>
+        <p style="color: #64748b; margin: 6px 0 0 0; font-size: 0.95rem;">
+            Upload or drag & drop any QR code image (UPI Pay, Invoices, URLs, Auth tokens) to decode its payload and parse structured metadata in real-time.
+        </p>
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+        <a href="#api-docs" class="btn-action-pill btn-csv" style="padding: 10px 18px; border-radius: 12px; text-decoration: none; font-weight: 700; color: #0f172a; border: 1.5px solid #cbd5e1; display: inline-flex; align-items: center; gap: 8px; background: #fff;">
+            <i class="fa-solid fa-code"></i> API Endpoint Spec
+        </a>
+        <a href="{% url 'qr_decoder_view' %}" class="btn-action-pill" style="padding: 10px 18px; border-radius: 12px; text-decoration: none; font-weight: 700; color: #4f46e5; background: #eef2ff; border: 1.5px solid #c7d2fe; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-arrow-rotate-right"></i> Reset Studio
+        </a>
+    </div>
+</div>
+
+<div class="qr-grid-layout">
+    <!-- LEFT: Upload Card -->
+    <div class="qr-card">
+        <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-cloud-arrow-up" style="color: #4f46e5;"></i> Upload QR Code Image
+        </h3>
+
+        <form id="qrUploadForm" method="POST" action="{% url 'qr_decoder_view' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" id="qrFileInput" name="image" accept="image/*" style="display: none;">
+            <input type="hidden" id="hiddenBase64Input" name="image_base64" value="">
+
+            <div class="dropzone-container" id="dropzoneBox" onclick="document.getElementById('qrFileInput').click();">
+                <div class="dropzone-icon">
+                    <i class="fa-solid fa-qrcode"></i>
+                </div>
+                <div class="dropzone-title">Click to upload or drag & drop QR image</div>
+                <div class="dropzone-sub">Supports PNG, JPG, JPEG, WEBP files</div>
+            </div>
+
+            <!-- Preview Box -->
+            <div class="preview-box" id="previewContainer" {% if uploaded_b64 %}style="display: block;"{% endif %}>
+                <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase;">Selected QR Image</div>
+                <img id="previewImgElement" class="preview-img" src="{{ uploaded_b64|default:'' }}" alt="QR Code Preview">
+                <div style="margin-top: 8px;">
+                    <button type="button" class="btn-action-pill btn-csv" style="padding: 4px 10px; font-size: 0.75rem;" onclick="clearUploadedImage()">Remove Image</button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-decode-submit" id="btnSubmitDecode">
+                <i class="fa-solid fa-bolt"></i> Decode QR Code
+            </button>
+        </form>
+
+        <!-- 1-Click Interactive Samples -->
+        {% if sample_qrs %}
+        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #f1f5f9;">
+            <div style="font-size: 0.82rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.85rem;">
+                <i class="fa-solid fa-wand-magic-sparkles" style="color: #f59e0b; margin-right: 4px;"></i> 1-Click Instant Test Samples
+            </div>
+            {% for s in sample_qrs %}
+            <div class="sample-card" onclick="loadSampleQR('{{ s.b64 }}', '{{ s.data|escapejs }}')">
+                <img src="{{ s.b64 }}" class="sample-thumb" alt="{{ s.title }}">
+                <div style="flex: 1;">
+                    <div style="font-size: 0.9rem; font-weight: 700; color: #0f172a;">{{ s.title }}</div>
+                    <div style="font-size: 0.78rem; color: #64748b;">{{ s.desc }}</div>
+                </div>
+                <i class="fa-solid fa-arrow-right" style="color: #94a3b8; font-size: 0.85rem;"></i>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- RIGHT: Decoded Payload Results -->
+    <div class="qr-card">
+        <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0 0 1rem 0; display: flex; align-items: center; justify-content: space-between;">
+            <span style="display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-microchip" style="color: #06b6d4;"></i> Decoded Payload & Analysis
+            </span>
+            <span id="liveStatusBadge">
+                {% if result %}
+                    {% if result.success %}
+                        <span class="result-badge badge-inv"><i class="fa-solid fa-circle-check"></i> Decoded Successfully</span>
+                    {% else %}
+                        <span class="result-badge" style="background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;"><i class="fa-solid fa-triangle-exclamation"></i> Decode Failed</span>
+                    {% endif %}
+                {% else %}
+                    <span class="result-badge badge-txt"><i class="fa-solid fa-circle-notch"></i> Awaiting Upload</span>
+                {% endif %}
+            </span>
+        </h3>
+
+        <div id="resultContentArea">
+            {% if result %}
+                {% if result.success %}
+                    <!-- Meta Badges -->
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem;">
+                        <span class="result-badge badge-upi">Type: {{ result.payload_type }}</span>
+                        <span class="result-badge badge-inv">Format: {{ result.format }}</span>
+                        <span class="result-badge badge-txt">Version {{ result.version }} ({{ result.grid_size }})</span>
+                        <span class="result-badge badge-txt">Mask #{{ result.mask_pattern }}</span>
+                    </div>
+
+                    <!-- Raw Decoded Text -->
+                    <div style="position: relative;">
+                        <div style="font-size: 0.8rem; font-weight: 700; color: #475569; text-transform: uppercase;">Raw Payload Content:</div>
+                        <div class="decoded-raw-box" id="rawDecodedText">{{ result.data }}<button type="button" class="btn-copy-code" onclick="copyDecodedText()"><i class="fa-regular fa-copy"></i> Copy</button></div>
+                    </div>
+
+                    <!-- Parsed Breakdown Table -->
+                    {% if result.parsed %}
+                    <div style="margin-top: 1.25rem;">
+                        <div style="font-size: 0.85rem; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.04em;">
+                            <i class="fa-solid fa-list-check" style="color: #4f46e5; margin-right: 6px;"></i> Structured Parameters
+                        </div>
+                        <table class="parsed-table">
+                            <tbody>
+                                {% for key, val in result.parsed.items %}
+                                <tr>
+                                    <td class="col-key">{{ key|title }}</td>
+                                    <td class="col-val">{{ val }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    {% if result.payload_type == 'URL' %}
+                    <div style="margin-top: 1rem;">
+                        <a href="{{ result.data }}" target="_blank" class="btn-action-pill" style="background: #4f46e5; color: white; text-decoration: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Destination Link
+                        </a>
+                    </div>
+                    {% endif %}
+
+                {% else %}
+                    <!-- Error State -->
+                    <div style="background: #fef2f2; border: 1.5px solid #f87171; color: #991b1b; padding: 1.5rem; border-radius: 14px; text-align: center; margin-top: 1rem;">
+                        <i class="fa-solid fa-triangle-exclamation" style="font-size: 2.5rem; color: #dc2626; margin-bottom: 0.75rem; display: block;"></i>
+                        <h4 style="margin: 0 0 6px 0; font-size: 1.1rem; font-weight: 800;">Decoding Failed</h4>
+                        <p style="margin: 0; font-size: 0.9rem;">{{ result.error }}</p>
+                    </div>
+                {% endif %}
+            {% else %}
+                <!-- Empty Placeholder -->
+                <div style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
+                    <i class="fa-solid fa-qrcode" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.4;"></i>
+                    <h4 style="color: #475569; font-size: 1.1rem; margin: 0 0 6px 0;">No QR Code Decoded Yet</h4>
+                    <p style="margin: 0; font-size: 0.88rem; max-width: 320px; margin: 0 auto;">Upload an image or pick a 1-click test sample to decode and view structured payload details.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- API Developer Documentation Card -->
+<div class="qr-card" id="api-docs" style="margin-top: 2rem;">
+    <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-terminal" style="color: #4f46e5;"></i> REST API Endpoint: POST /api/qr/decode/
+    </h3>
+    <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1.25rem;">
+        Integrate QR decoding programmatically into your scripts, mobile apps, or billing automation workflows. Accepts multipart image file uploads or JSON base64 payloads.
+    </p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+        <div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 6px;">cURL Multipart File Upload:</div>
+            <pre style="background: #0f172a; color: #38bdf8; padding: 1rem; border-radius: 12px; font-size: 0.82rem; overflow-x: auto; margin: 0;">curl -X POST http://127.0.0.1:8000/api/qr/decode/ \
+  -F "image=@/path/to/invoice_qr.png"</pre>
+        </div>
+        <div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 6px;">JavaScript Fetch JSON Response:</div>
+            <pre style="background: #0f172a; color: #38bdf8; padding: 1rem; border-radius: 12px; font-size: 0.82rem; overflow-x: auto; margin: 0;">const formData = new FormData();
+formData.append('image', fileInput.files[0]);
+const res = await fetch('/api/qr/decode/', {
+  method: 'POST',
+  body: formData
+});
+const data = await res.json();
+console.log(data.data, data.parsed);</pre>
+        </div>
+    </div>
+</div>
+
+<script>
+// Drag and Drop & Image Preview Logic
+const dropzone = document.getElementById('dropzoneBox');
+const fileInput = document.getElementById('qrFileInput');
+const previewContainer = document.getElementById('previewContainer');
+const previewImg = document.getElementById('previewImgElement');
+const hiddenBase64 = document.getElementById('hiddenBase64Input');
+const form = document.getElementById('qrUploadForm');
+
+['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+    }, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+    }, false);
+});
+
+dropzone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files.length > 0) {
+        fileInput.files = files;
+        showFilePreview(files[0]);
+    }
+});
+
+fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) {
+        showFilePreview(fileInput.files[0]);
+    }
+});
+
+function showFilePreview(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        previewImg.src = e.target.result;
+        previewContainer.style.display = 'block';
+        hiddenBase64.value = '';
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearUploadedImage() {
+    fileInput.value = '';
+    hiddenBase64.value = '';
+    previewImg.src = '';
+    previewContainer.style.display = 'none';
+}
+
+function loadSampleQR(b64, text) {
+    hiddenBase64.value = b64;
+    previewImg.src = b64;
+    previewContainer.style.display = 'block';
+    // Automatically submit form with this sample to demonstrate decode
+    form.submit();
+}
+
+function copyDecodedText() {
+    const textEl = document.getElementById('rawDecodedText');
+    if (!textEl) return;
+    const cleanText = textEl.innerText.replace('Copy', '').trim();
+    navigator.clipboard.writeText(cleanText).then(() => {
+        const btn = textEl.querySelector('.btn-copy-code');
+        if (btn) {
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+            setTimeout(() => { btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy'; }, 2000);
+        }
+    });
+}
+</script>
+{% endblock %}

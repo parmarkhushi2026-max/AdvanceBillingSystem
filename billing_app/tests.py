@@ -1207,6 +1207,81 @@ class InvoiceReportGeneratorTestCase(TestCase):
         self.assertIn('Invalid date range', response.context['date_range_error'])
 
 
+class QRCodeDecoderTests(TestCase):
+    def setUp(self):
+        import qrcode
+        from io import BytesIO
+        self.test_payload = 'upi://pay?pa=advancebilling@upi&pn=AdvanceAgency&am=1200.00&cu=INR'
+        qr = qrcode.QRCode(box_size=6, border=2)
+        qr.add_data(self.test_payload)
+        qr.make(fit=True)
+        buf = BytesIO()
+        qr.make_image(fill_color='black', back_color='white').save(buf, format='PNG')
+        self.qr_bytes = buf.getvalue()
+
+    def test_api_qr_decode_with_uploaded_file(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        upload = SimpleUploadedFile('test_qr.png', self.qr_bytes, content_type='image/png')
+        response = self.client.post(reverse('api_qr_decode'), {'image': upload}, format='multipart')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['data'], self.test_payload)
+        self.assertEqual(data['payload_type'], 'UPI_PAYMENT')
+        self.assertEqual(data['parsed']['upi_id'], 'advancebilling@upi')
+        self.assertEqual(data['parsed']['amount'], '1200.00')
+
+    def test_api_qr_decode_with_base64_json(self):
+        import base64
+        import json
+        b64_str = f"data:image/png;base64,{base64.b64encode(self.qr_bytes).decode('utf-8')}"
+        response = self.client.post(
+            reverse('api_qr_decode'),
+            data=json.dumps({'image': b64_str}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['data'], self.test_payload)
+
+    def test_api_qr_decode_no_image_returns_400(self):
+        response = self.client.post(reverse('api_qr_decode'), {})
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertFalse(data['success'])
+        self.assertIn('No image provided', data['error'])
+
+    def test_api_qr_decode_blank_image_returns_422(self):
+        from PIL import Image
+        from io import BytesIO
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        blank_img = Image.new('RGB', (100, 100), color='white')
+        buf = BytesIO()
+        blank_img.save(buf, format='PNG')
+        upload = SimpleUploadedFile('blank.png', buf.getvalue(), content_type='image/png')
+
+        response = self.client.post(reverse('api_qr_decode'), {'image': upload}, format='multipart')
+        self.assertEqual(response.status_code, 422)
+        data = response.json()
+        self.assertFalse(data['success'])
+
+    def test_qr_decoder_view_get(self):
+        response = self.client.get(reverse('qr_decoder_view'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'QR Code Decoder Studio')
+        self.assertContains(response, 'Upload QR Code Image')
+
+    def test_qr_decoder_view_post_file(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        upload = SimpleUploadedFile('test_qr.png', self.qr_bytes, content_type='image/png')
+        response = self.client.post(reverse('qr_decoder_view'), {'image': upload})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'advancebilling@upi')
+        self.assertContains(response, 'Decoded Successfully')
+
+
+
 
 
 

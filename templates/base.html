@@ -223,6 +223,9 @@
                         <a href="{% url 'create_invoice' %}" class="sidebar-link {% if request.resolver_match.url_name == 'create_invoice' %}active{% endif %}" style="background: rgba(16, 185, 129, 0.1); color: #34d399; border-left: 3px solid #10b981;">
                             <i class="fa-solid fa-receipt"></i> <span>Quick QR Bill</span>
                         </a>
+                        <a href="{% url 'qr_decoder_view' %}" class="sidebar-link {% if request.resolver_match.url_name in 'qr_decoder_view,qr_decoder_view_alt' %}active{% endif %}">
+                            <i class="fa-solid fa-qrcode"></i> <span>QR Code Decoder</span>
+                        </a>
                         <a href="/django-admin/" target="_blank" class="sidebar-link">
                             <i class="fa-solid fa-screwdriver-wrench"></i> <span>Django Backend Admin</span>
                         </a>
@@ -233,6 +236,9 @@
                         </a>
                         <a href="{% url 'create_invoice' %}" class="sidebar-link {% if request.resolver_match.url_name == 'create_invoice' %}active{% endif %}" style="background: rgba(16, 185, 129, 0.1); color: #34d399; border-left: 3px solid #10b981;">
                             <i class="fa-solid fa-receipt"></i> <span>Quick QR Bill</span>
+                        </a>
+                        <a href="{% url 'qr_decoder_view' %}" class="sidebar-link {% if request.resolver_match.url_name in 'qr_decoder_view,qr_decoder_view_alt' %}active{% endif %}">
+                            <i class="fa-solid fa-qrcode"></i> <span>QR Code Decoder</span>
                         </a>
                         
                         <div style="font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; margin: 1.5rem 0 0.5rem 0; padding-left: 1rem;">Management</div>
@@ -292,7 +298,10 @@
                     <span>AdvanceBilling</span>
                 </a>
 
-                <div class="nav-menu" style="display: flex; gap: 1rem;">
+                <div class="nav-menu" style="display: flex; gap: 1rem; align-items: center;">
+                    <a href="{% url 'qr_decoder_view' %}" class="nav-link" style="color: #94a3b8; text-decoration: none; padding: 8px 16px;">
+                        <i class="fa-solid fa-qrcode"></i> QR Decoder Studio
+                    </a>
                     <a href="{% url 'admin_login' %}" class="nav-link" style="color: #94a3b8; text-decoration: none; padding: 8px 16px;">
                         <i class="fa-solid fa-shield-halved"></i> Admin Login
                     </a>
