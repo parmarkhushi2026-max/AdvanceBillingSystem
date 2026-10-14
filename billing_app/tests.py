@@ -1297,6 +1297,106 @@ class QRCodeDecoderTests(TestCase):
         self.assertEqual(data['data'], self.test_payload)
         self.assertIn('OpenCV', data['decoded_by'])
 
+    def test_parse_invoice_qr_payload_items_and_total(self):
+        from .qr_decoder import parse_qr_payload
+        invoice_qr_text = (
+            "Invoice No: INV-2026-9999\n"
+            "Date: 2026-10-14 11:00\n"
+            "Customer: Priya Sharma\n"
+            "Products: Thermal Printer 80mm (x2), Paper Rolls (x5)\n"
+            "Total Bill: Rs.4500.00"
+        )
+        parsed = parse_qr_payload(invoice_qr_text)
+        self.assertEqual(parsed['type'], 'INVOICE')
+        self.assertIsNotNone(parsed.get('invoice_info'))
+        info = parsed['invoice_info']
+        self.assertEqual(info['invoice_number'], 'INV-2026-9999')
+        self.assertEqual(info['customer_name'], 'Priya Sharma')
+        self.assertEqual(info['total_bill'], 4500.0)
+        self.assertEqual(len(info['items']), 2)
+        self.assertEqual(info['items'][0]['name'], 'Thermal Printer 80mm')
+        self.assertEqual(info['items'][0]['quantity'], 2)
+        self.assertEqual(info['items'][1]['name'], 'Paper Rolls')
+        self.assertEqual(info['items'][1]['quantity'], 5)
+
+    def test_qr_decoder_view_renders_invoice_information(self):
+        import qrcode
+        from io import BytesIO
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        invoice_qr_text = (
+            "Invoice No: INV-TEST-1234\n"
+            "Date: 2026-10-14 11:30\n"
+            "Customer: Rajesh Kumar\n"
+            "Products: Barcode Scanner (x1)\n"
+            "Total Bill: Rs.3200.00"
+        )
+        qr = qrcode.QRCode(box_size=6, border=2)
+        qr.add_data(invoice_qr_text)
+        qr.make(fit=True)
+        buf = BytesIO()
+        qr.make_image(fill_color='black', back_color='white').save(buf, format='PNG')
+        upload = SimpleUploadedFile('inv_qr.png', buf.getvalue(), content_type='image/png')
+
+        response = self.client.post(reverse('qr_decoder_view'), {'image': upload})
+        self.assertEqual(response.status_code, 200)
+        # Verify rendered invoice information on the page
+        self.assertContains(response, 'INV-TEST-1234')
+        self.assertContains(response, 'Rajesh Kumar')
+        self.assertContains(response, 'Barcode Scanner')
+        self.assertContains(response, '3,200.00')
+        self.assertContains(response, 'Decoded QR Invoice')
+        self.assertContains(response, 'INVOICE SUMMARY')
+
+    def test_qr_decoder_view_renders_database_verified_invoice(self):
+        import qrcode
+        from io import BytesIO
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import Invoice, InvoiceItem
+
+        # Create or fetch an invoice in DB
+        inv = Invoice.objects.create(
+            invoice_number='INV-SYS-VERIFY',
+            customer_name='Aarav Mehta',
+            customer_phone='9876543210',
+            subtotal=1000.00,
+            tax_amount=180.00,
+            grand_total=1180.00,
+            payment_status='PAID',
+            payment_method='UPI QR Code'
+        )
+        InvoiceItem.objects.create(
+            invoice=inv,
+            product_name='High Speed Scanner',
+            quantity=1,
+            unit_price=1000.00,
+            tax_rate=18.00,
+            total=1180.00
+        )
+
+        inv_qr_text = (
+            f"Invoice No: {inv.invoice_number}\n"
+            f"Date: 2026-10-14 12:00\n"
+            f"Customer: {inv.customer_name}\n"
+            f"Products: High Speed Scanner (x1)\n"
+            f"Total Bill: Rs.{inv.grand_total}"
+        )
+        qr = qrcode.QRCode(box_size=6, border=2)
+        qr.add_data(inv_qr_text)
+        qr.make(fit=True)
+        buf = BytesIO()
+        qr.make_image(fill_color='black', back_color='white').save(buf, format='PNG')
+        upload = SimpleUploadedFile('verified_qr.png', buf.getvalue(), content_type='image/png')
+
+        response = self.client.post(reverse('qr_decoder_view'), {'image': upload})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Verified System Invoice')
+        self.assertContains(response, 'INV-SYS-VERIFY')
+        self.assertContains(response, 'Aarav Mehta')
+        self.assertContains(response, f'/invoice/{inv.id}/')
+        self.assertContains(response, f'/invoice/{inv.id}/pdf/')
+
+
 
 
 

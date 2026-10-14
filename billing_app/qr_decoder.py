@@ -18,9 +18,236 @@ try:
 except Exception:
     pyzbar = None
 
+import json
 import qrcode
 from qrcode import util, base
 from qrcode.main import QRCode
+
+
+def parse_invoice_items(items_raw) -> list:
+    """
+    Parses product/item strings or JSON structures into normalized list of item dictionaries:
+    [{'name': '...', 'quantity': 1, 'unit_price': ..., 'total': ...}]
+    Handles patterns such as:
+    - "Thermal Receipt Printer 80mm (x1), Wireless Barcode Scanner Pro (x1)"
+    - "Apple (x2), Milk (x1)"
+    - "Product A - Rs.500 (x2), Product B - Rs.250 (x1)"
+    - Multiline or JSON lists of items
+    """
+    if not items_raw:
+        return []
+
+    if isinstance(items_raw, list):
+        items = []
+        for it in items_raw:
+            if isinstance(it, dict):
+                name = it.get('name') or it.get('product_name') or it.get('title') or 'Item'
+                qty = it.get('quantity') or it.get('qty') or 1
+                try:
+                    qty = int(qty)
+                except (ValueError, TypeError):
+                    qty = 1
+                price = it.get('unit_price') or it.get('price') or it.get('rate')
+                tot = it.get('total') or it.get('amount')
+                items.append({
+                    'name': str(name).strip(),
+                    'quantity': qty,
+                    'unit_price': price,
+                    'total': tot
+                })
+            elif isinstance(it, str):
+                items.extend(parse_invoice_items(it))
+        return items
+
+    if not isinstance(items_raw, str):
+        return []
+
+    items = []
+    # Split by comma, semicolon, pipe, or newline
+    raw_lines = [l.strip() for l in re.split(r'[,;\n|]+', items_raw) if l.strip()]
+
+    for line in raw_lines:
+        qty = 1
+        unit_price = None
+        line_total = None
+
+        # Extract quantity like (x2), (2), x2, qty: 2
+        qty_match = re.search(r'\((?:x\s*)?(\d+)\s*\)|(?:^|\s)x\s*(\d+)(?:\s|$)|qty:\s*(\d+)', line, re.IGNORECASE)
+        if qty_match:
+            for g in qty_match.groups():
+                if g:
+                    try:
+                        qty = int(g)
+                        break
+                    except ValueError:
+                        pass
+            line = re.sub(r'\((?:x\s*)?(\d+)\s*\)|(?:^|\s)x\s*(\d+)(?:\s|$)|qty:\s*(\d+)', '', line, flags=re.IGNORECASE).strip()
+
+        # Extract price if present, e.g. - Rs.500 or @ 500 or ₹500
+        price_match = re.search(r'(?:[-@]|price:)\s*(?:Rs\.?|₹)?\s*([\d\.,]+)', line, re.IGNORECASE)
+        if price_match:
+            try:
+                unit_price = float(price_match.group(1).replace(',', ''))
+                line_total = round(unit_price * qty, 2)
+            except ValueError:
+                pass
+            line = re.sub(r'(?:[-@]|price:)\s*(?:Rs\.?|₹)?\s*[\d\.,]+', '', line, flags=re.IGNORECASE).strip()
+
+        clean_name = line.strip(' -:|,')
+        if clean_name and clean_name.lower() not in ['total', 'bill', 'customer']:
+            items.append({
+                'name': clean_name,
+                'quantity': qty,
+                'unit_price': unit_price,
+                'total': line_total
+            })
+
+    return items
+
+
+def extract_invoice_info(raw_text: str, fields: dict = None) -> dict | None:
+    """
+    Extracts high-level normalized invoice information from raw QR text or parsed key-values.
+    Works with system invoice QR text, invoice URLs, JSON invoice payloads, and UPI QR codes referencing invoices.
+    """
+    fields = fields or {}
+    raw_text = (raw_text or '').strip()
+
+    invoice_number = None
+    date_str = None
+    customer_name = None
+    customer_phone = None
+    total_bill = None
+    subtotal = None
+    tax_amount = None
+    discount = None
+    payment_method = None
+    payment_status = None
+    notes = None
+    items_raw = None
+
+    # 1. Parse from key-value fields
+    for k, v in fields.items():
+        k_clean = k.lower().replace('-', '_').replace(' ', '_')
+        if k_clean in ['invoice_no', 'invoice_number', 'invoice', 'inv_no', 'bill_no', 'bill_number', 'invoice_id']:
+            if not invoice_number and v:
+                invoice_number = str(v).strip()
+        elif k_clean in ['date', 'invoice_date', 'datetime', 'time', 'created_at', 'billing_date']:
+            if not date_str and v:
+                date_str = str(v).strip()
+        elif k_clean in ['customer', 'customer_name', 'client', 'buyer', 'billed_to', 'name']:
+            if not customer_name and v:
+                customer_name = str(v).strip()
+        elif k_clean in ['customer_phone', 'phone', 'mobile', 'contact']:
+            if not customer_phone and v:
+                customer_phone = str(v).strip()
+        elif k_clean in ['total_bill', 'grand_total', 'total', 'bill_total', 'amount', 'net_payable', 'final_amount']:
+            if not total_bill and v:
+                total_bill = str(v).strip()
+        elif k_clean in ['subtotal', 'sub_total']:
+            if not subtotal and v:
+                subtotal = str(v).strip()
+        elif k_clean in ['tax', 'tax_amount', 'gst', 'gst_amount', 'tax_total']:
+            if not tax_amount and v:
+                tax_amount = str(v).strip()
+        elif k_clean in ['discount']:
+            if not discount and v:
+                discount = str(v).strip()
+        elif k_clean in ['payment_method', 'payment_mode', 'mode']:
+            if not payment_method and v:
+                payment_method = str(v).strip()
+        elif k_clean in ['payment_status', 'status']:
+            if not payment_status and v:
+                payment_status = str(v).strip()
+        elif k_clean in ['products', 'items', 'particulars', 'product_list', 'item_list']:
+            if not items_raw and v:
+                items_raw = v
+        elif k_clean in ['notes', 'note', 'remarks']:
+            if not notes and v:
+                notes = str(v).strip()
+
+    # 2. Regex fallback for invoice number
+    if not invoice_number:
+        inv_match = re.search(r'\b(INV-?[A-Za-z0-9_-]+)\b', raw_text, re.IGNORECASE)
+        if inv_match:
+            invoice_number = inv_match.group(1).upper()
+
+    # 3. Regex URL inspection (e.g., /invoice/1/ or /invoice/verify/INV-2026-8801)
+    invoice_id = None
+    if '/invoice/' in raw_text or 'invoice' in raw_text.lower():
+        url_id_match = re.search(r'/invoice/(\d+)(?:/|$)', raw_text)
+        if url_id_match:
+            invoice_id = int(url_id_match.group(1))
+        url_inv_match = re.search(r'/invoice/(?:verify/)?(INV-[A-Za-z0-9_-]+)', raw_text, re.IGNORECASE)
+        if url_inv_match and not invoice_number:
+            invoice_number = url_inv_match.group(1).upper()
+
+    # 4. UPI transaction note / ref inspection
+    if raw_text.lower().startswith('upi://pay'):
+        note = str(fields.get('note', '') or fields.get('tn', ''))
+        t_ref = str(fields.get('transaction_ref', '') or fields.get('tr', ''))
+        combined_ref = f"{note} {t_ref}"
+        upi_inv_match = re.search(r'\b(INV-?[A-Za-z0-9_-]+)\b', combined_ref, re.IGNORECASE)
+        if upi_inv_match and not invoice_number:
+            invoice_number = upi_inv_match.group(1).upper()
+        if not total_bill and fields.get('amount'):
+            total_bill = fields.get('amount')
+        if not customer_name and fields.get('payee_name'):
+            notes = f"Payee: {fields.get('payee_name')}"
+
+    # Verify if this constitutes invoice data
+    is_invoice = bool(
+        invoice_number or
+        invoice_id or
+        ('Invoice' in raw_text and (total_bill or customer_name)) or
+        'Total Bill:' in raw_text or
+        (items_raw and total_bill)
+    )
+
+    if not is_invoice:
+        return None
+
+    # Parse items list
+    items = parse_invoice_items(items_raw)
+
+    def _clean_amount(val):
+        if val is None:
+            return None
+        if isinstance(val, (int, float)):
+            return float(val)
+        m = re.search(r'(\d+(?:,\d+)*(?:\.\d+)?)', str(val))
+        if m:
+            try:
+                return float(m.group(1).replace(',', ''))
+            except ValueError:
+                return None
+        return None
+
+    num_total = _clean_amount(total_bill)
+    num_subtotal = _clean_amount(subtotal)
+    num_tax = _clean_amount(tax_amount)
+    num_discount = _clean_amount(discount)
+
+    formatted_total = f"₹{num_total:,.2f}" if num_total is not None else (f"₹{total_bill}" if total_bill else "₹0.00")
+
+    return {
+        'is_invoice': True,
+        'invoice_number': invoice_number or (f"INV-{invoice_id}" if invoice_id else "N/A"),
+        'invoice_id': invoice_id,
+        'date': date_str or 'N/A',
+        'customer_name': customer_name or 'Walk-in Customer',
+        'customer_phone': customer_phone or '',
+        'items': items,
+        'items_count': len(items),
+        'total_bill': num_total if num_total is not None else total_bill,
+        'formatted_total': formatted_total,
+        'subtotal': num_subtotal if num_subtotal is not None else subtotal,
+        'tax_amount': num_tax if num_tax is not None else tax_amount,
+        'discount': num_discount if num_discount is not None else discount,
+        'payment_method': payment_method or 'UPI QR Code',
+        'payment_status': payment_status or 'PAID',
+        'notes': notes or '',
+    }
 
 
 def parse_qr_payload(raw_text: str) -> dict:
@@ -32,7 +259,8 @@ def parse_qr_payload(raw_text: str) -> dict:
     result = {
         'type': 'TEXT',
         'summary': raw_text[:80] + ('...' if len(raw_text) > 80 else ''),
-        'fields': {}
+        'fields': {},
+        'invoice_info': None
     }
 
     # 1. UPI Payment URI
@@ -52,6 +280,9 @@ def parse_qr_payload(raw_text: str) -> dict:
             }
             if clean_params.get('pa'):
                 result['summary'] = f"UPI Payee: {clean_params.get('pn', clean_params['pa'])} | Rs.{clean_params.get('am', '0.00')}"
+            inv_info = extract_invoice_info(raw_text, result['fields'])
+            if inv_info:
+                result['invoice_info'] = inv_info
         except Exception:
             pass
         return result
@@ -68,12 +299,16 @@ def parse_qr_payload(raw_text: str) -> dict:
                 'scheme': parsed.scheme
             }
             result['summary'] = f"Web Link: {parsed.netloc}"
+            inv_info = extract_invoice_info(raw_text, result['fields'])
+            if inv_info:
+                result['invoice_info'] = inv_info
+                result['type'] = 'INVOICE'
         except Exception:
             pass
         return result
 
     # 3. System Invoice Pattern
-    if 'Invoice No:' in raw_text or raw_text.startswith('INV-') or 'Total Bill:' in raw_text:
+    if 'Invoice No:' in raw_text or raw_text.startswith('INV-') or 'Total Bill:' in raw_text or 'Bill No:' in raw_text:
         result['type'] = 'INVOICE'
         fields = {}
         for line in raw_text.splitlines():
@@ -88,24 +323,35 @@ def parse_qr_payload(raw_text: str) -> dict:
                         k, v = part.split(':', 1)
                         fields[k.strip().lower().replace(' ', '_')] = v.strip()
         result['fields'] = fields
-        inv_num = fields.get('invoice_no') or fields.get('invoice_number') or fields.get('invoice')
+        inv_info = extract_invoice_info(raw_text, fields)
+        result['invoice_info'] = inv_info
+        inv_num = (inv_info and inv_info.get('invoice_number')) or fields.get('invoice_no') or fields.get('invoice_number') or fields.get('invoice')
         if inv_num:
-            result['summary'] = f"Invoice: {inv_num} - {fields.get('customer', '')}"
+            result['summary'] = f"Invoice: {inv_num} - {fields.get('customer', inv_info.get('customer_name') if inv_info else '')}"
         return result
 
     # 4. JSON payload
     if (raw_text.startswith('{') and raw_text.endswith('}')) or (raw_text.startswith('[') and raw_text.endswith(']')):
-        import json
         try:
             data = json.loads(raw_text)
             result['type'] = 'JSON'
             result['fields'] = data if isinstance(data, dict) else {'items': data}
             result['summary'] = f"Structured JSON data with {len(data)} keys"
+            inv_info = extract_invoice_info(raw_text, result['fields'])
+            if inv_info:
+                result['invoice_info'] = inv_info
+                result['type'] = 'INVOICE'
             return result
         except Exception:
             pass
 
-    return result
+    # 5. Generic Text fallback with invoice check
+    inv_info = extract_invoice_info(raw_text, result['fields'])
+    if inv_info:
+        result['invoice_info'] = inv_info
+        result['type'] = 'INVOICE'
+        if inv_info.get('invoice_number'):
+            result['summary'] = f"Invoice: {inv_info['invoice_number']} - {inv_info.get('customer_name', '')}"
 
 
 def _decode_with_opencv(pil_img: Image.Image) -> tuple[str | None, list | None]:
@@ -526,6 +772,7 @@ def decode_qr_image(img_input) -> dict:
             'payload_type': parsed_meta['type'],
             'summary': parsed_meta['summary'],
             'parsed': parsed_meta['fields'],
+            'invoice_info': parsed_meta.get('invoice_info'),
             'image_size': f'{w}x{h}',
             'bounding_box': bounding_box,
         }

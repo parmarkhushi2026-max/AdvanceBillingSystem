@@ -2398,7 +2398,108 @@ def api_product_delete(request, product_id):
 # QR CODE DECODER STUDIO & UPLOADED IMAGE API ENDPOINTS
 # =========================================================================
 
-from .qr_decoder import decode_qr_image, parse_qr_payload
+from .qr_decoder import decode_qr_image, parse_qr_payload, extract_invoice_info
+
+
+def enrich_result_with_invoice_data(result: dict) -> dict:
+    """
+    Checks if decoded QR result contains invoice information.
+    If so, verifies against Django Invoice model in database.
+    Attaches complete DB verification metadata, customer details, and invoice action URLs.
+    """
+    if not result or not result.get('success'):
+        return result
+
+    invoice_info = result.get('invoice_info')
+    if not invoice_info:
+        raw_text = result.get('data', '')
+        fields = result.get('parsed', {})
+        invoice_info = extract_invoice_info(raw_text, fields)
+        if invoice_info:
+            result['invoice_info'] = invoice_info
+
+    if not invoice_info:
+        return result
+
+    inv_num = invoice_info.get('invoice_number')
+    inv_id = invoice_info.get('invoice_id')
+    db_inv = None
+
+    try:
+        from .models import Invoice
+        if inv_num and inv_num not in ['N/A', 'None']:
+            db_inv = Invoice.objects.filter(invoice_number__iexact=inv_num.strip()).first()
+        if not db_inv and inv_id:
+            db_inv = Invoice.objects.filter(id=inv_id).first()
+    except Exception:
+        db_inv = None
+
+    if db_inv:
+        dist_user = db_inv.distributor
+        dist_name = dist_user.get_full_name() or dist_user.username if dist_user else 'Advance Billing Agency'
+        profile = getattr(dist_user, 'profile', None) if dist_user else None
+        dist_business = profile.business_name if profile else 'Advance Billing Agency'
+
+        db_items = [
+            {
+                'name': item.product_name,
+                'quantity': item.quantity,
+                'unit_price': float(item.unit_price),
+                'discount': float(item.discount),
+                'tax_rate': float(item.tax_rate),
+                'total': float(item.total)
+            }
+            for item in db_inv.items.all()
+        ]
+
+        result['db_verified'] = True
+        result['db_invoice'] = {
+            'id': db_inv.id,
+            'invoice_number': db_inv.invoice_number,
+            'customer_name': db_inv.customer_name,
+            'customer_phone': db_inv.customer_phone,
+            'distributor_name': dist_name,
+            'business_name': dist_business,
+            'subtotal': float(db_inv.subtotal),
+            'tax_amount': float(db_inv.tax_amount),
+            'discount': float(db_inv.discount),
+            'grand_total': float(db_inv.grand_total),
+            'payment_status': db_inv.payment_status,
+            'payment_method': db_inv.payment_method,
+            'notes': db_inv.notes or '',
+            'created_at': db_inv.created_at.strftime('%Y-%m-%d %H:%M'),
+            'items': db_items,
+            'items_count': len(db_items),
+            'view_url': f'/invoice/{db_inv.id}/',
+            'pdf_url': f'/invoice/{db_inv.id}/pdf/',
+        }
+
+        invoice_info['db_verified'] = True
+        invoice_info['db_id'] = db_inv.id
+        invoice_info['invoice_number'] = db_inv.invoice_number
+        invoice_info['customer_name'] = db_inv.customer_name
+        invoice_info['customer_phone'] = db_inv.customer_phone
+        invoice_info['business_name'] = dist_business
+        invoice_info['distributor_name'] = dist_name
+        invoice_info['date'] = db_inv.created_at.strftime('%Y-%m-%d %H:%M')
+        invoice_info['total_bill'] = float(db_inv.grand_total)
+        invoice_info['formatted_total'] = f"₹{float(db_inv.grand_total):,.2f}"
+        invoice_info['subtotal'] = float(db_inv.subtotal)
+        invoice_info['tax_amount'] = float(db_inv.tax_amount)
+        invoice_info['discount'] = float(db_inv.discount)
+        invoice_info['payment_status'] = db_inv.payment_status
+        invoice_info['payment_method'] = db_inv.payment_method
+        invoice_info['view_url'] = f'/invoice/{db_inv.id}/'
+        invoice_info['pdf_url'] = f'/invoice/{db_inv.id}/pdf/'
+        if db_items and (not invoice_info.get('items') or len(invoice_info.get('items', [])) == 0):
+            invoice_info['items'] = db_items
+            invoice_info['items_count'] = len(db_items)
+    else:
+        result['db_verified'] = False
+        invoice_info['db_verified'] = False
+
+    result['invoice_info'] = invoice_info
+    return result
 
 
 @csrf_exempt
@@ -2409,7 +2510,7 @@ def api_qr_decode(request):
     Accepts:
     - Multipart file upload under 'image', 'file', or 'qr_image'
     - JSON payload with base64 encoded image string under 'image'
-    Returns structured JSON with decoded string, version, type, and parsed metadata.
+    Returns structured JSON with decoded string, version, type, parsed metadata, and invoice_info.
     """
     uploaded_file = (
         request.FILES.get('image') or
@@ -2437,6 +2538,9 @@ def api_qr_decode(request):
         }, status=400)
 
     result = decode_qr_image(image_input)
+    if result.get('success'):
+        result = enrich_result_with_invoice_data(result)
+
     status_code = 200 if result.get('success') else 422
     return JsonResponse(result, status=status_code)
 
@@ -2444,7 +2548,7 @@ def api_qr_decode(request):
 def qr_decoder_view(request):
     """
     Interactive Web Studio for uploading and decoding QR code images.
-    Includes instant preview, format breakdown, and 1-click test samples.
+    Includes instant preview, format breakdown, parsed invoice rendering, and 1-click test samples.
     """
     initialize_default_users()
     result = None
@@ -2456,8 +2560,9 @@ def qr_decoder_view(request):
             request.FILES.get('file') or
             request.FILES.get('qr_image')
         )
+        base64_data = request.POST.get('image_base64')
+
         if uploaded_file:
-            # Generate base64 for browser preview
             try:
                 uploaded_file.seek(0)
                 file_bytes = uploaded_file.read()
@@ -2465,28 +2570,58 @@ def qr_decoder_view(request):
                 result = decode_qr_image(BytesIO(file_bytes))
             except Exception as e:
                 result = {'success': False, 'error': f"Failed to process uploaded file: {str(e)}"}
+        elif base64_data and base64_data.strip():
+            uploaded_b64 = base64_data
+            result = decode_qr_image(base64_data)
         else:
             result = {'success': False, 'error': 'Please select an image file to upload.'}
 
+        if result and result.get('success'):
+            result = enrich_result_with_invoice_data(result)
+
     # Generate sample QR codes for immediate testing in the UI
     sample_qrs = []
-    sample_payloads = [
+    
+    # Try getting an existing system invoice
+    existing_inv = None
+    try:
+        from .models import Invoice
+        existing_inv = Invoice.objects.first()
+    except Exception:
+        existing_inv = None
+
+    sample_payloads = []
+    if existing_inv:
+        prod_summary = ", ".join([f"{item.product_name} (x{item.quantity})" for item in existing_inv.items.all()][:3])
+        sample_payloads.append({
+            'title': f'System GST Invoice ({existing_inv.invoice_number})',
+            'desc': f'Live database invoice for {existing_inv.customer_name} - ₹{existing_inv.grand_total}',
+            'data': (
+                f"Invoice No: {existing_inv.invoice_number}\n"
+                f"Date: {existing_inv.created_at.strftime('%Y-%m-%d %H:%M')}\n"
+                f"Customer: {existing_inv.customer_name}\n"
+                f"Products: {prod_summary}\n"
+                f"Total Bill: Rs.{existing_inv.grand_total}"
+            )
+        })
+
+    sample_payloads.extend([
+        {
+            'title': 'Retail Tax Invoice QR',
+            'desc': 'Formal invoice verification ledger data with customer info & items',
+            'data': 'Invoice No: INV-2026-8801\nDate: 2026-10-14 10:30\nCustomer: Priya Sharma\nProducts: Premium Billing Software License (x1), Thermal Paper Rolls 50pk (x2)\nTotal Bill: Rs.2499.00\nPayment Method: UPI QR Code'
+        },
         {
             'title': 'UPI Payment QR',
             'desc': 'Advance Billing UPI payment string with amount and VPA',
-            'data': 'upi://pay?pa=advancebilling@upi&pn=AdvanceBillingAgency&am=2499.00&cu=INR&tn=InvoiceSettlement'
+            'data': f"upi://pay?pa=advancebilling@upi&pn=AdvanceBillingAgency&am={float(existing_inv.grand_total) if existing_inv else '2499.00'}&cu=INR&tn={existing_inv.invoice_number if existing_inv else 'INV-2026-8801'}"
         },
         {
-            'title': 'Invoice Record QR',
-            'desc': 'Formal invoice verification ledger data with customer info',
-            'data': 'Invoice No: INV-2026-8801\nDate: 2026-10-13 12:30\nCustomer: Priya Sharma\nTotal Bill: Rs.2499.00'
-        },
-        {
-            'title': 'Direct Portal Link',
+            'title': 'Direct Portal Invoice Link',
             'desc': 'Secure direct HTTPS URL to customer billing receipt',
-            'data': 'https://advancebilling.com/invoice/verify/INV-2026-8801'
+            'data': f"http://127.0.0.1:8000/invoice/{existing_inv.id if existing_inv else 1}/"
         }
-    ]
+    ])
 
     for sp in sample_payloads:
         try:
