@@ -1396,6 +1396,65 @@ class QRCodeDecoderTests(TestCase):
         self.assertContains(response, f'/invoice/{inv.id}/')
         self.assertContains(response, f'/invoice/{inv.id}/pdf/')
 
+    def test_decode_empty_zero_byte_file(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        empty_upload = SimpleUploadedFile('empty.png', b'', content_type='image/png')
+        # API returns 400 with helpful error
+        resp = self.client.post(reverse('api_qr_decode'), {'image': empty_upload}, format='multipart')
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('empty', resp.json()['error'].lower())
+
+        # Web view returns 200 with error displayed in UI
+        web_resp = self.client.post(reverse('qr_decoder_view'), {'image': empty_upload})
+        self.assertEqual(web_resp.status_code, 200)
+        self.assertContains(web_resp, 'empty (0 bytes)')
+        self.assertContains(web_resp, 'Unable to Decode QR Code')
+
+    def test_decode_corrupted_non_image_file(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        corrupt_file = SimpleUploadedFile('fake_qr.png', b'This is NOT an image file!', content_type='image/png')
+        resp = self.client.post(reverse('api_qr_decode'), {'image': corrupt_file}, format='multipart')
+        self.assertEqual(resp.status_code, 422)
+        self.assertIn('corrupt', resp.json()['error'].lower())
+
+        web_resp = self.client.post(reverse('qr_decoder_view'), {'image': corrupt_file})
+        self.assertEqual(web_resp.status_code, 200)
+        self.assertContains(web_resp, 'Unable to Decode QR Code')
+        self.assertContains(web_resp, 'Troubleshooting Tips')
+
+    def test_decode_blank_solid_color_image(self):
+        from PIL import Image
+        from io import BytesIO
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        # 100x100 solid white image
+        blank_img = Image.new('RGB', (100, 100), color='white')
+        buf = BytesIO()
+        blank_img.save(buf, format='PNG')
+        upload = SimpleUploadedFile('solid_white.png', buf.getvalue(), content_type='image/png')
+
+        resp = self.client.post(reverse('api_qr_decode'), {'image': upload}, format='multipart')
+        self.assertEqual(resp.status_code, 422)
+        self.assertIn('blank', resp.json()['error'].lower())
+
+    def test_decode_too_small_image(self):
+        from PIL import Image
+        from io import BytesIO
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        tiny_img = Image.new('RGB', (10, 10), color='black')
+        buf = BytesIO()
+        tiny_img.save(buf, format='PNG')
+        upload = SimpleUploadedFile('tiny.png', buf.getvalue(), content_type='image/png')
+
+        resp = self.client.post(reverse('api_qr_decode'), {'image': upload}, format='multipart')
+        self.assertEqual(resp.status_code, 422)
+        self.assertIn('too small', resp.json()['error'].lower())
+
+    def test_qr_decoder_view_empty_post_no_image(self):
+        web_resp = self.client.post(reverse('qr_decoder_view'), {})
+        self.assertEqual(web_resp.status_code, 200)
+        self.assertContains(web_resp, 'Please select an image file to upload')
+        self.assertContains(web_resp, 'Unable to Decode QR Code')
+
 
 
 

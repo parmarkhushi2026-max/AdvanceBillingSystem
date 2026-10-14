@@ -800,11 +800,40 @@
                     {% endif %}
 
                 {% else %}
-                    <!-- Error State -->
-                    <div style="background: #fef2f2; border: 1.5px solid #f87171; color: #991b1b; padding: 1.5rem; border-radius: 14px; text-align: center; margin-top: 1rem;">
-                        <i class="fa-solid fa-triangle-exclamation" style="font-size: 2.5rem; color: #dc2626; margin-bottom: 0.75rem; display: block;"></i>
-                        <h4 style="margin: 0 0 6px 0; font-size: 1.1rem; font-weight: 800;">Decoding Failed</h4>
-                        <p style="margin: 0; font-size: 0.9rem;">{{ result.error }}</p>
+                    <!-- Diagnostic Error Card for Invalid / Empty QR Codes -->
+                    <div class="qr-error-card" style="background: #ffffff; border: 1.5px solid #fecaca; border-radius: 16px; padding: 1.5rem; text-align: left; margin-top: 0.5rem; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.06); position: relative; overflow: hidden;">
+                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);"></div>
+                        <div style="display: flex; gap: 14px; align-items: flex-start; margin-bottom: 1.25rem;">
+                            <div style="width: 48px; height: 48px; border-radius: 12px; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 4px 0; font-size: 1.15rem; font-weight: 800; color: #991b1b;">Unable to Decode QR Code</h4>
+                                <p style="margin: 0; font-size: 0.92rem; color: #b91c1c; font-weight: 600;">{{ result.error }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Diagnostic Troubleshooting Checklist -->
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
+                            <div style="font-size: 0.8rem; font-weight: 800; color: #334155; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.5rem;">
+                                <i class="fa-solid fa-circle-question" style="color: #64748b; margin-right: 4px;"></i> Troubleshooting Tips:
+                            </div>
+                            <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.85rem; color: #475569; display: flex; flex-direction: column; gap: 5px;">
+                                <li><strong>Valid Image File:</strong> Ensure the file is not empty (0 bytes) and is in PNG, JPG, JPEG, or WEBP format.</li>
+                                <li><strong>Visible Pattern:</strong> Verify that the QR code pattern is complete and not cropped or completely blank.</li>
+                                <li><strong>Good Contrast & Lighting:</strong> Avoid heavy glare, low resolution, or excessive compression artifacts.</li>
+                                <li><strong>1-Click Samples:</strong> Try the ready-to-test QR samples on the left to verify the studio decoder.</li>
+                            </ul>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="button" class="btn-receipt-action btn-primary-action" style="padding: 8px 16px; border-radius: 10px; font-size: 0.85rem;" onclick="document.getElementById('qrFileInput').click();">
+                                <i class="fa-solid fa-arrow-up-from-bracket"></i> Select Another Image
+                            </button>
+                            <a href="{% url 'qr_decoder_view' %}" class="btn-receipt-action btn-outline-action" style="padding: 8px 16px; border-radius: 10px; font-size: 0.85rem;">
+                                <i class="fa-solid fa-arrow-rotate-right"></i> Reset Studio
+                            </a>
+                        </div>
                     </div>
                 {% endif %}
             {% else %}
@@ -886,7 +915,30 @@ fileInput.addEventListener('change', () => {
     }
 });
 
+form.addEventListener('submit', function(e) {
+    const hasFile = fileInput.files && fileInput.files.length > 0;
+    const hasBase64 = hiddenBase64.value && hiddenBase64.value.trim().length > 0;
+    if (!hasFile && !hasBase64) {
+        e.preventDefault();
+        alert('Please choose or drag & drop a QR code image before submitting.');
+        dropzone.style.borderColor = '#ef4444';
+        setTimeout(() => { dropzone.style.borderColor = '#cbd5e1'; }, 2000);
+        return false;
+    }
+    if (hasFile && fileInput.files[0].size === 0) {
+        e.preventDefault();
+        alert('The selected file is empty (0 bytes). Please choose a valid image.');
+        return false;
+    }
+});
+
 function showFilePreview(file) {
+    if (!file) return;
+    if (file.size === 0) {
+        alert('Warning: The selected file is empty (0 bytes).');
+        clearUploadedImage();
+        return;
+    }
     const reader = new FileReader();
     reader.onload = function(e) {
         previewImg.src = e.target.result;

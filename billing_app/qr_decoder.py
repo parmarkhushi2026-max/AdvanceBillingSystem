@@ -703,28 +703,67 @@ def decode_qr_image(img_input) -> dict:
     Decodes a QR code from an uploaded image using OpenCV (cv2.QRCodeDetector) or pyzbar,
     with an automatic pure-Python fallback.
     Returns structured JSON with decoded payload, parser metadata, and engine details.
+    Handles empty, blank, corrupt, or invalid image inputs gracefully.
     """
+    if img_input is None:
+        return {'success': False, 'error': 'No image input provided. Please upload a valid image file.'}
+
     try:
         if isinstance(img_input, str):
-            if img_input.startswith('data:image'):
-                img_input = img_input.split(',', 1)[1]
-            img_bytes = base64.b64decode(img_input)
+            clean_str = img_input.strip()
+            if not clean_str:
+                return {'success': False, 'error': 'Image data is empty.'}
+            if clean_str.startswith('data:image'):
+                parts = clean_str.split(',', 1)
+                if len(parts) < 2 or not parts[1].strip():
+                    return {'success': False, 'error': 'Base64 image payload contains no image data.'}
+                clean_str = parts[1]
+            try:
+                img_bytes = base64.b64decode(clean_str)
+            except Exception as b64_err:
+                return {'success': False, 'error': f'Invalid base64 encoded image data: {str(b64_err)}'}
+            if not img_bytes or len(img_bytes) == 0:
+                return {'success': False, 'error': 'Decoded image data is empty (0 bytes).'}
             img = Image.open(BytesIO(img_bytes))
         elif isinstance(img_input, bytes):
+            if not img_input or len(img_input) == 0:
+                return {'success': False, 'error': 'The provided image byte stream is empty (0 bytes).'}
             img = Image.open(BytesIO(img_input))
         elif hasattr(img_input, 'read'):
             img_input.seek(0)
-            img = Image.open(BytesIO(img_input.read()))
+            file_bytes = img_input.read()
+            if not file_bytes or len(file_bytes) == 0:
+                return {'success': False, 'error': 'The uploaded file is empty (0 bytes).'}
+            img = Image.open(BytesIO(file_bytes))
         elif isinstance(img_input, Image.Image):
             img = img_input
         else:
-            return {'success': False, 'error': 'Invalid image format provided.'}
+            return {'success': False, 'error': 'Unsupported image format provided.'}
     except Exception as e:
-        return {'success': False, 'error': f'Failed to open image: {str(e)}'}
+        err_msg = str(e)
+        if 'cannot identify image file' in err_msg.lower() or 'unidentified' in err_msg.lower():
+            return {'success': False, 'error': 'Unsupported or corrupt image file. Please upload a valid PNG, JPG, JPEG, or WEBP image.'}
+        return {'success': False, 'error': f'Failed to open image: {err_msg}'}
 
-    w, h = img.size
+    try:
+        w, h = img.size
+    except Exception:
+        return {'success': False, 'error': 'Unable to determine image dimensions.'}
+
     if w < 20 or h < 20:
-        return {'success': False, 'error': 'Image is too small to contain a valid QR code.'}
+        return {'success': False, 'error': 'Image is too small to contain a valid QR code (minimum 20x20 pixels required).'}
+
+    # Check for blank / solid color images (zero contrast)
+    try:
+        img_gray = img.convert('L')
+        extrema = img_gray.getextrema()
+        if extrema and extrema[0] == extrema[1]:
+            return {
+                'success': False,
+                'error': 'The uploaded image appears completely blank (solid color) with no QR code pattern.'
+            }
+    except Exception:
+        pass
 
     decoded_text = None
     engine_used = None
@@ -759,7 +798,12 @@ def decode_qr_image(img_input) -> dict:
             grid_size = g_size
             mask_pattern = mask
 
-    if decoded_text:
+    if decoded_text is not None:
+        if not decoded_text.strip():
+            return {
+                'success': False,
+                'error': 'A QR code was detected, but it contains an empty payload with no data.'
+            }
         parsed_meta = parse_qr_payload(decoded_text)
         return {
             'success': True,
@@ -779,5 +823,5 @@ def decode_qr_image(img_input) -> dict:
 
     return {
         'success': False,
-        'error': 'No QR code could be decoded from the uploaded image. Please ensure the QR code is clearly visible and uncorrupted.'
+        'error': 'No QR code could be detected in the uploaded image. Please ensure the QR code is clearly visible, in focus, and not obscured or distorted.'
     }

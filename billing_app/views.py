@@ -2521,15 +2521,30 @@ def api_qr_decode(request):
     image_input = None
 
     if uploaded_file:
+        if uploaded_file.size == 0:
+            return JsonResponse({
+                'success': False,
+                'error': 'The uploaded file is empty (0 bytes). Please upload a valid image file.'
+            }, status=400)
         image_input = uploaded_file
     elif request.content_type == 'application/json':
         try:
             body_data = json.loads(request.body.decode('utf-8'))
             image_input = body_data.get('image') or body_data.get('file')
+            if not image_input or not str(image_input).strip():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'The image field in JSON payload cannot be empty.'
+                }, status=400)
         except Exception:
             return JsonResponse({'success': False, 'error': 'Invalid JSON request payload.'}, status=400)
     elif request.POST.get('image_base64'):
         image_input = request.POST.get('image_base64')
+        if not image_input or not image_input.strip():
+            return JsonResponse({
+                'success': False,
+                'error': 'The image_base64 field cannot be empty.'
+            }, status=400)
 
     if not image_input:
         return JsonResponse({
@@ -2549,6 +2564,7 @@ def qr_decoder_view(request):
     """
     Interactive Web Studio for uploading and decoding QR code images.
     Includes instant preview, format breakdown, parsed invoice rendering, and 1-click test samples.
+    Handles empty files, invalid images, and corrupted QR codes gracefully.
     """
     initialize_default_users()
     result = None
@@ -2563,18 +2579,24 @@ def qr_decoder_view(request):
         base64_data = request.POST.get('image_base64')
 
         if uploaded_file:
-            try:
-                uploaded_file.seek(0)
-                file_bytes = uploaded_file.read()
-                uploaded_b64 = f"data:image/png;base64,{base64.b64encode(file_bytes).decode('utf-8')}"
-                result = decode_qr_image(BytesIO(file_bytes))
-            except Exception as e:
-                result = {'success': False, 'error': f"Failed to process uploaded file: {str(e)}"}
+            if uploaded_file.size == 0:
+                result = {'success': False, 'error': 'The uploaded file is empty (0 bytes). Please select a valid QR code image.'}
+            else:
+                try:
+                    uploaded_file.seek(0)
+                    file_bytes = uploaded_file.read()
+                    if not file_bytes:
+                        result = {'success': False, 'error': 'The uploaded file contains no data (0 bytes).'}
+                    else:
+                        uploaded_b64 = f"data:image/png;base64,{base64.b64encode(file_bytes).decode('utf-8')}"
+                        result = decode_qr_image(BytesIO(file_bytes))
+                except Exception as e:
+                    result = {'success': False, 'error': f"Failed to process uploaded file: {str(e)}"}
         elif base64_data and base64_data.strip():
             uploaded_b64 = base64_data
             result = decode_qr_image(base64_data)
         else:
-            result = {'success': False, 'error': 'Please select an image file to upload.'}
+            result = {'success': False, 'error': 'No image provided. Please select an image file to upload.'}
 
         if result and result.get('success'):
             result = enrich_result_with_invoice_data(result)
