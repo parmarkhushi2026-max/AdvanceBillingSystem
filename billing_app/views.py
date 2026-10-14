@@ -2598,8 +2598,19 @@ def qr_decoder_view(request):
         else:
             result = {'success': False, 'error': 'No image provided. Please select an image file to upload.'}
 
-        if result and result.get('success'):
-            result = enrich_result_with_invoice_data(result)
+        if result:
+            if result.get('success'):
+                result = enrich_result_with_invoice_data(result)
+                if result.get('invoice_info'):
+                    inv_num = result['invoice_info'].get('invoice_number', 'QR Bill')
+                    if result.get('db_verified'):
+                        messages.success(request, f"QR Code decoded successfully! Invoice #{inv_num} verified in system database.")
+                    else:
+                        messages.success(request, f"QR Code decoded successfully! Parsed structured invoice details for #{inv_num}.")
+                else:
+                    messages.success(request, f"QR Code ({result.get('payload_type', 'QR')}) decoded successfully!")
+            else:
+                messages.error(request, result.get('error', 'Failed to decode QR code from the uploaded image.'))
 
     # Generate sample QR codes for immediate testing in the UI
     sample_qrs = []

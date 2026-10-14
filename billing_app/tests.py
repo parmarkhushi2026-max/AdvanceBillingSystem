@@ -1455,6 +1455,34 @@ class QRCodeDecoderTests(TestCase):
         self.assertContains(web_resp, 'Please select an image file to upload')
         self.assertContains(web_resp, 'Unable to Decode QR Code')
 
+    def test_qr_decoder_view_success_toast_and_alert(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        upload = SimpleUploadedFile('test_qr.png', self.qr_bytes, content_type='image/png')
+        response = self.client.post(reverse('qr_decoder_view'), {'image': upload})
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify success toast message in Django messages
+        messages_list = list(response.context['messages'])
+        self.assertTrue(any("decoded successfully" in str(m).lower() for m in messages_list))
+        
+        # Verify alert banner and toast in rendered HTML
+        self.assertContains(response, 'QR Code Decoded Successfully!')
+        self.assertContains(response, 'alert-success')
+
+    def test_qr_decoder_view_error_toast_and_alert(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        empty_upload = SimpleUploadedFile('empty.png', b'', content_type='image/png')
+        response = self.client.post(reverse('qr_decoder_view'), {'image': empty_upload})
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify error toast message in Django messages
+        messages_list = list(response.context['messages'])
+        self.assertTrue(any("empty" in str(m).lower() for m in messages_list))
+        
+        # Verify error alert and diagnosis in rendered HTML
+        self.assertContains(response, 'Unable to Decode QR Code')
+        self.assertContains(response, 'Troubleshooting Tips')
+
 
 
 

@@ -244,6 +244,46 @@
         object-fit: contain;
     }
 
+    /* Toast Alert Banners */
+    .qr-alert-banner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0.9rem 1.25rem;
+        border-radius: 12px;
+        font-size: 0.92rem;
+        font-weight: 600;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        animation: fadeInAlert 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes fadeInAlert {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .alert-success {
+        background: #ecfdf5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+        border-left: 4px solid #10b981;
+    }
+
+    .alert-error {
+        background: #fef2f2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+        border-left: 4px solid #ef4444;
+    }
+
+    .alert-info {
+        background: #eff6ff;
+        color: #1e40af;
+        border: 1px solid #bfdbfe;
+        border-left: 4px solid #3b82f6;
+    }
+
     /* Rendered Invoice Card Styles */
     .invoice-receipt-card {
         background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
@@ -614,6 +654,15 @@
         <div id="resultContentArea">
             {% if result %}
                 {% if result.success %}
+                    <!-- In-Page Success Alert Banner -->
+                    <div class="qr-alert-banner alert-success">
+                        <i class="fa-solid fa-circle-check" style="font-size: 1.25rem;"></i>
+                        <div style="flex: 1;">
+                            <strong style="color: #065f46;">QR Code Decoded Successfully!</strong>
+                            <span style="font-size: 0.88rem; color: #047857; margin-left: 6px;">{{ result.summary }}</span>
+                        </div>
+                    </div>
+
                     <!-- Meta Badges -->
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.25rem;">
                         <span class="result-badge badge-upi">Type: {{ result.payload_type }}</span>
@@ -915,19 +964,45 @@ fileInput.addEventListener('change', () => {
     }
 });
 
+// Floating Toast Notification Helper
+function showAppToast(msg, type = 'success') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    toast.className = `toast-banner ${type}`;
+    const iconClass = type === 'success' ? 'fa-solid fa-circle-check' : (type === 'error' ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-info');
+    toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <i class="${iconClass}"></i>
+            <span>${msg}</span>
+        </div>
+        <button type="button" class="toast-close" onclick="this.parentElement.remove();"><i class="fa-solid fa-xmark"></i></button>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'fadeOutRight 0.3s ease-in forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 4500);
+}
+
 form.addEventListener('submit', function(e) {
     const hasFile = fileInput.files && fileInput.files.length > 0;
     const hasBase64 = hiddenBase64.value && hiddenBase64.value.trim().length > 0;
     if (!hasFile && !hasBase64) {
         e.preventDefault();
-        alert('Please choose or drag & drop a QR code image before submitting.');
+        showAppToast('Please select or drag & drop a QR code image to decode.', 'error');
         dropzone.style.borderColor = '#ef4444';
         setTimeout(() => { dropzone.style.borderColor = '#cbd5e1'; }, 2000);
         return false;
     }
     if (hasFile && fileInput.files[0].size === 0) {
         e.preventDefault();
-        alert('The selected file is empty (0 bytes). Please choose a valid image.');
+        showAppToast('The selected file is empty (0 bytes). Please choose a valid image.', 'error');
         return false;
     }
 });
@@ -935,7 +1010,7 @@ form.addEventListener('submit', function(e) {
 function showFilePreview(file) {
     if (!file) return;
     if (file.size === 0) {
-        alert('Warning: The selected file is empty (0 bytes).');
+        showAppToast('Warning: The selected file is empty (0 bytes).', 'error');
         clearUploadedImage();
         return;
     }
@@ -956,6 +1031,7 @@ function clearUploadedImage() {
 }
 
 function loadSampleQR(b64, text) {
+    showAppToast('Loading sample QR code...', 'info');
     hiddenBase64.value = b64;
     previewImg.src = b64;
     previewContainer.style.display = 'block';
@@ -973,6 +1049,7 @@ function copyDecodedText() {
             btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
             setTimeout(() => { btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy'; }, 2000);
         }
+        showAppToast('Decoded QR payload copied to clipboard!', 'success');
     });
 }
 
@@ -987,6 +1064,7 @@ function copyInvoiceDetails() {
             btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
             setTimeout(() => { btn.innerHTML = orig; }, 2000);
         }
+        showAppToast('Invoice details summary copied to clipboard!', 'success');
     });
 }
 
