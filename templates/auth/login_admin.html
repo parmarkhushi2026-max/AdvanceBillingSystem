@@ -1,66 +1,212 @@
 {% extends 'base.html' %}
 
-{% block title %}Admin Login - Advance Billing System{% endblock %}
+{% block title %}Admin Authorization - Advance Billing System{% endblock %}
+
+{% block main_container_class %}auth-page-container{% endblock %}
+{% block main_container_style %}max-width: 1120px; margin: 1.5rem auto 3rem auto; padding: 0 1rem;{% endblock %}
 
 {% block content %}
-<div class="auth-wrapper" style="flex-direction: column;">
-    <div class="auth-card" style="margin-top: 2rem;">
-        <div class="auth-card-header">
-            <div class="auth-role-badge admin">
-                <i class="fa-solid fa-lock"></i>
-                <span>Admin Authorization</span>
-            </div>
-            <h2 class="auth-title">System Admin Login</h2>
-            <p class="auth-subtitle">Sign in to manage distributors, inventory and system analytics.</p>
-        </div>
-
-        <form method="POST" action="{% url 'admin_login' %}">
-            {% csrf_token %}
-            <div class="form-group">
-                <label for="username" class="form-label">Admin Username or Email</label>
-                <div class="input-icon-group">
-                    <i class="fa-solid fa-user-shield"></i>
-                    <input type="text" id="username" name="username" class="form-input" placeholder="admin or admin@advancebilling.com" required autofocus autocomplete="username">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <label for="password" class="form-label" style="margin-bottom: 0;">Security Password</label>
-                    <a href="{% url 'admin_forgot_password' %}" style="font-size: 0.8rem; font-weight: 600; color: #4f46e5; text-decoration: none;">Forgot Password?</a>
-                </div>
-                <div class="input-icon-group">
-                    <i class="fa-solid fa-key"></i>
-                    <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required autocomplete="new-password">
-                </div>
-            </div>
-
-            <button type="submit" class="btn-submit-auth btn-submit-admin" style="margin-top: 1.5rem; border-radius: 8px;">
-                <span>Secure Admin Login</span>
-                <i class="fa-solid fa-arrow-right-to-bracket"></i>
-            </button>
-        </form>
-
-        <!-- Quick Fill Demo Box -->
-        <div class="auth-demo-box" style="background: #eef2ff; border-color: #c7d2fe; border-radius: 8px;">
-            <div class="demo-title" style="color: #4338ca;">Default Admin Demo Credentials</div>
-            <div class="demo-creds" style="color: #312e81;">User: <strong>admin</strong> | Pass: <strong>admin123</strong></div>
-            <button type="button" class="btn-quick-fill" data-user="admin" data-pass="admin123" style="background: #ffffff; color: #4f46e5; border-color: #a5b4fc;">
-                <i class="fa-solid fa-bolt"></i> Auto-fill Credentials
-            </button>
-        </div>
-
-        <div class="auth-switch-link" style="margin-top: 1.5rem;">
-            Don't have an Admin Account? <a href="{% url 'admin_register' %}" style="color: #4f46e5;">Register Here &rarr;</a>
-            <br><br>
-            Are you a Distributor? <a href="{% url 'distributor_login' %}" style="color: #059669;">Sign in to Distributor Portal &rarr;</a>
-        </div>
+<div class="auth-page-wrapper">
+    <div class="auth-split-card">
         
-        <div class="auth-switch-link" style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; text-align: center;">
-            <a href="{% url 'portal_select' %}" style="display: inline-flex; align-items: center; gap: 6px; color: #64748b; font-weight: 600; text-decoration: none; transition: 0.2s;">
-                <i class="fa-solid fa-house"></i> Return to Home Page
-            </a>
+        <!-- Left Showcase Side (Admin Executive Theme) -->
+        <div class="auth-showcase admin-theme">
+            <div class="auth-ambient-orb"></div>
+            
+            <div>
+                <div class="showcase-badge">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Admin Clearance Level-1</span>
+                </div>
+
+                <div class="showcase-icon-box">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+
+                <h1 class="showcase-title">Master System<br>Administration</h1>
+                
+                <p class="showcase-desc">
+                    Centralized command &amp; control console for multi-distributor oversight, real-time GST tax compliance, product inventories, and encrypted transaction audits.
+                </p>
+
+                <div class="showcase-features">
+                    <div class="showcase-feature-item">
+                        <div class="feature-bullet-icon">
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+                        <span>256-Bit Cryptographically Secured Access</span>
+                    </div>
+                    <div class="showcase-feature-item">
+                        <div class="feature-bullet-icon">
+                            <i class="fa-solid fa-chart-pie"></i>
+                        </div>
+                        <span>Real-Time Sales Ledger &amp; Tax Audit Studio</span>
+                    </div>
+                    <div class="showcase-feature-item">
+                        <div class="feature-bullet-icon">
+                            <i class="fa-solid fa-network-wired"></i>
+                        </div>
+                        <span>Distributor Governance &amp; QR Routing Engine</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="showcase-status-bar">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="status-indicator-dot"></span>
+                    <span>Database Engine &amp; API Online</span>
+                </div>
+                <span>v2.4 LTS</span>
+            </div>
         </div>
+
+        <!-- Right Form Side -->
+        <div class="auth-form-side admin-form">
+            
+            <!-- Dual Portal Switcher Tabs -->
+            <div class="portal-tabs-nav">
+                <a href="{% url 'admin_login' %}" class="portal-tab-btn active admin-active">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Admin Console</span>
+                </a>
+                <a href="{% url 'distributor_login' %}" class="portal-tab-btn">
+                    <i class="fa-solid fa-store"></i>
+                    <span>Distributor Portal</span>
+                </a>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <h2 class="auth-form-title">System Admin Login</h2>
+                <p class="auth-form-subtitle">Enter your Administrator username/email and security password.</p>
+            </div>
+
+            <form method="POST" action="{% url 'admin_login' %}" id="adminLoginForm">
+                {% csrf_token %}
+                
+                <!-- Username or Email Field -->
+                <div class="form-group">
+                    <label for="username" class="form-label">Admin Username or Email</label>
+                    <div class="modern-input-wrapper">
+                        <i class="fa-solid fa-user-shield leading-icon"></i>
+                        <input type="text" 
+                               id="username" 
+                               name="username" 
+                               class="modern-form-input" 
+                               placeholder="admin or admin@advancebilling.com" 
+                               required 
+                               autofocus 
+                               autocomplete="username">
+                    </div>
+                </div>
+
+                <!-- Password Field with Show/Hide Toggle -->
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <label for="password" class="form-label" style="margin-bottom: 0;">Security Password</label>
+                        <a href="{% url 'admin_forgot_password' %}" class="auth-forgot-link admin-forgot-link">Forgot Password?</a>
+                    </div>
+                    <div class="modern-input-wrapper">
+                        <i class="fa-solid fa-key leading-icon"></i>
+                        <input type="password" 
+                               id="password" 
+                               name="password" 
+                               class="modern-form-input" 
+                               placeholder="••••••••••••" 
+                               required 
+                               autocomplete="current-password">
+                        <button type="button" class="btn-toggle-password" id="togglePasswordBtn" title="Toggle password visibility">
+                            <i class="fa-solid fa-eye" id="togglePasswordIcon"></i>
+                        </button>
+                    </div>
+                    <!-- Caps Lock Alert -->
+                    <div class="caps-warning" id="capsWarningAlert">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>Warning: Caps Lock is ON</span>
+                    </div>
+                </div>
+
+                <!-- Remember Me Row -->
+                <div class="auth-options-row">
+                    <label class="custom-checkbox-label">
+                        <input type="checkbox" name="remember_me" id="rememberMe">
+                        <span>Remember this workstation</span>
+                    </label>
+                    <span style="font-size: 0.78rem; color: #94a3b8;"><i class="fa-solid fa-shield"></i> SSL Protected</span>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn-auth-submit admin-btn" id="btnAdminSubmit">
+                    <span>Authorize &amp; Sign In</span>
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                </button>
+            </form>
+
+            <!-- Quick-Fill Demo Box -->
+            <div class="quick-demo-card admin-demo">
+                <div class="quick-demo-info">
+                    <span class="quick-demo-title"><i class="fa-solid fa-bolt" style="color: #4f46e5;"></i> Demo Admin Access</span>
+                    <span class="quick-demo-creds">User: <strong>admin</strong> | Pass: <strong>admin123</strong></span>
+                </div>
+                <button type="button" class="btn-fill-pill btn-quick-fill" data-user="admin" data-pass="admin123">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-fill
+                </button>
+            </div>
+
+            <!-- Footer Navigation -->
+            <div class="auth-card-footer-nav">
+                <div>
+                    Don't have an Admin Account? <a href="{% url 'admin_register' %}" style="color: #4f46e5;">Register Master Admin &rarr;</a>
+                </div>
+                <div>
+                    Are you a Distributor? <a href="{% url 'distributor_login' %}" style="color: #059669;">Go to Distributor Register &rarr;</a>
+                </div>
+                <a href="{% url 'portal_select' %}" class="home-back-link">
+                    <i class="fa-solid fa-house"></i> Return to Homepage
+                </a>
+            </div>
+
+        </div>
+
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Password Visibility Toggle
+    const toggleBtn = document.getElementById('togglePasswordBtn');
+    const pwdInput = document.getElementById('password');
+    const toggleIcon = document.getElementById('togglePasswordIcon');
+    
+    if (toggleBtn && pwdInput && toggleIcon) {
+        toggleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const isPassword = pwdInput.type === 'password';
+            pwdInput.type = isPassword ? 'text' : 'password';
+            toggleIcon.className = isPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+        });
+    }
+
+    // Caps Lock Detector
+    const capsAlert = document.getElementById('capsWarningAlert');
+    if (pwdInput && capsAlert) {
+        pwdInput.addEventListener('keyup', function(e) {
+            if (e.getModifierState && e.getModifierState('CapsLock')) {
+                capsAlert.style.display = 'flex';
+            } else {
+                capsAlert.style.display = 'none';
+            }
+        });
+    }
+
+    // Interactive button loading state on submission
+    const loginForm = document.getElementById('adminLoginForm');
+    const submitBtn = document.getElementById('btnAdminSubmit');
+    if (loginForm && submitBtn) {
+        loginForm.addEventListener('submit', function() {
+            submitBtn.style.opacity = '0.85';
+            submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Verifying Clearance...</span>';
+        });
+    }
+});
+</script>
 {% endblock %}

@@ -2,72 +2,211 @@
 
 {% block title %}Distributor Login - Advance Billing System{% endblock %}
 
+{% block main_container_class %}auth-page-container{% endblock %}
+{% block main_container_style %}max-width: 1120px; margin: 1.5rem auto 3rem auto; padding: 0 1rem;{% endblock %}
+
 {% block content %}
-<div class="auth-wrapper" style="flex-direction: column;">
-    <div style="width: 100%; max-width: 460px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
-        <a href="{% url 'portal_select' %}" style="display: inline-flex; align-items: center; gap: 8px; color: #475569; text-decoration: none; font-size: 0.88rem; font-weight: 600; padding: 7px 14px; border-radius: 8px; background: #ffffff; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s;">
-            <i class="fa-solid fa-arrow-left"></i> Back to Home
-        </a>
-        <span style="font-size: 0.8rem; color: #64748b; font-weight: 500;">AdvanceBilling</span>
-    </div>
+<div class="auth-page-wrapper">
+    <div class="auth-split-card">
+        
+        <!-- Left Showcase Side (Distributor POS / Fintech Theme) -->
+        <div class="auth-showcase distributor-theme">
+            <div class="auth-ambient-orb"></div>
+            
+            <div>
+                <div class="showcase-badge">
+                    <i class="fa-solid fa-qrcode"></i>
+                    <span>Fast Register &amp; QR Terminal</span>
+                </div>
 
-    <div class="auth-card">
-        <div class="auth-card-header">
-            <div class="auth-role-badge distributor">
-                <i class="fa-solid fa-qrcode"></i>
-                <span>Distributor Portal</span>
+                <div class="showcase-icon-box">
+                    <i class="fa-solid fa-receipt"></i>
+                </div>
+
+                <h1 class="showcase-title">Point of Sale &amp;<br>QR Smart Billing</h1>
+                
+                <p class="showcase-desc">
+                    High-speed billing register built for distributors and wholesale agencies. Issue GST compliant invoices, generate dynamic UPI payment QR codes, and manage your customer accounts seamlessly.
+                </p>
+
+                <div class="showcase-features">
+                    <div class="showcase-feature-item">
+                        <div class="feature-bullet-icon">
+                            <i class="fa-solid fa-bolt"></i>
+                        </div>
+                        <span>Instant Dynamic UPI Payment QR Generation</span>
+                    </div>
+                    <div class="showcase-feature-item">
+                        <div class="feature-bullet-icon">
+                            <i class="fa-solid fa-print"></i>
+                        </div>
+                        <span>Thermal 80mm &amp; Certified PDF Invoice Downloads</span>
+                    </div>
+                    <div class="showcase-feature-item">
+                        <div class="feature-bullet-icon">
+                            <i class="fa-solid fa-boxes-packing"></i>
+                        </div>
+                        <span>Automated Stock Deductions &amp; Customer Directory</span>
+                    </div>
+                </div>
             </div>
-            <h2 class="auth-title">Distributor Login</h2>
-            <p class="auth-subtitle">Access your billing register, create invoices and accept QR payments.</p>
+
+            <div class="showcase-status-bar">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="status-indicator-dot"></span>
+                    <span>POS Register Terminal Ready</span>
+                </div>
+                <span>UPI Gateway Connected</span>
+            </div>
         </div>
 
-        <form method="POST" action="{% url 'distributor_login' %}">
-            {% csrf_token %}
-            <div class="form-group">
-                <label for="username" class="form-label">Distributor Username or Email</label>
-                <div class="input-icon-group">
+        <!-- Right Form Side -->
+        <div class="auth-form-side distributor-form">
+            
+            <!-- Dual Portal Switcher Tabs -->
+            <div class="portal-tabs-nav">
+                <a href="{% url 'admin_login' %}" class="portal-tab-btn">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Admin Console</span>
+                </a>
+                <a href="{% url 'distributor_login' %}" class="portal-tab-btn active distributor-active">
                     <i class="fa-solid fa-store"></i>
-                    <input type="text" id="username" name="username" class="form-input" placeholder="distributor or distributor@agency.com" required autofocus autocomplete="username">
-                </div>
+                    <span>Distributor Portal</span>
+                </a>
             </div>
 
-            <div class="form-group">
-                <div class="label-with-link">
-                    <label for="password" class="form-label">Account Password</label>
-                    <a href="{% url 'forgot_password' %}" class="link-forgot-pwd">Forgot Password?</a>
-                </div>
-                <div class="input-icon-group">
-                    <i class="fa-solid fa-lock"></i>
-                    <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required autocomplete="new-password">
-                </div>
+            <div style="margin-bottom: 1.5rem;">
+                <h2 class="auth-form-title">Distributor Login</h2>
+                <p class="auth-form-subtitle">Access your billing register, sales ledger, and customer database.</p>
             </div>
 
-            <button type="submit" class="btn-submit-auth btn-submit-distributor">
-                <span>Sign In to Distributor Register</span>
-                <i class="fa-solid fa-arrow-right-to-bracket"></i>
-            </button>
-        </form>
+            <form method="POST" action="{% url 'distributor_login' %}" id="distributorLoginForm">
+                {% csrf_token %}
+                
+                <!-- Username or Email Field -->
+                <div class="form-group">
+                    <label for="username" class="form-label">Distributor Username or Email</label>
+                    <div class="modern-input-wrapper">
+                        <i class="fa-solid fa-store leading-icon"></i>
+                        <input type="text" 
+                               id="username" 
+                               name="username" 
+                               class="modern-form-input" 
+                               placeholder="distributor or distributor@agency.com" 
+                               required 
+                               autofocus 
+                               autocomplete="username">
+                    </div>
+                </div>
 
-        <!-- Quick Fill Demo Box -->
-        <div class="auth-demo-box">
-            <div class="demo-title">Default Distributor Demo Credentials</div>
-            <div class="demo-creds">User: <strong>distributor</strong> | Pass: <strong>dist123</strong></div>
-            <button type="button" class="btn-quick-fill" data-user="distributor" data-pass="dist123">
-                <i class="fa-solid fa-bolt"></i> Auto-fill Credentials
-            </button>
+                <!-- Password Field with Show/Hide Toggle -->
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <label for="password" class="form-label" style="margin-bottom: 0;">Account Password</label>
+                        <a href="{% url 'forgot_password' %}" class="auth-forgot-link distributor-forgot-link">Forgot Password?</a>
+                    </div>
+                    <div class="modern-input-wrapper">
+                        <i class="fa-solid fa-lock leading-icon"></i>
+                        <input type="password" 
+                               id="password" 
+                               name="password" 
+                               class="modern-form-input" 
+                               placeholder="••••••••••••" 
+                               required 
+                               autocomplete="current-password">
+                        <button type="button" class="btn-toggle-password" id="toggleDistPasswordBtn" title="Toggle password visibility">
+                            <i class="fa-solid fa-eye" id="toggleDistPasswordIcon"></i>
+                        </button>
+                    </div>
+                    <!-- Caps Lock Alert -->
+                    <div class="caps-warning" id="capsWarningAlertDist">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>Warning: Caps Lock is ON</span>
+                    </div>
+                </div>
+
+                <!-- Remember Me Row -->
+                <div class="auth-options-row">
+                    <label class="custom-checkbox-label">
+                        <input type="checkbox" name="remember_me" id="rememberMeDist">
+                        <span>Remember my register session</span>
+                    </label>
+                    <span style="font-size: 0.78rem; color: #94a3b8;"><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Fast Checkout</span>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn-auth-submit distributor-btn" id="btnDistSubmit">
+                    <span>Sign In to Billing Register</span>
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                </button>
+            </form>
+
+            <!-- Quick-Fill Demo Box -->
+            <div class="quick-demo-card distributor-demo">
+                <div class="quick-demo-info">
+                    <span class="quick-demo-title"><i class="fa-solid fa-bolt" style="color: #059669;"></i> Demo Distributor Account</span>
+                    <span class="quick-demo-creds">User: <strong>distributor</strong> | Pass: <strong>dist123</strong></span>
+                </div>
+                <button type="button" class="btn-fill-pill btn-quick-fill" data-user="distributor" data-pass="dist123">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-fill
+                </button>
+            </div>
+
+            <!-- Footer Navigation -->
+            <div class="auth-card-footer-nav">
+                <div>
+                    Don't have an account? <a href="{% url 'distributor_register' %}" style="color: #059669; font-weight: 700;">Register New Distributor &rarr;</a>
+                </div>
+                <div>
+                    System Administrator? <a href="{% url 'admin_login' %}" style="color: #4f46e5;">Sign in to Admin Console &rarr;</a>
+                </div>
+                <a href="{% url 'portal_select' %}" class="home-back-link">
+                    <i class="fa-solid fa-house"></i> Return to Homepage
+                </a>
+            </div>
+
         </div>
 
-        <div class="auth-switch-link">
-            Don't have an account? <a href="{% url 'distributor_register' %}" class="highlight-link">Register New Distributor Account &rarr;</a>
-        </div>
-        <div class="auth-switch-link secondary-switch">
-            System Administrator? <a href="{% url 'admin_login' %}">Sign in to Admin Console &rarr;</a>
-        </div>
-        <div class="auth-switch-link" style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; text-align: center;">
-            <a href="{% url 'portal_select' %}" style="display: inline-flex; align-items: center; gap: 6px; color: #2563eb; font-weight: 600; text-decoration: none;">
-                <i class="fa-solid fa-house"></i> Return to Home Page
-            </a>
-        </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Password Visibility Toggle
+    const toggleBtn = document.getElementById('toggleDistPasswordBtn');
+    const pwdInput = document.getElementById('password');
+    const toggleIcon = document.getElementById('toggleDistPasswordIcon');
+    
+    if (toggleBtn && pwdInput && toggleIcon) {
+        toggleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const isPassword = pwdInput.type === 'password';
+            pwdInput.type = isPassword ? 'text' : 'password';
+            toggleIcon.className = isPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+        });
+    }
+
+    // Caps Lock Detector
+    const capsAlert = document.getElementById('capsWarningAlertDist');
+    if (pwdInput && capsAlert) {
+        pwdInput.addEventListener('keyup', function(e) {
+            if (e.getModifierState && e.getModifierState('CapsLock')) {
+                capsAlert.style.display = 'flex';
+            } else {
+                capsAlert.style.display = 'none';
+            }
+        });
+    }
+
+    // Interactive button loading state on submission
+    const loginForm = document.getElementById('distributorLoginForm');
+    const submitBtn = document.getElementById('btnDistSubmit');
+    if (loginForm && submitBtn) {
+        loginForm.addEventListener('submit', function() {
+            submitBtn.style.opacity = '0.85';
+            submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Opening Register...</span>';
+        });
+    }
+});
+</script>
 {% endblock %}
