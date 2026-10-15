@@ -90,8 +90,12 @@ def admin_login_view(request):
     if request.user.is_authenticated:
         if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'):
             return redirect('admin_dashboard')
+        return redirect('distributor_dashboard')
 
     if request.method == 'POST':
+        if request.content_type == 'application/json' or (request.body and request.body.strip().startswith(b'{')):
+            return api_login_admin(request)
+
         form = AdminLoginForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
@@ -100,8 +104,9 @@ def admin_login_view(request):
             next_url = request.GET.get('next') or 'admin_dashboard'
             return redirect(next_url)
         else:
-            for error in form.non_field_errors():
-                messages.error(request, error)
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, error)
     else:
         form = AdminLoginForm(request)
 
@@ -122,9 +127,14 @@ def admin_register_view(request):
 def distributor_login_view(request):
     initialize_default_users()
     if request.user.is_authenticated:
+        if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'):
+            return redirect('admin_dashboard')
         return redirect('distributor_dashboard')
 
     if request.method == 'POST':
+        if request.content_type == 'application/json' or (request.body and request.body.strip().startswith(b'{')):
+            return api_login_distributor(request)
+
         form = DistributorLoginForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
@@ -133,8 +143,9 @@ def distributor_login_view(request):
             next_url = request.GET.get('next') or 'distributor_dashboard'
             return redirect(next_url)
         else:
-            for error in form.non_field_errors():
-                messages.error(request, error)
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, error)
     else:
         form = DistributorLoginForm(request)
 
@@ -1950,6 +1961,175 @@ def invoice_report_download_pdf_view(request):
 
 
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth import authenticate
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_login_admin(request):
+    """
+    API endpoint for Administrator Login.
+    Accepts JSON: {"username": "admin", "password": "password"} or {"identity": "...", "password": "..."}
+    Allows authentication by username or email.
+    Verifies that the user possesses Administrator authorization.
+    """
+    try:
+        initialize_default_users()
+        if request.content_type == 'application/json' or (request.body and request.body.strip().startswith(b'{')):
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({'success': False, 'message': 'Invalid JSON data.'}, status=400)
+        else:
+            data = request.POST.dict()
+
+        username = (data.get('username') or data.get('identity') or data.get('email') or '').strip()
+        password = data.get('password', '')
+
+        if not username or not password:
+            return JsonResponse({'success': False, 'message': 'Both username/email and password are required.'}, status=400)
+
+        user = authenticate(request, username=username, password=password)
+        if user is None:
+            return JsonResponse({'success': False, 'message': 'Invalid credentials. Please verify your Admin username/email and password.'}, status=401)
+
+        is_admin = user.is_superuser or (hasattr(user, 'profile') and user.profile.role == 'ADMIN')
+        if not is_admin:
+            return JsonResponse({
+                'success': False,
+                'message': 'Access Denied: This account is not authorized as an Administrator. Please use Distributor Login.'
+            }, status=403)
+
+        if not user.is_active:
+            return JsonResponse({'success': False, 'message': 'Account is inactive. Please contact support.'}, status=403)
+
+        auth_login(request, user)
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Welcome back, Administrator {user.get_full_name() or user.username}!',
+            'redirect_url': '/admin/dashboard/',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'full_name': user.get_full_name() or user.username,
+                'role': profile.role,
+                'business_name': profile.business_name or 'Admin HQ',
+                'phone': profile.phone or ''
+            }
+        }, status=200)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_login_distributor(request):
+    """
+    API endpoint for Distributor Login.
+    Accepts JSON: {"username": "distributor", "password": "password"} or {"identity": "...", "password": "..."}
+    Allows authentication by username or email.
+    """
+    try:
+        initialize_default_users()
+        if request.content_type == 'application/json' or (request.body and request.body.strip().startswith(b'{')):
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({'success': False, 'message': 'Invalid JSON data.'}, status=400)
+        else:
+            data = request.POST.dict()
+
+        username = (data.get('username') or data.get('identity') or data.get('email') or '').strip()
+        password = data.get('password', '')
+
+        if not username or not password:
+            return JsonResponse({'success': False, 'message': 'Both username/email and password are required.'}, status=400)
+
+        user = authenticate(request, username=username, password=password)
+        if user is None:
+            return JsonResponse({'success': False, 'message': 'Invalid credentials. Please verify your distributor username/email and password.'}, status=401)
+
+        if not user.is_active:
+            return JsonResponse({'success': False, 'message': 'Account is inactive. Please contact support.'}, status=403)
+
+        auth_login(request, user)
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+
+        redirect_url = '/admin/dashboard/' if (user.is_superuser or profile.role == 'ADMIN') else '/distributor/dashboard/'
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Welcome back, Distributor {user.get_full_name() or user.username}!',
+            'redirect_url': redirect_url,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'full_name': user.get_full_name() or user.username,
+                'role': profile.role,
+                'business_name': profile.business_name or 'Distribution Agency',
+                'phone': profile.phone or '',
+                'upi_id': profile.upi_id or 'merchant@upi'
+            }
+        }, status=200)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_login_general(request):
+    """
+    General API endpoint for User Login (auto-detects role and redirects accordingly).
+    """
+    try:
+        initialize_default_users()
+        if request.content_type == 'application/json' or (request.body and request.body.strip().startswith(b'{')):
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({'success': False, 'message': 'Invalid JSON data.'}, status=400)
+        else:
+            data = request.POST.dict()
+
+        username = (data.get('username') or data.get('identity') or data.get('email') or '').strip()
+        password = data.get('password', '')
+
+        if not username or not password:
+            return JsonResponse({'success': False, 'message': 'Both username/email and password are required.'}, status=400)
+
+        user = authenticate(request, username=username, password=password)
+        if user is None:
+            return JsonResponse({'success': False, 'message': 'Invalid credentials. Please verify your username/email and password.'}, status=401)
+
+        if not user.is_active:
+            return JsonResponse({'success': False, 'message': 'Account is inactive.'}, status=403)
+
+        auth_login(request, user)
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        is_admin = user.is_superuser or profile.role == 'ADMIN'
+        redirect_url = '/admin/dashboard/' if is_admin else '/distributor/dashboard/'
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Welcome back, {user.get_full_name() or user.username}!',
+            'redirect_url': redirect_url,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'full_name': user.get_full_name() or user.username,
+                'role': profile.role,
+                'business_name': profile.business_name or '',
+                'phone': profile.phone or '',
+                'upi_id': getattr(profile, 'upi_id', '')
+            }
+        }, status=200)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
 
 @csrf_exempt
 @require_http_methods(["POST"])

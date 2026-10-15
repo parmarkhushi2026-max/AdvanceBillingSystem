@@ -24,10 +24,10 @@
         <form method="POST" action="{% url 'distributor_login' %}">
             {% csrf_token %}
             <div class="form-group">
-                <label for="username" class="form-label">Distributor Username</label>
+                <label for="username" class="form-label">Distributor Username or Email</label>
                 <div class="input-icon-group">
                     <i class="fa-solid fa-store"></i>
-                    <input type="text" id="username" name="username" class="form-input" placeholder="distributor" required autofocus autocomplete="off">
+                    <input type="text" id="username" name="username" class="form-input" placeholder="distributor or distributor@agency.com" required autofocus autocomplete="username">
                 </div>
             </div>
 

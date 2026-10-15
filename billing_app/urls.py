@@ -14,7 +14,12 @@ urlpatterns = [
     path('admin/forgot-password/resend-otp/', views.admin_resend_otp_view, name='admin_resend_otp'),
     path('logout/', views.user_logout, name='logout'),
     
-    # API endpoints
+    # Authentication API endpoints
+    path('api/login/', views.api_login_general, name='api_login_general'),
+    path('api/login/admin/', views.api_login_admin, name='api_login_admin'),
+    path('api/admin/login/', views.api_login_admin, name='api_admin_login_alias'),
+    path('api/login/distributor/', views.api_login_distributor, name='api_login_distributor'),
+    path('api/distributor/login/', views.api_login_distributor, name='api_distributor_login_alias'),
     path('api/register/admin/', views.api_register_admin, name='api_register_admin'),
     path('api/register/distributor/', views.api_register_distributor, name='api_register_distributor'),
     path('api/customer/register/', views.api_register_customer, name='api_register_customer'),

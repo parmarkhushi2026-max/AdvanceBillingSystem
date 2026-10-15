@@ -153,7 +153,13 @@ MAILERS = {
     },
 }
 
+# Authentication Backends
+AUTHENTICATION_BACKENDS = [
+    'billing_app.auth_backends.EmailOrUsernameBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 # Django Auth Settings
 LOGIN_URL = 'portal_select'
 LOGIN_REDIRECT_URL = 'portal_select'
-LOGOUT_REDIRECT_URL = 'portal_select'
+LOGOUT_REDIRECT_URL = 'portal_select'

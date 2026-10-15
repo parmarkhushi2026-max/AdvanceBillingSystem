@@ -1484,6 +1484,184 @@ class QRCodeDecoderTests(TestCase):
         self.assertContains(response, 'Troubleshooting Tips')
 
 
+class AdminLoginBackendTestCase(TestCase):
+    """Unit and Integration tests for Admin Login Backend (Web Form & REST API)."""
+    def setUp(self):
+        self.client = Client()
+        self.admin = User.objects.create_superuser(
+            username='masteradmin',
+            email='masteradmin@advancebilling.com',
+            password='AdminPassword123!'
+        )
+        profile, _ = UserProfile.objects.get_or_create(user=self.admin)
+        profile.role = 'ADMIN'
+        profile.business_name = 'HQ Administration'
+        profile.save()
+
+        # Regular distributor user
+        self.distributor = User.objects.create_user(
+            username='standard_dist',
+            email='dist@agency.com',
+            password='DistPassword123!'
+        )
+        dist_prof, _ = UserProfile.objects.get_or_create(user=self.distributor)
+        dist_prof.role = 'DISTRIBUTOR'
+        dist_prof.save()
+
+    def test_admin_login_with_username_success(self):
+        response = self.client.post(reverse('admin_login'), {
+            'username': 'masteradmin',
+            'password': 'AdminPassword123!'
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['user'].is_authenticated)
+        self.assertContains(response, 'System Admin Dashboard')
+
+    def test_admin_login_with_email_success(self):
+        response = self.client.post(reverse('admin_login'), {
+            'username': 'masteradmin@advancebilling.com',
+            'password': 'AdminPassword123!'
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['user'].is_authenticated)
+        self.assertEqual(response.context['user'].username, 'masteradmin')
+
+    def test_admin_login_invalid_password_fails(self):
+        response = self.client.post(reverse('admin_login'), {
+            'username': 'masteradmin',
+            'password': 'WrongPassword999!'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Invalid credentials')
+
+    def test_admin_login_non_admin_distributor_rejected(self):
+        response = self.client.post(reverse('admin_login'), {
+            'username': 'standard_dist',
+            'password': 'DistPassword123!'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Access Denied: This account is not authorized as an Administrator')
+
+    def test_admin_login_api_json_success(self):
+        payload = json.dumps({
+            'username': 'masteradmin',
+            'password': 'AdminPassword123!'
+        })
+        response = self.client.post(reverse('api_login_admin'), data=payload, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['user']['role'], 'ADMIN')
+        self.assertEqual(data['redirect_url'], '/admin/dashboard/')
+
+    def test_admin_login_api_email_success(self):
+        payload = json.dumps({
+            'identity': 'masteradmin@advancebilling.com',
+            'password': 'AdminPassword123!'
+        })
+        response = self.client.post(reverse('api_login_admin'), data=payload, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['user']['username'], 'masteradmin')
+
+    def test_admin_login_api_forbidden_for_distributor(self):
+        payload = json.dumps({
+            'username': 'standard_dist',
+            'password': 'DistPassword123!'
+        })
+        response = self.client.post(reverse('api_login_admin'), data=payload, content_type='application/json')
+        self.assertEqual(response.status_code, 403)
+        data = response.json()
+        self.assertFalse(data['success'])
+        self.assertIn('Access Denied', data['message'])
+
+    def test_admin_login_api_missing_fields_400(self):
+        payload = json.dumps({'username': 'masteradmin'})
+        response = self.client.post(reverse('api_login_admin'), data=payload, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()['success'])
+
+
+class DistributorLoginBackendTestCase(TestCase):
+    """Unit and Integration tests for Distributor Login Backend (Web Form & REST API)."""
+    def setUp(self):
+        self.client = Client()
+        self.distributor = User.objects.create_user(
+            username='quickdist',
+            email='quickdist@agency.com',
+            password='QuickDist123!'
+        )
+        profile, _ = UserProfile.objects.get_or_create(user=self.distributor)
+        profile.role = 'DISTRIBUTOR'
+        profile.business_name = 'Quick Agency Retail'
+        profile.upi_id = 'quick@upi'
+        profile.save()
+
+    def test_distributor_login_with_username_success(self):
+        response = self.client.post(reverse('distributor_login'), {
+            'username': 'quickdist',
+            'password': 'QuickDist123!'
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['user'].is_authenticated)
+        self.assertEqual(response.context['user'].username, 'quickdist')
+        self.assertContains(response, 'Quick Agency Retail')
+
+    def test_distributor_login_with_email_success(self):
+        response = self.client.post(reverse('distributor_login'), {
+            'username': 'quickdist@agency.com',
+            'password': 'QuickDist123!'
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['user'].is_authenticated)
+        self.assertEqual(response.context['user'].username, 'quickdist')
+
+    def test_distributor_login_invalid_password_fails(self):
+        response = self.client.post(reverse('distributor_login'), {
+            'username': 'quickdist',
+            'password': 'WrongPassword123'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Invalid credentials')
+
+    def test_distributor_login_api_json_success(self):
+        payload = json.dumps({
+            'username': 'quickdist',
+            'password': 'QuickDist123!'
+        })
+        response = self.client.post(reverse('api_login_distributor'), data=payload, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['user']['username'], 'quickdist')
+        self.assertEqual(data['user']['role'], 'DISTRIBUTOR')
+        self.assertEqual(data['redirect_url'], '/distributor/dashboard/')
+
+    def test_distributor_login_api_email_success(self):
+        payload = json.dumps({
+            'email': 'quickdist@agency.com',
+            'password': 'QuickDist123!'
+        })
+        response = self.client.post(reverse('api_login_distributor'), data=payload, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['user']['business_name'], 'Quick Agency Retail')
+
+    def test_general_login_api_endpoint(self):
+        payload = json.dumps({
+            'username': 'quickdist',
+            'password': 'QuickDist123!'
+        })
+        response = self.client.post(reverse('api_login_general'), data=payload, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['redirect_url'], '/distributor/dashboard/')
+
+
+
 
 
 

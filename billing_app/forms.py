@@ -7,37 +7,39 @@ from .models import UserProfile
 class AdminLoginForm(AuthenticationForm):
     """Custom Django Authentication form specifically validating Admin privileges."""
     username = forms.CharField(
+        label="Admin Username or Email",
         widget=forms.TextInput(attrs={
             'class': 'form-input',
-            'placeholder': 'Enter admin username',
+            'placeholder': 'Enter admin username or email',
             'autofocus': True,
             'id': 'username'
         })
     )
     password = forms.CharField(
+        label="Security Password",
         widget=forms.PasswordInput(attrs={
             'class': 'form-input',
             'placeholder': 'Enter admin password',
             'id': 'password',
-            'autocomplete': 'new-password'
+            'autocomplete': 'current-password'
         })
     )
 
     def clean(self):
-        username = self.cleaned_data.get('username')
+        username = (self.cleaned_data.get('username') or '').strip()
         password = self.cleaned_data.get('password')
 
         if username and password:
             self.user_cache = authenticate(self.request, username=username, password=password)
             if self.user_cache is None:
                 raise ValidationError(
-                    'Invalid credentials. Please verify your Admin username and password.',
+                    'Invalid credentials. Please verify your Admin username/email and password.',
                     code='invalid_login'
                 )
             else:
                 self.confirm_login_allowed(self.user_cache)
                 
-                # Check for Admin permissions
+                # Check for Admin permissions (is_superuser or profile role ADMIN)
                 is_admin = self.user_cache.is_superuser or (
                     hasattr(self.user_cache, 'profile') and self.user_cache.profile.role == 'ADMIN'
                 )
@@ -53,31 +55,33 @@ class AdminLoginForm(AuthenticationForm):
 class DistributorLoginForm(AuthenticationForm):
     """Custom Django Authentication form for Distributors."""
     username = forms.CharField(
+        label="Distributor Username or Email",
         widget=forms.TextInput(attrs={
             'class': 'form-input',
-            'placeholder': 'Enter distributor username',
+            'placeholder': 'Enter distributor username or email',
             'autofocus': True,
             'id': 'username'
         })
     )
     password = forms.CharField(
+        label="Account Password",
         widget=forms.PasswordInput(attrs={
             'class': 'form-input',
             'placeholder': 'Enter distributor password',
             'id': 'password',
-            'autocomplete': 'new-password'
+            'autocomplete': 'current-password'
         })
     )
 
     def clean(self):
-        username = self.cleaned_data.get('username')
+        username = (self.cleaned_data.get('username') or '').strip()
         password = self.cleaned_data.get('password')
 
         if username and password:
             self.user_cache = authenticate(self.request, username=username, password=password)
             if self.user_cache is None:
                 raise ValidationError(
-                    'Invalid credentials. Please verify your distributor username and password.',
+                    'Invalid credentials. Please verify your distributor username/email and password.',
                     code='invalid_login'
                 )
             else:
