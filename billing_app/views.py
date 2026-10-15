@@ -100,6 +100,11 @@ def admin_login_view(request):
         if form.is_valid():
             user = form.get_user()
             auth_login(request, user)
+            # Session-based authentication: configure expiry based on Remember Me
+            if request.POST.get('remember_me'):
+                request.session.set_expiry(60 * 60 * 24 * 30)  # 30 days persistent session
+            else:
+                request.session.set_expiry(0)  # Session cookie expires on browser close
             messages.success(request, f'Welcome back, Administrator {user.get_full_name() or user.username}!')
             next_url = request.GET.get('next') or 'admin_dashboard'
             return redirect(next_url)
@@ -139,6 +144,11 @@ def distributor_login_view(request):
         if form.is_valid():
             user = form.get_user()
             auth_login(request, user)
+            # Session-based authentication: configure expiry based on Remember Me
+            if request.POST.get('remember_me'):
+                request.session.set_expiry(60 * 60 * 24 * 30)  # 30 days persistent session
+            else:
+                request.session.set_expiry(0)  # Session cookie expires on browser close
             messages.success(request, f'Welcome back, Distributor {user.get_full_name() or user.username}!')
             next_url = request.GET.get('next') or 'distributor_dashboard'
             return redirect(next_url)
@@ -155,6 +165,7 @@ def distributor_login_view(request):
 def user_logout(request):
     username = request.user.username if request.user.is_authenticated else ''
     auth_logout(request)
+    request.session.flush()  # Securely purge and invalidate session cookie and database session
     if username:
         messages.info(request, f'Goodbye {username}, you have been securely logged out.')
     else:
@@ -2003,12 +2014,20 @@ def api_login_admin(request):
             return JsonResponse({'success': False, 'message': 'Account is inactive. Please contact support.'}, status=403)
 
         auth_login(request, user)
+        # Session configuration based on Remember Me
+        remember = bool(data.get('remember_me', False))
+        if remember:
+            request.session.set_expiry(60 * 60 * 24 * 30)  # 30 days
+        else:
+            request.session.set_expiry(0)  # Browser close
+
         profile, _ = UserProfile.objects.get_or_create(user=user)
 
         return JsonResponse({
             'success': True,
             'message': f'Welcome back, Administrator {user.get_full_name() or user.username}!',
             'redirect_url': '/admin/dashboard/',
+            'session_key': request.session.session_key,
             'user': {
                 'id': user.id,
                 'username': user.username,
@@ -2055,6 +2074,13 @@ def api_login_distributor(request):
             return JsonResponse({'success': False, 'message': 'Account is inactive. Please contact support.'}, status=403)
 
         auth_login(request, user)
+        # Session configuration based on Remember Me
+        remember = bool(data.get('remember_me', False))
+        if remember:
+            request.session.set_expiry(60 * 60 * 24 * 30)  # 30 days
+        else:
+            request.session.set_expiry(0)  # Browser close
+
         profile, _ = UserProfile.objects.get_or_create(user=user)
 
         redirect_url = '/admin/dashboard/' if (user.is_superuser or profile.role == 'ADMIN') else '/distributor/dashboard/'
@@ -2063,6 +2089,7 @@ def api_login_distributor(request):
             'success': True,
             'message': f'Welcome back, Distributor {user.get_full_name() or user.username}!',
             'redirect_url': redirect_url,
+            'session_key': request.session.session_key,
             'user': {
                 'id': user.id,
                 'username': user.username,
@@ -2108,6 +2135,13 @@ def api_login_general(request):
             return JsonResponse({'success': False, 'message': 'Account is inactive.'}, status=403)
 
         auth_login(request, user)
+        # Session configuration based on Remember Me
+        remember = bool(data.get('remember_me', False))
+        if remember:
+            request.session.set_expiry(60 * 60 * 24 * 30)  # 30 days
+        else:
+            request.session.set_expiry(0)  # Browser close
+
         profile, _ = UserProfile.objects.get_or_create(user=user)
         is_admin = user.is_superuser or profile.role == 'ADMIN'
         redirect_url = '/admin/dashboard/' if is_admin else '/distributor/dashboard/'
@@ -2116,6 +2150,7 @@ def api_login_general(request):
             'success': True,
             'message': f'Welcome back, {user.get_full_name() or user.username}!',
             'redirect_url': redirect_url,
+            'session_key': request.session.session_key,
             'user': {
                 'id': user.id,
                 'username': user.username,
@@ -2129,6 +2164,54 @@ def api_login_general(request):
         }, status=200)
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_session_status(request):
+    """
+    Session verification endpoint. Returns current authenticated user session details,
+    role, permissions, and session expiry age.
+    """
+    if request.user.is_authenticated:
+        role = 'ADMIN' if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN') else 'DISTRIBUTOR'
+        profile = getattr(request.user, 'profile', None)
+        return JsonResponse({
+            'authenticated': True,
+            'session_key': request.session.session_key,
+            'session_expiry_age': request.session.get_expiry_age(),
+            'user': {
+                'id': request.user.id,
+                'username': request.user.username,
+                'email': request.user.email,
+                'full_name': request.user.get_full_name() or request.user.username,
+                'role': role,
+                'business_name': profile.business_name if profile else '',
+                'phone': profile.phone if profile else '',
+                'upi_id': getattr(profile, 'upi_id', '') if profile else ''
+            }
+        }, status=200)
+    else:
+        return JsonResponse({
+            'authenticated': False,
+            'message': 'No active authenticated session.'
+        }, status=200)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_logout(request):
+    """
+    API endpoint to securely terminate and flush the current session.
+    """
+    username = request.user.username if request.user.is_authenticated else ''
+    auth_logout(request)
+    request.session.flush()
+    return JsonResponse({
+        'success': True,
+        'message': f'Session for {username or "user"} successfully terminated.',
+        'redirect_url': '/'
+    }, status=200)
 
 
 @csrf_exempt

@@ -1661,6 +1661,100 @@ class DistributorLoginBackendTestCase(TestCase):
         self.assertEqual(data['redirect_url'], '/distributor/dashboard/')
 
 
+class SessionBasedAuthenticationTestCase(TestCase):
+    """Deep verification of Session-based authentication, cookies, expiry, and endpoints."""
+    def setUp(self):
+        self.client = Client()
+        self.admin = User.objects.create_superuser(
+            username='sess_admin',
+            email='sess_admin@advancebilling.com',
+            password='AdminPassword123!'
+        )
+        self.profile, _ = UserProfile.objects.get_or_create(user=self.admin)
+        self.profile.role = 'ADMIN'
+        self.profile.save()
+
+    def test_session_cookie_created_on_login(self):
+        response = self.client.post(reverse('admin_login'), {
+            'username': 'sess_admin',
+            'password': 'AdminPassword123!'
+        })
+        self.assertEqual(response.status_code, 302)
+        # Verify custom session cookie name exists
+        cookie = response.cookies.get('advance_billing_sessionid')
+        self.assertIsNotNone(cookie)
+        self.assertTrue(cookie['httponly'])
+        self.assertEqual(cookie['samesite'], 'Lax')
+        self.assertGreater(len(cookie.value), 10)
+
+    def test_session_expiry_without_remember_me_expires_on_close(self):
+        self.client.post(reverse('admin_login'), {
+            'username': 'sess_admin',
+            'password': 'AdminPassword123!'
+            # remember_me is omitted
+        })
+        session = self.client.session
+        # In Django, get_expire_at_browser_close() returns True when set_expiry(0) is called
+        self.assertTrue(session.get_expire_at_browser_close())
+
+    def test_session_expiry_with_remember_me(self):
+        self.client.post(reverse('admin_login'), {
+            'username': 'sess_admin',
+            'password': 'AdminPassword123!',
+            'remember_me': 'on'
+        })
+        session = self.client.session
+        self.assertFalse(session.get_expire_at_browser_close())
+        # Age should be approx 30 days (2592000 seconds)
+        self.assertGreaterEqual(session.get_expiry_age(), 2590000)
+
+    def test_session_flushed_completely_on_logout(self):
+        # 1. Login
+        self.client.post(reverse('admin_login'), {
+            'username': 'sess_admin',
+            'password': 'AdminPassword123!'
+        })
+        session_key = self.client.session.session_key
+        self.assertIsNotNone(session_key)
+
+        # 2. Logout
+        logout_resp = self.client.get(reverse('logout'), follow=True)
+        self.assertEqual(logout_resp.status_code, 200)
+        self.assertFalse(logout_resp.context['user'].is_authenticated)
+
+        # 3. Old session is purged
+        new_session_key = self.client.session.session_key
+        self.assertNotEqual(session_key, new_session_key)
+
+    def test_api_session_status_unauthenticated(self):
+        response = self.client.get(reverse('api_session_status'))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertFalse(data['authenticated'])
+
+    def test_api_session_status_authenticated(self):
+        self.client.login(username='sess_admin', password='AdminPassword123!')
+        response = self.client.get(reverse('api_session_status'))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['authenticated'])
+        self.assertEqual(data['user']['username'], 'sess_admin')
+        self.assertEqual(data['user']['role'], 'ADMIN')
+        self.assertIsNotNone(data['session_key'])
+
+    def test_api_logout_terminates_session(self):
+        self.client.login(username='sess_admin', password='AdminPassword123!')
+        response = self.client.post(reverse('api_logout'))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+
+        # Verify now unauthenticated
+        status_resp = self.client.get(reverse('api_session_status'))
+        self.assertFalse(status_resp.json()['authenticated'])
+
+
+
 
 
 

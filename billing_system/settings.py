@@ -35,13 +35,21 @@ CSRF_TRUSTED_ORIGINS = [
     'http://0.0.0.0:*',
 ]
 
+# CSRF and Cookie Settings
 CSRF_COOKIE_SECURE = False
-SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_SAMESITE = 'Lax'
-
 CSRF_FAILURE_VIEW = 'billing_app.views.csrf_failure_view'
+
+# Session-Based Authentication Configuration
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_NAME = 'advance_billing_sessionid'
+SESSION_COOKIE_AGE = 1209600  # Default 14 days in seconds
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_HTTPONLY = True  # Hardens against XSS session hijacking
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = False  # Set to True when served over HTTPS
 
 
 
