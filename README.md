@@ -8,9 +8,25 @@ A feature-packed, production-ready Django Billing, QR Payment, and Financial Int
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
+## 🛡️ 🌟 New Feature: Route Protection Middleware & Role-Based Decorators
+
+Defense-in-depth security enforcing route and role protection across the entire system:
+- **`RouteProtectionMiddleware`**: Intercepts requests globally before view execution:
+  - Guards `/admin/*` routes strictly for authenticated users with `ADMIN` role / superuser.
+  - Guards `/distributor/*` routes strictly for authenticated users.
+  - Guards core management routes (`/invoices/*`, `/customers/*`, `/products/*`).
+  - Distinguishes browser page visits (redirect with friendly flash messages) from API/AJAX requests (returns HTTP 401 Unauthorized / HTTP 403 Forbidden JSON).
+  - Clean whitelist for public authentication, password recovery, and onboarding endpoints.
+- **Enhanced Role Decorators (`billing_app/decorators.py`)**:
+  - `@admin_required`: Ensures ADMIN privileges, redirecting or returning JSON 401/403.
+  - `@distributor_required`: Enforces Distributor access with session verification.
+  - `@role_required(['ADMIN', 'DISTRIBUTOR'])`: Flexible multi-role authorization.
+  - `@api_login_required` & `@api_admin_required`: API-specific decorators returning JSON status payloads.
+- **Comprehensive Test Coverage**: Tested with dedicated unit tests in `billing_app/test_route_protection.py`.
+
 ---
 
-## 📊 🌟 New Feature: Invoice Report Generator & Date Range Filtering Engine
+## 📊 🌟 Feature: Invoice Report Generator & Date Range Filtering Engine
 
 Generate custom financial ledgers, audit invoices by date range, and export certified records:
 - **Date Range Filter Form**: Filter invoices seamlessly by custom `start_date` (From Date) and `end_date` (To Date).
