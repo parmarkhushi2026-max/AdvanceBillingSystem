@@ -47,6 +47,21 @@ Tested and validated authentication flow covering Web and REST API sessions:
 
 ---
 
+## 🧾 🌟 Feature: Database Invoice Data Engine & Seeder
+
+Guarantees that complete, realistic invoice data exists in the database:
+- **Core Attributes Ensured**:
+  - **Invoice ID**: Unique sequential ID (`#1`, `#2`, ...) and formatted number (`INV-2026-001`).
+  - **Customer Name**: Linked customer details (`Pooja Electronics & Retail`, `Rajesh General Stores`, `Anil Medical & Diagnostics`).
+  - **Total Amount**: Verified `grand_total` with taxes, subtotal, and discounts.
+  - **Date**: Timestamped `created_at` records across date ranges for financial reporting.
+  - **Line Items**: Linked items with product name, quantity, unit price, and GST rate.
+- **Auto-Initialization**: Automatically creates representative data if none exists when views load.
+- **Management Command**: Run anytime via `python manage.py seed_invoices` (supports `--force`).
+- **Test Coverage**: Tested in `billing_app/test_invoice_database_data.py`.
+
+---
+
 ## 📊 🌟 Feature: Invoice Report Generator & Date Range Filtering Engine
 
 Generate custom financial ledgers, audit invoices by date range, and export certified records:

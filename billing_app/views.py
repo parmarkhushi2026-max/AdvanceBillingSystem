@@ -75,6 +75,10 @@ def initialize_default_users():
             Product(name='QR Payment Display Stand', sku='ACC-STD-01', category='Accessories', price=Decimal('450.00'), gst_rate=18.00, hsn_code='392690', unit='Pcs', stock=80),
         ])
 
+    # Sample Invoices (ID, customer name, total amount, and date)
+    from .invoice_seeder import ensure_invoice_data_exists
+    ensure_invoice_data_exists(skip_in_test=True)
+
 # 1. Landing Page / Portal Selector
 def portal_select(request):
     initialize_default_users()
