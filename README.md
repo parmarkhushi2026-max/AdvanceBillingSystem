@@ -26,6 +26,27 @@ Defense-in-depth security enforcing route and role protection across the entire 
 
 ---
 
+## 🔐 🌟 Feature: Complete Login & Logout Flow & Session Security
+
+Tested and validated authentication flow covering Web and REST API sessions:
+- **Admin Authentication**:
+  - Secure login via username or email address (`EmailOrUsernameBackend`).
+  - Redirection to `/admin/dashboard/` (or custom `?next=` destination).
+  - Configurable persistent session via *Remember Me* (30 days vs session close expiry).
+- **Distributor Authentication**:
+  - Dedicated distributor portal login (`/login/distributor/`) redirecting to distributor dashboard.
+  - Profile auto-initialization and role binding (`DISTRIBUTOR`).
+- **Complete Logout & Session Flushing**:
+  - Web logout (`/logout/`) invalidates the session, flushes cookies from browser, and destroys the database session.
+  - Post-logout route protection prevents back-button bypass and immediately redirects unauthenticated attempts to login.
+- **REST API Login & Logout Suite**:
+  - JSON authentication via `/api/login/admin/`, `/api/login/distributor/`, and `/api/login/`.
+  - Live session status query via `/api/auth/session/` (returns user metadata, role, and session expiry age).
+  - Programmatic session termination via `/api/auth/logout/`.
+- **Test Suite**: Fully verified across 17 dedicated tests in `billing_app/test_login_logout_flow.py` (100% passing).
+
+---
+
 ## 📊 🌟 Feature: Invoice Report Generator & Date Range Filtering Engine
 
 Generate custom financial ledgers, audit invoices by date range, and export certified records:
