@@ -2,5 +2,6 @@ Django>=5.0,<6.1
 Pillow>=10.0.0
 xhtml2pdf
 qrcode
+segno>=1.6.0
 opencv-python-headless
 pyzbar

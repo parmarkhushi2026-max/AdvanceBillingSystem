@@ -16,8 +16,24 @@ import json
 from io import BytesIO
 from typing import Dict, Any, Union, Optional
 from django.utils import timezone
-import qrcode
-from qrcode.constants import ERROR_CORRECT_M
+from django.conf import settings
+
+# Library: qrcode
+try:
+    import qrcode
+    from qrcode.constants import ERROR_CORRECT_M
+    HAS_QRCODE = True
+except ImportError:
+    qrcode = None
+    HAS_QRCODE = False
+
+# Library: segno
+try:
+    import segno
+    HAS_SEGNO = True
+except ImportError:
+    segno = None
+    HAS_SEGNO = False
 
 
 def fetch_invoice_data(invoice_or_id) -> Dict[str, Any]:
@@ -134,21 +150,101 @@ def build_invoice_qr_payload(data: Dict[str, Any], payload_format: str = 'text')
     return "\n".join(lines)
 
 
+SUPPORTED_ENGINES = ('auto', 'qrcode', 'segno')
+
+
+def get_available_engines() -> list[str]:
+    """Return list of QR generation libraries available in the Python runtime."""
+    engines = []
+    if HAS_QRCODE:
+        engines.append('qrcode')
+    if HAS_SEGNO:
+        engines.append('segno')
+    return engines
+
+
+def resolve_engine(requested_engine: str = 'auto') -> str:
+    """
+    Resolve which QR generation engine to use ('qrcode' or 'segno').
+    Defaults to settings.INVOICE_QR_ENGINE if configured, otherwise prefers 'segno' or 'qrcode'.
+    """
+    req = (requested_engine or 'auto').lower()
+
+    if req == 'segno':
+        if HAS_SEGNO:
+            return 'segno'
+        if HAS_QRCODE:
+            return 'qrcode'
+        raise RuntimeError("Neither 'segno' nor 'qrcode' is installed in the Python environment.")
+
+    if req == 'qrcode':
+        if HAS_QRCODE:
+            return 'qrcode'
+        if HAS_SEGNO:
+            return 'segno'
+        raise RuntimeError("Neither 'qrcode' nor 'segno' is installed in the Python environment.")
+
+    # 'auto': check settings or pick best available
+    configured = getattr(settings, 'INVOICE_QR_ENGINE', None)
+    if configured and str(configured).lower() in ('segno', 'qrcode'):
+        return resolve_engine(str(configured).lower())
+
+    if HAS_SEGNO:
+        return 'segno'
+    if HAS_QRCODE:
+        return 'qrcode'
+    raise RuntimeError("No QR generation library found. Please install 'segno' or 'qrcode'.")
+
+
+def generate_qr_with_qrcode(payload: str, box_size: int = 6, border: int = 2) -> bytes:
+    """Generate high-resolution PNG bytes using the 'qrcode' library."""
+    if not HAS_QRCODE:
+        raise ImportError("The 'qrcode' library is not installed.")
+
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=ERROR_CORRECT_M,
+        box_size=box_size,
+        border=border,
+    )
+    qr.add_data(payload)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def generate_qr_with_segno(payload: str, scale: int = 6, border: int = 2) -> bytes:
+    """Generate high-resolution PNG bytes using the 'segno' library."""
+    if not HAS_SEGNO:
+        raise ImportError("The 'segno' library is not installed.")
+
+    qr = segno.make(payload, error='M')
+    buffer = BytesIO()
+    qr.save(buffer, kind='png', scale=scale, border=border)
+    return buffer.getvalue()
+
+
 def generate_invoice_qr(
     invoice_or_id,
+    engine: str = 'auto',
     payload_format: str = 'text',
     box_size: int = 6,
     border: int = 2,
     as_base64: bool = True
 ) -> Union[str, bytes]:
     """
-    Fetch data from the saved Invoice model and generate a QR code encoding these values.
+    Fetch data from the saved Invoice model and generate a QR code encoding these values
+    using libraries like 'qrcode' or 'segno'.
     
     Args:
         invoice_or_id: Invoice model instance, int primary key, or invoice_number string.
+        engine: 'auto' (default), 'segno', or 'qrcode'.
         payload_format: 'text' (default) or 'json'.
-        box_size: Pixel size of each QR box.
-        border: Quiet zone border width (minimum 2).
+        box_size: Pixel size/scale of each QR module (default 6).
+        border: Quiet zone border width (default 2).
         as_base64: If True, returns 'data:image/png;base64,...' string suitable for HTML <img>.
                    If False, returns raw PNG bytes.
 
@@ -158,19 +254,12 @@ def generate_invoice_qr(
     data = fetch_invoice_data(invoice_or_id)
     payload_text = build_invoice_qr_payload(data, payload_format=payload_format)
 
-    qr = qrcode.QRCode(
-        version=None,
-        error_correction=ERROR_CORRECT_M,
-        box_size=box_size,
-        border=border,
-    )
-    qr.add_data(payload_text)
-    qr.make(fit=True)
+    active_engine = resolve_engine(engine)
 
-    img = qr.make_image(fill_color="black", back_color="white")
-    buffer = BytesIO()
-    img.save(buffer, format="PNG")
-    raw_bytes = buffer.getvalue()
+    if active_engine == 'segno':
+        raw_bytes = generate_qr_with_segno(payload_text, scale=box_size, border=border)
+    else:
+        raw_bytes = generate_qr_with_qrcode(payload_text, box_size=box_size, border=border)
 
     if as_base64:
         encoded_b64 = base64.b64encode(raw_bytes).decode('utf-8')
@@ -179,7 +268,12 @@ def generate_invoice_qr(
     return raw_bytes
 
 
-def generate_invoice_qr_bundle(invoice_or_id, box_size: int = 6, border: int = 2) -> Dict[str, Any]:
+def generate_invoice_qr_bundle(
+    invoice_or_id,
+    engine: str = 'auto',
+    box_size: int = 6,
+    border: int = 2
+) -> Dict[str, Any]:
     """
     Convenience function that fetches the saved invoice model and generates
     all representations: text payload, json payload, base64 data URI, raw bytes,
@@ -189,20 +283,13 @@ def generate_invoice_qr_bundle(invoice_or_id, box_size: int = 6, border: int = 2
     text_payload = build_invoice_qr_payload(data, payload_format='text')
     json_payload = build_invoice_qr_payload(data, payload_format='json')
 
-    # Generate QR image for text payload
-    qr = qrcode.QRCode(
-        version=None,
-        error_correction=ERROR_CORRECT_M,
-        box_size=box_size,
-        border=border,
-    )
-    qr.add_data(text_payload)
-    qr.make(fit=True)
+    active_engine = resolve_engine(engine)
 
-    img = qr.make_image(fill_color="black", back_color="white")
-    buf = BytesIO()
-    img.save(buf, format="PNG")
-    png_bytes = buf.getvalue()
+    if active_engine == 'segno':
+        png_bytes = generate_qr_with_segno(text_payload, scale=box_size, border=border)
+    else:
+        png_bytes = generate_qr_with_qrcode(text_payload, box_size=box_size, border=border)
+
     b64_str = base64.b64encode(png_bytes).decode('utf-8')
     data_uri = f"data:image/png;base64,{b64_str}"
 
@@ -221,6 +308,8 @@ def generate_invoice_qr_bundle(invoice_or_id, box_size: int = 6, border: int = 2
         'qr_base64': data_uri,
         'raw_b64': b64_str,
         'qr_bytes': png_bytes,
+        'engine_used': active_engine,
         'items': data['items'],
         'products_summary': data['products_summary']
     }
+

@@ -77,6 +77,8 @@ class Invoice(models.Model):
     payment_status = models.CharField(max_length=20, choices=PAYMENT_CHOICES, default='PAID')
     payment_method = models.CharField(max_length=50, default='UPI QR Code')
     notes = models.TextField(blank=True, null=True)
+    qr_code_image = models.ImageField(upload_to='invoice_qrs/', blank=True, null=True, help_text='QR code image generated on invoice save')
+    qr_code_payload = models.TextField(blank=True, null=True, help_text='Structured payload encoded inside the QR')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
@@ -84,10 +86,53 @@ class Invoice(models.Model):
             self.customer_ref = self.customer
         elif self.customer_ref and not self.customer:
             self.customer = self.customer_ref
+
+        # Support skipping automatic QR code generation if explicitly requested
+        skip_qr = kwargs.pop('skip_qr_generation', False)
+
         super().save(*args, **kwargs)
+
+        # Handle QR generation during invoice save using libraries like qrcode or segno
+        if not skip_qr:
+            try:
+                self.generate_and_save_qr()
+            except Exception:
+                # Keep invoice save resilient even if external image library fails
+                pass
 
     def __str__(self):
         return f"Invoice #{self.invoice_number} - ₹{self.grand_total}"
+
+    def generate_and_save_qr(self, engine='auto', payload_format='text', box_size=6, border=2):
+        """
+        Generate a QR code using libraries like 'qrcode' or 'segno' during invoice save,
+        storing the image in `qr_code_image` and the text payload in `qr_code_payload`.
+        """
+        from .invoice_qr import generate_invoice_qr, build_invoice_qr_payload, fetch_invoice_data
+        from django.core.files.base import ContentFile
+
+        data = fetch_invoice_data(self)
+        payload_text = build_invoice_qr_payload(data, payload_format=payload_format)
+
+        raw_bytes = generate_invoice_qr(
+            self,
+            engine=engine,
+            payload_format=payload_format,
+            box_size=box_size,
+            border=border,
+            as_base64=False
+        )
+
+        filename = f"qr_{self.invoice_number or self.id}.png"
+        self.qr_code_image.save(filename, ContentFile(raw_bytes), save=False)
+        self.qr_code_payload = payload_text
+
+        # Update fields in DB without recursive save
+        Invoice.objects.filter(pk=self.pk).update(
+            qr_code_image=self.qr_code_image.name,
+            qr_code_payload=self.qr_code_payload
+        )
+        return self.qr_code_image
 
     def get_qr_data(self):
         """
@@ -110,13 +155,15 @@ class Invoice(models.Model):
         from .invoice_qr import build_invoice_qr_payload
         return build_invoice_qr_payload(self.get_qr_data(), payload_format='json')
 
-    def generate_qr_code(self, as_base64=True, payload_format='text', box_size=6, border=2):
+    def generate_qr_code(self, as_base64=True, engine='auto', payload_format='text', box_size=6, border=2):
         """
-        Fetch values from this saved invoice model and generate a QR code image encoding them.
+        Fetch values from this saved invoice model and generate a QR code image encoding them
+        using 'qrcode' or 'segno'.
         """
         from .invoice_qr import generate_invoice_qr
         return generate_invoice_qr(
             self,
+            engine=engine,
             payload_format=payload_format,
             box_size=box_size,
             border=border,
@@ -125,8 +172,22 @@ class Invoice(models.Model):
 
     @property
     def qr_code_base64(self):
-        """Convenience property returning base64 Data URI for HTML template rendering."""
+        """
+        Convenience property returning base64 Data URI for HTML template rendering.
+        Reads directly from saved qr_code_image if available, or generates dynamically.
+        """
+        if self.qr_code_image:
+            try:
+                import base64
+                with self.qr_code_image.open('rb') as f:
+                    content = f.read()
+                    if content:
+                        b64 = base64.b64encode(content).decode('utf-8')
+                        return f"data:image/png;base64,{b64}"
+            except Exception:
+                pass
         return self.generate_qr_code(as_base64=True)
+
 
 
 class InvoiceItem(models.Model):

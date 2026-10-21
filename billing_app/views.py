@@ -680,28 +680,32 @@ def invoice_qr_view(request, invoice_id):
 # 8c. Direct Invoice QR PNG Image View
 def invoice_qr_image_view(request, invoice_id):
     """
-    Fetches the saved invoice model and generates a raw PNG QR code image encoding these values.
+    Fetches the saved invoice model and generates a raw PNG QR code image encoding these values
+    using libraries like qrcode or segno.
     Returns HTTP 200 with Content-Type: image/png.
     """
     from .invoice_qr import generate_invoice_qr
     invoice = get_object_or_404(Invoice, id=invoice_id)
     fmt = request.GET.get('format', 'text')
+    engine = request.GET.get('engine', 'auto')
     try:
         box_size = int(request.GET.get('size', 6))
     except (ValueError, TypeError):
         box_size = 6
-    qr_bytes = generate_invoice_qr(invoice, payload_format=fmt, box_size=box_size, as_base64=False)
+    qr_bytes = generate_invoice_qr(invoice, engine=engine, payload_format=fmt, box_size=box_size, as_base64=False)
     return HttpResponse(qr_bytes, content_type='image/png')
 
 
 # 8d. REST API Endpoint for Invoice QR Code
 def api_invoice_qr_code(request, invoice_id):
     """
-    JSON API returning fetched invoice data and the generated QR code (base64 Data URI).
+    JSON API returning fetched invoice data and the generated QR code (base64 Data URI)
+    supporting both qrcode and segno engines.
     """
     from .invoice_qr import generate_invoice_qr_bundle
     invoice = get_object_or_404(Invoice, id=invoice_id)
-    bundle = generate_invoice_qr_bundle(invoice)
+    engine = request.GET.get('engine', 'auto')
+    bundle = generate_invoice_qr_bundle(invoice, engine=engine)
     return JsonResponse({
         'status': 'success',
         'success': True,
@@ -714,7 +718,8 @@ def api_invoice_qr_code(request, invoice_id):
         'encoded_payload': bundle['text_payload'],
         'json_payload': bundle['json_payload'],
         'qr_data_uri': bundle['qr_base64'],
-        'qr_image_url': f"/invoice/{invoice.id}/qr.png",
+        'qr_image_url': f"/invoice/{invoice.id}/qr.png?engine={bundle.get('engine_used', 'auto')}",
+        'engine_used': bundle.get('engine_used', 'auto'),
     })
 
 
@@ -1401,7 +1406,11 @@ def generate_invoice_pdf_view(request, invoice_id):
     formatted_date = invoice.created_at.strftime('%Y-%m-%d %H:%M')
     
     try:
-        qr_base64 = invoice.qr_code_base64
+        raw_qr = invoice.qr_code_base64
+        if raw_qr and raw_qr.startswith('data:image/png;base64,'):
+            qr_base64 = raw_qr.split('data:image/png;base64,')[1]
+        else:
+            qr_base64 = raw_qr
     except Exception:
         qr_data = (
             f"Invoice No: {invoice.invoice_number}\n"

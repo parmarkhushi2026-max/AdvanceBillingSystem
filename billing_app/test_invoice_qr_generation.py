@@ -210,13 +210,75 @@ class InvoiceQRGenerationTestCase(TestCase):
         # Returns 200 PDF attachment or error if xhtml2pdf is not installed in environment
         self.assertIn(response.status_code, [200, 302])
 
+    def test_qr_generation_with_qrcode_and_segno_engines(self):
+        """Verify that QR generation works with both 'qrcode' and 'segno' library engines."""
+        # 1. qrcode engine
+        qr_bytes_qrcode = generate_invoice_qr(self.invoice, engine='qrcode', as_base64=False)
+        self.assertIsInstance(qr_bytes_qrcode, bytes)
+        self.assertEqual(qr_bytes_qrcode[:8], b'\x89PNG\r\n\x1a\n')
+        img_qrcode = Image.open(BytesIO(qr_bytes_qrcode))
+        self.assertEqual(img_qrcode.format, 'PNG')
+        dec_qrcode = decode_qr_image(img_qrcode)
+        self.assertTrue(dec_qrcode.get('success'))
+
+        # 2. segno engine
+        qr_bytes_segno = generate_invoice_qr(self.invoice, engine='segno', as_base64=False)
+        self.assertIsInstance(qr_bytes_segno, bytes)
+        self.assertEqual(qr_bytes_segno[:8], b'\x89PNG\r\n\x1a\n')
+        img_segno = Image.open(BytesIO(qr_bytes_segno))
+        self.assertEqual(img_segno.format, 'PNG')
+        dec_segno = decode_qr_image(img_segno)
+        self.assertTrue(dec_segno.get('success'))
+
+    def test_qr_code_generated_automatically_on_invoice_save(self):
+        """Verify that saving an invoice model automatically generates and stores the QR code."""
+        new_inv = Invoice.objects.create(
+            invoice_number='INV-TEST-AUTO-QR',
+            customer_name='Rohan Mehta Automations',
+            customer_phone='9811223344',
+            grand_total=3499.00
+        )
+        try:
+            # Refresh from DB
+            new_inv.refresh_from_db()
+            self.assertTrue(bool(new_inv.qr_code_image))
+            self.assertTrue('invoice_qrs/qr_INV-TEST-AUTO-QR' in new_inv.qr_code_image.name)
+            self.assertTrue(bool(new_inv.qr_code_payload))
+            self.assertIn('Invoice No: INV-TEST-AUTO-QR', new_inv.qr_code_payload)
+            self.assertIn('Customer: Rohan Mehta Automations', new_inv.qr_code_payload)
+            self.assertIn('3499.00', new_inv.qr_code_payload)
+            self.assertTrue(new_inv.qr_code_base64.startswith('data:image/png;base64,'))
+        finally:
+            new_inv.delete()
+
+    def test_generate_and_save_qr_with_explicit_engines(self):
+        """Verify generate_and_save_qr method can explicitly select qrcode or segno engines."""
+        # Explicit qrcode
+        self.invoice.generate_and_save_qr(engine='qrcode')
+        self.invoice.refresh_from_db()
+        self.assertTrue(bool(self.invoice.qr_code_image))
+        self.assertTrue(self.invoice.qr_code_base64.startswith('data:image/png;base64,'))
+
+        # Explicit segno
+        self.invoice.generate_and_save_qr(engine='segno')
+        self.invoice.refresh_from_db()
+        self.assertTrue(bool(self.invoice.qr_code_image))
+        self.assertTrue(self.invoice.qr_code_base64.startswith('data:image/png;base64,'))
+
     def test_generate_invoice_qr_management_command(self):
-        """Verify running generate_invoice_qr command via manage.py."""
-        # 1. Single invoice default
+        """Verify running generate_invoice_qr command via manage.py with qrcode and segno engines."""
+        # 1. Single invoice default (auto)
         call_command('generate_invoice_qr')
 
         # 2. Specific invoice ID with JSON format
         call_command('generate_invoice_qr', str(self.invoice.id), format='json')
 
-        # 3. All invoices flag
+        # 3. Explicit engine qrcode
+        call_command('generate_invoice_qr', str(self.invoice.id), engine='qrcode')
+
+        # 4. Explicit engine segno
+        call_command('generate_invoice_qr', str(self.invoice.id), engine='segno')
+
+        # 5. All invoices flag
         call_command('generate_invoice_qr', all=True)
+

@@ -21,6 +21,12 @@ class Command(BaseCommand):
             help='Encoding payload format: text (human/scanner readable key-values) or json.'
         )
         parser.add_argument(
+            '--engine',
+            default='auto',
+            choices=['auto', 'qrcode', 'segno'],
+            help="QR generation library engine to use: 'qrcode', 'segno', or 'auto'."
+        )
+        parser.add_argument(
             '--save',
             default=None,
             help='Optional filesystem path to save the generated QR code PNG image.'
@@ -37,6 +43,7 @@ class Command(BaseCommand):
 
         inv_arg = options.get('invoice_id')
         fmt = options.get('format', 'text')
+        engine = options.get('engine', 'auto')
         save_path = options.get('save')
         gen_all = options.get('all')
 
@@ -44,9 +51,9 @@ class Command(BaseCommand):
             invoices = Invoice.objects.all().order_by('id')
             if not invoices.exists():
                 raise CommandError('No invoices found in database.')
-            self.stdout.write(self.style.MIGRATE_HEADING(f'Generating QR codes for {invoices.count()} invoices...'))
+            self.stdout.write(self.style.MIGRATE_HEADING(f'Generating QR codes ({engine}) for {invoices.count()} invoices...'))
             for inv in invoices:
-                self._process_single_invoice(inv, fmt, None)
+                self._process_single_invoice(inv, fmt, engine, None)
             self.stdout.write(self.style.SUCCESS(f'Successfully generated QR codes for {invoices.count()} invoices.'))
             return
 
@@ -61,15 +68,15 @@ class Command(BaseCommand):
             if not invoice:
                 raise CommandError('No invoices found in database.')
 
-        self._process_single_invoice(invoice, fmt, save_path)
+        self._process_single_invoice(invoice, fmt, engine, save_path)
 
-    def _process_single_invoice(self, invoice, fmt, save_path):
+    def _process_single_invoice(self, invoice, fmt, engine, save_path):
         data = fetch_invoice_data(invoice)
         payload = build_invoice_qr_payload(data, payload_format=fmt)
-        qr_bytes = generate_invoice_qr(invoice, payload_format=fmt, as_base64=False)
+        qr_bytes = generate_invoice_qr(invoice, engine=engine, payload_format=fmt, as_base64=False)
 
         self.stdout.write(self.style.SUCCESS('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'))
-        self.stdout.write(self.style.SUCCESS(f'✅ Fetched Saved Invoice Model: #{invoice.id} ({invoice.invoice_number})'))
+        self.stdout.write(self.style.SUCCESS(f'✅ Fetched Saved Invoice Model: #{invoice.id} ({invoice.invoice_number}) [Engine: {engine}]'))
         self.stdout.write(self.style.SUCCESS('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'))
         self.stdout.write(f'  • Invoice ID:    #{data["invoice_id"]}')
         self.stdout.write(f'  • Invoice Number:{data["invoice_number"]}')

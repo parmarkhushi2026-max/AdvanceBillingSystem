@@ -51,7 +51,10 @@
         <table class="header-table">
             <tr>
                 <td>
-                    <img src="https://placehold.co/400x120/4f46e5/ffffff.png?text={{ business_name|urlencode }}" class="logo" />
+                    <div style="font-size: 20px; font-weight: bold; color: #4f46e5; letter-spacing: -0.5px;">
+                        {{ business_name|default:"Advance Billing" }}
+                    </div>
+                    <span style="font-size: 10px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Verified Billing & POS</span>
                 </td>
                 <td class="company-info">
                     <div class="company-name">{{ business_name }}</div>
@@ -146,7 +149,11 @@
                 </td>
                 <td style="width: 25%; text-align: right; vertical-align: bottom;">
                     {% if qr_base64 %}
-                        <img src="data:image/png;base64,{{ qr_base64 }}" style="width: 90px; height: 90px;" /><br>
+                        {% if "data:image" in qr_base64 %}
+                            <img src="{{ qr_base64 }}" style="width: 90px; height: 90px;" /><br>
+                        {% else %}
+                            <img src="data:image/png;base64,{{ qr_base64 }}" style="width: 90px; height: 90px;" /><br>
+                        {% endif %}
                         <span style="font-size: 10px; color: #64748b; display: block; margin-top: 5px;">Scan to Verify Invoice</span>
                     {% endif %}
                 </td>

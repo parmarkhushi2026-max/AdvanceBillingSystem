@@ -16,7 +16,9 @@ class InvoiceAdmin(admin.ModelAdmin):
     list_display = ('invoice_number', 'distributor', 'customer_name', 'grand_total', 'payment_status', 'created_at')
     list_filter = ('payment_status', 'created_at')
     search_fields = ('invoice_number', 'customer_name', 'customer_phone')
+    readonly_fields = ('qr_code_image', 'qr_code_payload')
     inlines = [InvoiceItemInline]
+
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
