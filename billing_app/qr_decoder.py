@@ -114,6 +114,7 @@ def extract_invoice_info(raw_text: str, fields: dict = None) -> dict | None:
     raw_text = (raw_text or '').strip()
 
     invoice_number = None
+    invoice_id = None
     date_str = None
     customer_name = None
     customer_phone = None
@@ -129,7 +130,10 @@ def extract_invoice_info(raw_text: str, fields: dict = None) -> dict | None:
     # 1. Parse from key-value fields
     for k, v in fields.items():
         k_clean = k.lower().replace('-', '_').replace(' ', '_')
-        if k_clean in ['invoice_no', 'invoice_number', 'invoice', 'inv_no', 'bill_no', 'bill_number', 'invoice_id']:
+        if k_clean in ['invoice_id', 'id']:
+            if not invoice_id and v:
+                invoice_id = str(v).strip().lstrip('#')
+        elif k_clean in ['invoice_no', 'invoice_number', 'invoice', 'inv_no', 'bill_no', 'bill_number']:
             if not invoice_number and v:
                 invoice_number = str(v).strip()
         elif k_clean in ['date', 'invoice_date', 'datetime', 'time', 'created_at', 'billing_date']:
@@ -141,7 +145,7 @@ def extract_invoice_info(raw_text: str, fields: dict = None) -> dict | None:
         elif k_clean in ['customer_phone', 'phone', 'mobile', 'contact']:
             if not customer_phone and v:
                 customer_phone = str(v).strip()
-        elif k_clean in ['total_bill', 'grand_total', 'total', 'bill_total', 'amount', 'net_payable', 'final_amount']:
+        elif k_clean in ['total_amount', 'total_bill', 'grand_total', 'total', 'bill_total', 'amount', 'net_payable', 'final_amount']:
             if not total_bill and v:
                 total_bill = str(v).strip()
         elif k_clean in ['subtotal', 'sub_total']:

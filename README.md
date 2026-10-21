@@ -2,13 +2,43 @@
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 [![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
-[![Tests](https://img.shields.io/badge/Tests-58%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+[![Tests](https://img.shields.io/badge/Tests-155%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
 A feature-packed, production-ready Django Billing, QR Payment, and Financial Intelligence System designed for managing distributors, customers, dynamic UPI QR code billing, audit reporting, tax receipts, and ledger tracking.
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
-## 🛡️ 🌟 New Feature: Route Protection Middleware & Role-Based Decorators
+## 📱 🌟 New Feature: Saved Invoice Model QR Code Generation Engine
+
+Fetch invoice data directly from the saved database model and dynamically generate high-resolution QR codes encoding these values:
+- **Core Fetched Model Attributes**:
+  - **Invoice ID**: Database primary key ID (`#1`) and formatted invoice reference (`INV-2026-001`).
+  - **Customer Name**: Exact customer recipient name (`customer_name`) and verified contact phone.
+  - **Total Amount**: Certified `grand_total` invoice bill amount (e.g. `₹23,234.00`).
+  - **Date**: Exact invoice creation timestamp (`created_at`) formatted in readable date/time.
+  - **Itemized Breakdown**: Complete line items with product names, quantities, unit prices, and GST rates.
+- **Flexible Payload Formats**:
+  - **Scanner-Readable Text Format**: Formatted key-value string optimized for smartphone cameras, QR scanner hardware, and UPI decoder studio.
+  - **Structured JSON Format**: Machine-readable JSON payload with complete metadata.
+- **Model Methods (`Invoice`)**:
+  - `invoice.get_qr_data()`: Extracts dictionary with ID, customer name, total amount, and date.
+  - `invoice.get_qr_text_payload()`: Builds formatted key-value text payload.
+  - `invoice.get_qr_json_payload()`: Builds formatted JSON string payload.
+  - `invoice.generate_qr_code(as_base64=True, payload_format='text')`: Generates PNG image or Base64 Data URI.
+  - `invoice.qr_code_base64`: Property returning `data:image/png;base64,...` for HTML templates.
+- **Interactive UI & Direct Image Endpoints**:
+  - **QR Code Showcase Page**: Dedicated inspection view (`GET /invoice/<id>/qr/`) with large QR preview, fetched value summary cards, raw payload viewer, copy to clipboard, print card, and download buttons.
+  - **Direct PNG Image Endpoint**: `GET /invoice/<id>/qr.png` returns binary image (`image/png`) for direct embedding in `<img>` tags or receipts.
+  - **REST API Endpoint**: `GET /api/invoice/<id>/qr-code/` returns JSON with fetched invoice attributes, payload, and QR data URI.
+- **Management Command**:
+  - `python manage.py generate_invoice_qr [invoice_id]`: Fetch invoice and generate QR in terminal.
+  - Supports `--format json|text`, `--save <path.png>`, and `--all` batch generation.
+- **Comprehensive Test Suite**:
+  - 12 comprehensive unit tests in `billing_app/test_invoice_qr_generation.py` testing database fetching, QR generation, decoding/verification, views, endpoints, and management commands (100% passing).
+
+---
+
+## 🛡️ 🌟 Feature: Route Protection Middleware & Role-Based Decorators
 
 Defense-in-depth security enforcing route and role protection across the entire system:
 - **`RouteProtectionMiddleware`**: Intercepts requests globally before view execution:

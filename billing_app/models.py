@@ -89,6 +89,45 @@ class Invoice(models.Model):
     def __str__(self):
         return f"Invoice #{self.invoice_number} - ₹{self.grand_total}"
 
+    def get_qr_data(self):
+        """
+        Fetch core data from this saved invoice model:
+        - Invoice ID (id & invoice_number)
+        - Customer Name (customer_name)
+        - Total Amount (grand_total)
+        - Date (created_at)
+        """
+        from .invoice_qr import fetch_invoice_data
+        return fetch_invoice_data(self)
+
+    def get_qr_text_payload(self):
+        """Build structured text payload encoding the saved invoice values."""
+        from .invoice_qr import build_invoice_qr_payload
+        return build_invoice_qr_payload(self.get_qr_data(), payload_format='text')
+
+    def get_qr_json_payload(self):
+        """Build JSON payload encoding the saved invoice values."""
+        from .invoice_qr import build_invoice_qr_payload
+        return build_invoice_qr_payload(self.get_qr_data(), payload_format='json')
+
+    def generate_qr_code(self, as_base64=True, payload_format='text', box_size=6, border=2):
+        """
+        Fetch values from this saved invoice model and generate a QR code image encoding them.
+        """
+        from .invoice_qr import generate_invoice_qr
+        return generate_invoice_qr(
+            self,
+            payload_format=payload_format,
+            box_size=box_size,
+            border=border,
+            as_base64=as_base64
+        )
+
+    @property
+    def qr_code_base64(self):
+        """Convenience property returning base64 Data URI for HTML template rendering."""
+        return self.generate_qr_code(as_base64=True)
+
 
 class InvoiceItem(models.Model):
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='items')

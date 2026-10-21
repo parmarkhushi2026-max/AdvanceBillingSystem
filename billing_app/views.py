@@ -635,8 +635,72 @@ def invoice_detail_view(request, invoice_id):
         'business_name': business_name,
         'upi_payment_url': upi_payment_url,
         'qr_data': qr_data,
+        'server_qr_base64': invoice.qr_code_base64,
     }
     return render(request, 'billing/invoice_detail.html', context)
+
+
+# 8b. Dedicated Invoice QR Inspection & Showcase View
+@login_required
+def invoice_qr_view(request, invoice_id):
+    """
+    Fetches the saved invoice model from the database, extracts core values
+    (Invoice ID, Customer Name, Total Amount, Date), and renders a dedicated QR showcase.
+    """
+    from .invoice_qr import generate_invoice_qr_bundle
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    qr_bundle = generate_invoice_qr_bundle(invoice)
+    
+    context = {
+        'invoice': invoice,
+        'bundle': qr_bundle,
+        'encoded_payload': qr_bundle['text_payload'],
+        'json_payload': qr_bundle['json_payload'],
+        'qr_base64': qr_bundle['qr_base64'],
+        'items': qr_bundle['items'],
+    }
+    return render(request, 'billing/invoice_qr.html', context)
+
+
+# 8c. Direct Invoice QR PNG Image View
+def invoice_qr_image_view(request, invoice_id):
+    """
+    Fetches the saved invoice model and generates a raw PNG QR code image encoding these values.
+    Returns HTTP 200 with Content-Type: image/png.
+    """
+    from .invoice_qr import generate_invoice_qr
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    fmt = request.GET.get('format', 'text')
+    try:
+        box_size = int(request.GET.get('size', 6))
+    except (ValueError, TypeError):
+        box_size = 6
+    qr_bytes = generate_invoice_qr(invoice, payload_format=fmt, box_size=box_size, as_base64=False)
+    return HttpResponse(qr_bytes, content_type='image/png')
+
+
+# 8d. REST API Endpoint for Invoice QR Code
+def api_invoice_qr_code(request, invoice_id):
+    """
+    JSON API returning fetched invoice data and the generated QR code (base64 Data URI).
+    """
+    from .invoice_qr import generate_invoice_qr_bundle
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    bundle = generate_invoice_qr_bundle(invoice)
+    return JsonResponse({
+        'status': 'success',
+        'success': True,
+        'invoice_id': bundle['invoice_id'],
+        'invoice_number': bundle['invoice_number'],
+        'customer_name': bundle['customer_name'],
+        'customer_phone': bundle['customer_phone'],
+        'total_amount': bundle['total_amount'],
+        'date': bundle['date'],
+        'encoded_payload': bundle['text_payload'],
+        'json_payload': bundle['json_payload'],
+        'qr_data_uri': bundle['qr_base64'],
+        'qr_image_url': f"/invoice/{invoice.id}/qr.png",
+    })
 
 
 # 9. Forgot Password View (Multi-step DB-backed OTP flow)

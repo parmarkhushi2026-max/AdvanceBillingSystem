@@ -80,6 +80,7 @@ class RouteProtectionMiddleware:
             '/admin/forgot-password/',
             '/django-admin/',
             '/api/products/',
+            '/api/invoice/',
         )
 
         # Admin protected path prefixes
@@ -115,7 +116,7 @@ class RouteProtectionMiddleware:
         path = request.path
 
         # 1. Check if route is public or explicitly exempt
-        if path in self.public_exact_paths or any(path.startswith(prefix) for prefix in self.public_prefixes):
+        if path in self.public_exact_paths or any(path.startswith(prefix) for prefix in self.public_prefixes) or path.endswith('/qr.png') or path.endswith('/qr-image/'):
             return self.get_response(request)
 
         # 2. Check Admin Protected Routes (/admin/...)
