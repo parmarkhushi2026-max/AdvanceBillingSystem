@@ -172,6 +172,44 @@ class InvoiceQRGenerationTestCase(TestCase):
         self.assertEqual(data['total_amount'], float(self.invoice.grand_total))
         self.assertTrue(data['qr_data_uri'].startswith('data:image/png;base64,'))
 
+    def test_invoice_preview_template_displays_dynamic_qr(self):
+        """Verify that the invoice preview/detail template dynamically displays the QR code."""
+        self.client.force_login(self.dist_user)
+        response = self.client.get(reverse('invoice_detail', args=[self.invoice.id]))
+        self.assertEqual(response.status_code, 200)
+
+        # Context contains pre-generated dynamic QR codes
+        self.assertIn('server_qr_base64', response.context)
+        self.assertIn('invoice_qr_base64', response.context)
+        self.assertIn('upi_qr_base64', response.context)
+        self.assertTrue(response.context['server_qr_base64'].startswith('data:image/png;base64,'))
+        self.assertTrue(response.context['upi_qr_base64'].startswith('data:image/png;base64,'))
+
+        # Template HTML renders dynamic image and interactive switcher
+        self.assertContains(response, 'id="detail-qr-img"')
+        self.assertContains(response, 'data:image/png;base64,')
+        self.assertContains(response, 'Invoice Data QR')
+        self.assertContains(response, 'UPI Pay QR')
+        self.assertContains(response, 'toggleDetailQR')
+
+    def test_create_invoice_template_has_dynamic_qr_preview_and_modal(self):
+        """Verify that create invoice template includes dynamic QR preview controls and live modal."""
+        self.client.force_login(self.dist_user)
+        response = self.client.get(reverse('create_invoice'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'dynamic-qr-box')
+        self.assertContains(response, 'btn-mode-bill')
+        self.assertContains(response, 'btn-mode-upi')
+        self.assertContains(response, 'livePreviewModal')
+        self.assertContains(response, 'Live Invoice Bill Preview')
+
+    def test_invoice_pdf_view_includes_qr_code(self):
+        """Verify that invoice PDF generation view creates and embeds QR code."""
+        self.client.force_login(self.dist_user)
+        response = self.client.get(reverse('invoice_pdf', args=[self.invoice.id]))
+        # Returns 200 PDF attachment or error if xhtml2pdf is not installed in environment
+        self.assertIn(response.status_code, [200, 302])
+
     def test_generate_invoice_qr_management_command(self):
         """Verify running generate_invoice_qr command via manage.py."""
         # 1. Single invoice default

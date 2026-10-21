@@ -628,6 +628,19 @@ def invoice_detail_view(request, invoice_id):
         f"Total Bill: Rs.{invoice.grand_total}"
     )
 
+    # Generate UPI Payment QR base64 for interactive switcher
+    import qrcode
+    from io import BytesIO
+    import base64
+    upi_qr_obj = qrcode.QRCode(box_size=6, border=2)
+    upi_qr_obj.add_data(upi_payment_url)
+    upi_qr_obj.make(fit=True)
+    buf_upi = BytesIO()
+    upi_qr_obj.make_image(fill_color="black", back_color="white").save(buf_upi, format="PNG")
+    upi_qr_base64 = f"data:image/png;base64,{base64.b64encode(buf_upi.getvalue()).decode('utf-8')}"
+
+    server_qr_base64 = invoice.qr_code_base64
+
     context = {
         'invoice': invoice,
         'items': invoice.items.all(),
@@ -635,7 +648,9 @@ def invoice_detail_view(request, invoice_id):
         'business_name': business_name,
         'upi_payment_url': upi_payment_url,
         'qr_data': qr_data,
-        'server_qr_base64': invoice.qr_code_base64,
+        'server_qr_base64': server_qr_base64,
+        'invoice_qr_base64': server_qr_base64,
+        'upi_qr_base64': upi_qr_base64,
     }
     return render(request, 'billing/invoice_detail.html', context)
 
@@ -1385,18 +1400,20 @@ def generate_invoice_pdf_view(request, invoice_id):
     product_summary = ", ".join([f"{item.product_name} (x{item.quantity})" for item in invoice.items.all()])
     formatted_date = invoice.created_at.strftime('%Y-%m-%d %H:%M')
     
-    qr_data = (
-        f"Invoice No: {invoice.invoice_number}\n"
-        f"Date: {formatted_date}\n"
-        f"Customer: {invoice.customer_name}\n"
-        f"Products: {product_summary}\n"
-        f"Total Bill: Rs.{invoice.grand_total}"
-    )
-
-    qr = qrcode.make(qr_data)
-    buffer = BytesIO()
-    qr.save(buffer, format="PNG")
-    qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+    try:
+        qr_base64 = invoice.qr_code_base64
+    except Exception:
+        qr_data = (
+            f"Invoice No: {invoice.invoice_number}\n"
+            f"Date: {formatted_date}\n"
+            f"Customer: {invoice.customer_name}\n"
+            f"Products: {product_summary}\n"
+            f"Total Bill: Rs.{invoice.grand_total}"
+        )
+        qr = qrcode.make(qr_data)
+        buffer = BytesIO()
+        qr.save(buffer, format="PNG")
+        qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
     context = {
         'invoice': invoice,

@@ -100,13 +100,40 @@
     <!-- Totals & QR Verification Footer -->
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center; border-top: 2px solid #f1f5f9; padding-top: 1.5rem;">
         <div class="invoice-qr-wrap" style="align-items: flex-start;">
-            <div id="invoice-qrcode" data-qr-text="{{ qr_data }}"></div>
-            <div style="font-size: 0.78rem; color: #64748b; margin-top: 6px;">
-                <i class="fa-solid fa-qrcode"></i> Scan to Verify Invoice
+            <!-- Interactive Mode Switcher -->
+            <div class="no-print" style="display: inline-flex; background: #f1f5f9; padding: 3px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #e2e8f0;">
+                <button type="button" id="tab-qr-data" onclick="toggleDetailQR('data')" style="border: none; background: #4f46e5; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                    <i class="fa-solid fa-file-invoice"></i> Invoice Data QR
+                </button>
+                <button type="button" id="tab-qr-upi" onclick="toggleDetailQR('upi')" style="border: none; background: transparent; color: #64748b; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                    <i class="fa-solid fa-mobile-screen-button"></i> UPI Pay QR
+                </button>
             </div>
-            <a href="{% url 'invoice_qr' invoice.id %}" style="font-size: 0.78rem; color: #4f46e5; font-weight: 600; text-decoration: none; margin-top: 4px; display: inline-flex; align-items: center; gap: 4px;">
-                <i class="fa-solid fa-expand"></i> Inspect Encoded QR Values
-            </a>
+
+            <div style="background: #ffffff; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0; display: inline-block; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05); position: relative;">
+                {% if server_qr_base64 %}
+                    <img id="detail-qr-img" src="{{ server_qr_base64 }}" alt="QR Code for Invoice #{{ invoice.invoice_number }}" style="width: 140px; height: 140px; display: block; image-rendering: pixelated; border-radius: 6px;">
+                {% else %}
+                    <div id="invoice-qrcode" data-qr-text="{{ qr_data }}"></div>
+                {% endif %}
+            </div>
+
+            <div id="detail-qr-caption" style="font-size: 0.78rem; color: #059669; font-weight: 700; margin-top: 6px; display: flex; align-items: center; gap: 5px;">
+                <i class="fa-solid fa-shield-check"></i> <span>Dynamic QR: Encoded with Invoice Values</span>
+            </div>
+
+            <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">
+                ID #{{ invoice.id }} &bull; {{ invoice.customer_name }} &bull; ₹{{ invoice.grand_total }}
+            </div>
+
+            <div class="no-print" style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+                <a href="{% url 'invoice_qr' invoice.id %}" style="font-size: 0.75rem; color: #4f46e5; font-weight: 600; text-decoration: none; padding: 3px 8px; background: #e0e7ff; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="fa-solid fa-expand"></i> Inspect QR Data
+                </a>
+                <a href="{% url 'invoice_qr_image' invoice.id %}" download="Invoice_{{ invoice.invoice_number }}_QR.png" style="font-size: 0.75rem; color: #0284c7; font-weight: 600; text-decoration: none; padding: 3px 8px; background: #e0f2fe; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="fa-solid fa-download"></i> Save PNG
+                </a>
+            </div>
         </div>
 
         <!-- Right: Summary Table -->
@@ -136,6 +163,35 @@
 </div>
 
 <script>
+const qrDataSrc = "{{ invoice_qr_base64|default:server_qr_base64 }}";
+const qrUpiSrc = "{{ upi_qr_base64 }}";
+
+function toggleDetailQR(mode) {
+    const img = document.getElementById('detail-qr-img');
+    const tabData = document.getElementById('tab-qr-data');
+    const tabUpi = document.getElementById('tab-qr-upi');
+    const caption = document.getElementById('detail-qr-caption');
+    if (!img) return;
+
+    if (mode === 'upi') {
+        img.src = qrUpiSrc;
+        tabUpi.style.background = '#0284c7';
+        tabUpi.style.color = '#ffffff';
+        tabData.style.background = 'transparent';
+        tabData.style.color = '#64748b';
+        caption.innerHTML = '<i class="fa-solid fa-mobile-screen-button"></i> <span>Dynamic UPI Payment QR (Scan & Pay)</span>';
+        caption.style.color = '#0284c7';
+    } else {
+        img.src = qrDataSrc;
+        tabData.style.background = '#4f46e5';
+        tabData.style.color = '#ffffff';
+        tabUpi.style.background = 'transparent';
+        tabUpi.style.color = '#64748b';
+        caption.innerHTML = '<i class="fa-solid fa-shield-check"></i> <span>Dynamic QR: Encoded with Invoice Values</span>';
+        caption.style.color = '#059669';
+    }
+}
+
 function exportInvoiceToPDF() {
     const element = document.getElementById('invoice-printable-area');
     const filename = 'Invoice_{{ invoice.invoice_number }}.pdf';

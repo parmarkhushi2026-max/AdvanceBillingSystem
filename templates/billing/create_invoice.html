@@ -236,18 +236,34 @@
         <!-- Right Column: Real-time QR Code Checkout -->
         <div>
             <div class="qr-preview-box">
-                <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 4px 12px; border-radius: 9999px; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.75rem;">
-                    <i class="fa-solid fa-qrcode"></i> DYNAMIC QR CHECKOUT
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 4px 12px; border-radius: 9999px; font-size: 0.78rem; font-weight: 700;">
+                        <i class="fa-solid fa-qrcode"></i> DYNAMIC QR PREVIEW
+                    </div>
+                    <span id="qr-live-badge" style="font-size: 0.72rem; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 8px; border-radius: 10px; font-weight: 700;">
+                        ● Real-time
+                    </span>
                 </div>
-                <h3 style="font-size: 1.3rem; font-weight: 700;">Scan & Pay with Any UPI App</h3>
-                <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">GPay &bull; PhonePe &bull; Paytm &bull; BHIM</p>
+
+                <!-- Dynamic Mode Switcher -->
+                <div style="display: inline-flex; background: rgba(255,255,255,0.08); padding: 3px; border-radius: 8px; margin-bottom: 0.85rem; border: 1px solid rgba(255,255,255,0.12); width: 100%;">
+                    <button type="button" id="btn-mode-bill" onclick="setDynamicQRMode('bill')" style="flex: 1; border: none; background: #6366f1; color: #fff; padding: 5px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                        <i class="fa-solid fa-file-invoice"></i> Invoice Data QR
+                    </button>
+                    <button type="button" id="btn-mode-upi" onclick="setDynamicQRMode('upi')" style="flex: 1; border: none; background: transparent; color: #94a3b8; padding: 5px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                        <i class="fa-solid fa-mobile-screen-button"></i> UPI Pay QR
+                    </button>
+                </div>
+
+                <h3 style="font-size: 1.15rem; font-weight: 700;" id="qr-title-display">Live Invoice Encoded QR</h3>
+                <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;" id="qr-desc-display">Encodes customer, date, total amount & items</p>
 
                 <!-- Dynamic QR Canvas Box -->
                 <div class="qr-code-canvas-container">
                     <div id="dynamic-qr-box" data-upi="{{ upi_id }}"></div>
                 </div>
 
-                <div style="font-size: 0.85rem; color: #94a3b8;">Payable Grand Total</div>
+                <div style="font-size: 0.82rem; color: #94a3b8;">Payable Grand Total</div>
                 <div class="qr-amount-display" id="qr-amount-display">₹0.00</div>
                 
                 <div style="background: rgba(255,255,255,0.06); border-radius: 8px; padding: 14px; margin: 1.25rem 0; font-size: 0.88rem; text-align: left;">
@@ -269,6 +285,10 @@
                     </div>
                 </div>
 
+                <button type="button" onclick="openLiveInvoicePreviewModal()" style="width: 100%; margin-bottom: 10px; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); color: #c7d2fe; font-size: 0.85rem; font-weight: 700; padding: 9px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fa-solid fa-eye"></i> Live Invoice Bill Preview
+                </button>
+
                 <button type="submit" class="btn-create-bill">
                     <i class="fa-solid fa-check-circle"></i>
                     <span>Generate Bill & Print Receipt</span>
@@ -277,5 +297,97 @@
         </div>
     </div>
 </form>
+
+<!-- Live Invoice Bill Preview Modal -->
+<div id="livePreviewModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); z-index: 9999; overflow-y: auto; padding: 2rem 1rem;">
+    <div style="max-width: 780px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 2rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); position: relative;">
+        <!-- Close Button -->
+        <button type="button" onclick="closeLiveInvoicePreviewModal()" style="position: absolute; top: 1.25rem; right: 1.25rem; background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 1rem; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
+            <span style="background: #e0e7ff; color: #4338ca; padding: 3px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 700;">
+                <i class="fa-solid fa-receipt"></i> INVOICE PREVIEW
+            </span>
+            <span style="font-size: 0.85rem; color: #64748b;">Live Calculated Bill</span>
+        </div>
+
+        <!-- Receipt Header -->
+        <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #f1f5f9; padding-bottom: 1rem; margin-bottom: 1.2rem;">
+            <div>
+                <h2 style="font-size: 1.4rem; font-weight: 800; color: #0f172a; margin: 0;">{{ business_name }}</h2>
+                <div style="font-size: 0.85rem; color: #64748b; margin-top: 2px;">Advance Billing Agency &bull; UPI: {{ upi_id }}</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 1rem; font-weight: 800; color: #4f46e5;">PROVISIONAL TAX INVOICE</div>
+                <div style="font-size: 0.82rem; color: #64748b;" id="preview-modal-date">Date: Today</div>
+            </div>
+        </div>
+
+        <!-- Customer Info -->
+        <div style="background: #f8fafc; border-radius: 8px; padding: 12px 16px; margin-bottom: 1.2rem; display: flex; justify-content: space-between;">
+            <div>
+                <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Billed To:</span>
+                <div style="font-weight: 700; color: #0f172a; font-size: 1rem;" id="preview-modal-cust-name">Walk-in Customer</div>
+                <div style="font-size: 0.85rem; color: #64748b;" id="preview-modal-cust-phone">+91 ••••• •••••</div>
+            </div>
+            <div style="text-align: right;">
+                <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Payment Mode:</span>
+                <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;" id="preview-modal-payment-mode">UPI QR Code</div>
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 1.2rem; font-size: 0.88rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid #e2e8f0; text-align: left; color: #64748b;">
+                    <th style="padding: 8px 4px;">#</th>
+                    <th style="padding: 8px;">Product</th>
+                    <th style="padding: 8px; text-align: center;">Qty</th>
+                    <th style="padding: 8px; text-align: right;">Price</th>
+                    <th style="padding: 8px; text-align: right;">Total</th>
+                </tr>
+            </thead>
+            <tbody id="preview-modal-items-tbody">
+                <!-- Dynamically filled by JS -->
+            </tbody>
+        </table>
+
+        <!-- Footer: Dynamic QR + Totals -->
+        <div style="display: grid; grid-template-columns: 180px 1fr; gap: 1.5rem; align-items: center; border-top: 2px solid #f1f5f9; padding-top: 1.2rem;">
+            <div style="text-align: center;">
+                <div id="preview-modal-qr-box" style="display: inline-block; padding: 8px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);"></div>
+                <div style="font-size: 0.75rem; color: #059669; font-weight: 700; margin-top: 4px;">
+                    <i class="fa-solid fa-qrcode"></i> Dynamic Bill QR
+                </div>
+            </div>
+            <div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #64748b; margin-bottom: 4px;">
+                    <span>Subtotal:</span>
+                    <span id="preview-modal-subtotal" style="font-weight: 600; color: #0f172a;">₹0.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #64748b; margin-bottom: 4px;">
+                    <span>GST Tax:</span>
+                    <span id="preview-modal-tax" style="font-weight: 600; color: #0f172a;">₹0.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #64748b; margin-bottom: 4px;">
+                    <span>Discount:</span>
+                    <span id="preview-modal-discount" style="font-weight: 600; color: #ef4444;">- ₹0.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: 800; border-top: 2px solid #0f172a; padding-top: 6px; margin-top: 6px;">
+                    <span style="color: #0f172a;">Grand Total:</span>
+                    <span id="preview-modal-grandtotal" style="color: #4f46e5;">₹0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; text-align: center; border-top: 1px dashed #e2e8f0; padding-top: 1rem;">
+            <button type="button" onclick="closeLiveInvoicePreviewModal()" class="btn-primary-action" style="padding: 8px 24px; font-size: 0.9rem; cursor: pointer;">
+                Close Preview
+            </button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 

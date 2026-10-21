@@ -67,15 +67,85 @@ function initBillingCalculator() {
     }
 
     let qrcodeInstance = null;
+    let currentDynamicQRMode = 'bill'; // 'bill' or 'upi'
+
+    window.setDynamicQRMode = function(mode) {
+        currentDynamicQRMode = mode;
+        const btnBill = document.getElementById('btn-mode-bill');
+        const btnUpi = document.getElementById('btn-mode-upi');
+        const titleEl = document.getElementById('qr-title-display');
+        const descEl = document.getElementById('qr-desc-display');
+
+        if (mode === 'upi') {
+            if (btnUpi) { btnUpi.style.background = '#0284c7'; btnUpi.style.color = '#fff'; }
+            if (btnBill) { btnBill.style.background = 'transparent'; btnBill.style.color = '#94a3b8'; }
+            if (titleEl) titleEl.textContent = 'Instant UPI Pay QR';
+            if (descEl) descEl.textContent = 'Scan with GPay, PhonePe, Paytm or BHIM';
+        } else {
+            if (btnBill) { btnBill.style.background = '#6366f1'; btnBill.style.color = '#fff'; }
+            if (btnUpi) { btnUpi.style.background = 'transparent'; btnUpi.style.color = '#94a3b8'; }
+            if (titleEl) titleEl.textContent = 'Live Invoice Encoded QR';
+            if (descEl) descEl.textContent = 'Encodes customer, date, total amount & items';
+        }
+        calculateTotals();
+    };
+
+    function getLiveInvoicePayload(amt) {
+        const custSelect = document.getElementById('customer-select');
+        const custNameInput = document.getElementById('customer_name');
+        let customerName = 'Walk-in Customer';
+        let customerPhone = '';
+
+        if (custSelect && custSelect.value) {
+            const opt = custSelect.options[custSelect.selectedIndex];
+            if (opt) {
+                customerName = opt.dataset.name || opt.textContent.split('(')[0].trim();
+                customerPhone = opt.dataset.phone || '';
+            }
+        } else if (custNameInput && custNameInput.value.trim()) {
+            customerName = custNameInput.value.trim();
+        }
+
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10) + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+
+        const rows = itemsTableBody.querySelectorAll('tr.item-row');
+        const itemNames = [];
+        rows.forEach(r => {
+            const opt = r.querySelector('.item-product-select');
+            const customName = r.querySelector('.item-name');
+            const qtyInput = r.querySelector('.item-qty');
+            let name = '';
+            if (opt && opt.value !== 'custom' && opt.selectedIndex >= 0) {
+                name = opt.options[opt.selectedIndex].dataset.name || opt.options[opt.selectedIndex].text.split('(')[0].trim();
+            } else if (customName) {
+                name = customName.value.trim();
+            }
+            const qty = qtyInput ? qtyInput.value : 1;
+            if (name) itemNames.push(`${name} (x${qty})`);
+        });
+
+        let payload = `Invoice No: PROVISIONAL-INV\nCustomer: ${customerName}\nDate: ${dateStr}\nTotal Amount: Rs.${amt}`;
+        if (customerPhone) payload += `\nPhone: ${customerPhone}`;
+        if (itemNames.length > 0) payload += `\nProducts: ${itemNames.join(', ')}`;
+        payload += `\nStatus: PENDING`;
+        return payload;
+    }
 
     function renderQRCode(amount) {
         if (!dynamicQrBox || typeof QRCode === 'undefined') return;
         dynamicQrBox.innerHTML = '';
         const amt = parseFloat(amount || 0).toFixed(2);
-        const upiPayload = `upi://pay?pa=${merchantUpi}&pn=AdvanceBilling&am=${amt}&cu=INR&tn=Invoice`;
+        
+        let qrPayload = '';
+        if (currentDynamicQRMode === 'upi') {
+            qrPayload = `upi://pay?pa=${merchantUpi}&pn=AdvanceBilling&am=${amt}&cu=INR&tn=Invoice`;
+        } else {
+            qrPayload = getLiveInvoicePayload(amt);
+        }
         
         qrcodeInstance = new QRCode(dynamicQrBox, {
-            text: upiPayload,
+            text: qrPayload,
             width: 160,
             height: 160,
             colorDark: "#0f172a",
@@ -83,6 +153,106 @@ function initBillingCalculator() {
             correctLevel: QRCode.CorrectLevel.M
         });
     }
+
+    window.openLiveInvoicePreviewModal = function() {
+        const modal = document.getElementById('livePreviewModal');
+        if (!modal) return;
+
+        // Populate customer
+        const custSelect = document.getElementById('customer-select');
+        const custNameInput = document.getElementById('customer_name');
+        const custPhoneInput = document.getElementById('customer_phone');
+        const paymentSelect = document.getElementById('payment_method');
+        
+        let cName = 'Walk-in Customer';
+        let cPhone = '+91 99999 99999';
+
+        if (custSelect && custSelect.value) {
+            const opt = custSelect.options[custSelect.selectedIndex];
+            if (opt) {
+                cName = opt.dataset.name || opt.textContent.split('(')[0].trim();
+                cPhone = opt.dataset.phone || '';
+            }
+        } else if (custNameInput && custNameInput.value.trim()) {
+            cName = custNameInput.value.trim();
+            cPhone = custPhoneInput ? custPhoneInput.value.trim() : '';
+        }
+
+        document.getElementById('preview-modal-cust-name').textContent = cName;
+        document.getElementById('preview-modal-cust-phone').textContent = cPhone ? `Phone: ${cPhone}` : '';
+        
+        if (paymentSelect && paymentSelect.value) {
+            document.getElementById('preview-modal-payment-mode').textContent = paymentSelect.value;
+        }
+
+        const now = new Date();
+        document.getElementById('preview-modal-date').textContent = `Date: ${now.toLocaleDateString()} ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+
+        // Populate items
+        const previewTbody = document.getElementById('preview-modal-items-tbody');
+        previewTbody.innerHTML = '';
+        const rows = itemsTableBody.querySelectorAll('tr.item-row');
+        let counter = 1;
+
+        rows.forEach(r => {
+            const selectEl = r.querySelector('.item-product-select');
+            const customNameInput = r.querySelector('.item-name');
+            const priceInput = r.querySelector('.item-price');
+            const qtyInput = r.querySelector('.item-qty');
+            const totalDisplay = r.querySelector('.item-total-val');
+
+            let pName = 'Item';
+            if (selectEl && selectEl.value !== 'custom' && selectEl.selectedIndex >= 0) {
+                pName = selectEl.options[selectEl.selectedIndex].dataset.name || selectEl.options[selectEl.selectedIndex].text.split('(')[0].trim();
+            } else if (customNameInput) {
+                pName = customNameInput.value.trim() || 'Custom Item';
+            }
+
+            const qty = qtyInput ? qtyInput.value : 1;
+            const price = priceInput ? parseFloat(priceInput.value || 0).toFixed(2) : '0.00';
+            const total = totalDisplay ? totalDisplay.textContent : '₹0.00';
+
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid #f1f5f9';
+            tr.innerHTML = `
+                <td style="padding: 8px 4px; color: #94a3b8;">${counter++}</td>
+                <td style="padding: 8px; font-weight: 600;">${pName}</td>
+                <td style="padding: 8px; text-align: center;">${qty}</td>
+                <td style="padding: 8px; text-align: right;">₹${price}</td>
+                <td style="padding: 8px; text-align: right; font-weight: 700; color: #0f172a;">${total}</td>
+            `;
+            previewTbody.appendChild(tr);
+        });
+
+        // Copy totals
+        if (displaySubtotal) document.getElementById('preview-modal-subtotal').textContent = displaySubtotal.textContent;
+        if (displayTax) document.getElementById('preview-modal-tax').textContent = displayTax.textContent;
+        if (displayDiscount) document.getElementById('preview-modal-discount').textContent = displayDiscount.textContent;
+        if (displayGrandTotal) document.getElementById('preview-modal-grandtotal').textContent = displayGrandTotal.textContent;
+
+        // Render dynamic QR in modal
+        const modalQrBox = document.getElementById('preview-modal-qr-box');
+        if (modalQrBox && typeof QRCode !== 'undefined') {
+            modalQrBox.innerHTML = '';
+            const rawAmt = displayGrandTotal ? displayGrandTotal.textContent.replace('₹', '').trim() : '0.00';
+            const modalPayload = getLiveInvoicePayload(rawAmt);
+            new QRCode(modalQrBox, {
+                text: modalPayload,
+                width: 140,
+                height: 140,
+                colorDark: "#0f172a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        }
+
+        modal.style.display = 'block';
+    };
+
+    window.closeLiveInvoicePreviewModal = function() {
+        const modal = document.getElementById('livePreviewModal');
+        if (modal) modal.style.display = 'none';
+    };
 
     function calculateTotals() {
         const rows = itemsTableBody.querySelectorAll('tr.item-row');
@@ -360,8 +530,16 @@ function initBillingCalculator() {
         btnAddItemBottom.addEventListener('click', addNewProductRow);
     }
 
-    // Attach to existing rows
-    itemsTableBody.querySelectorAll('tr.item-row').forEach(row => attachRowEvents(row));
+    // Customer selection updates live QR code
+    const customerSelect = document.getElementById('customer-select');
+    if (customerSelect) {
+        customerSelect.addEventListener('change', calculateTotals);
+    }
+    const customerNameInput = document.getElementById('customer_name');
+    if (customerNameInput) {
+        customerNameInput.addEventListener('input', calculateTotals);
+    }
+
     renumberRows();
     calculateTotals();
 }
