@@ -61,6 +61,9 @@ urlpatterns = [
     path('api/invoice/<int:invoice_id>/qr-code/', views.api_invoice_qr_code, name='api_invoice_qr_code'),
     path('api/invoice/<int:invoice_id>/qr/', views.api_invoice_qr_code, name='api_invoice_qr_code_alt'),
     path('api/invoice/<int:invoice_id>/preview/', views.api_invoice_preview, name='api_invoice_preview'),
+    path('api/invoice/<int:invoice_id>/details/', views.api_invoice_details, name='api_invoice_details'),
+    path('api/invoices/<int:invoice_id>/details/', views.api_invoice_details, name='api_invoices_details'),
+    path('api/invoices/details/', views.api_all_invoices_details, name='api_all_invoices_details'),
 
     # Invoices & Financial Reports
     path('invoices/', views.invoice_list_view, name='invoice_list'),

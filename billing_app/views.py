@@ -850,6 +850,80 @@ def api_invoice_preview(request, invoice_id):
     })
 
 
+# 8-Details-API. Fetch complete invoice details (ID, customer name, total, date) from database
+def api_invoice_details(request, invoice_id):
+    """
+    Fetch complete invoice details directly from the database:
+    - ID: Invoice primary key ID and Invoice Number
+    - Customer Name: Customer name and contact
+    - Total: Grand Total, Subtotal, and Tax
+    - Date: Creation Date
+    - Line items summary and QR payload
+    """
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    details = invoice.get_complete_details()
+    
+    return JsonResponse({
+        'status': 'success',
+        'success': True,
+        'invoice': {
+            'id': details['id'],
+            'invoice_id': details['invoice_id'],
+            'invoice_number': details['invoice_number'],
+            'customer_name': details['customer_name'],
+            'customer_phone': details['customer_phone'],
+            'total': details['total'],
+            'total_amount': details['total_amount'],
+            'grand_total': details['total'],
+            'subtotal': details['subtotal'],
+            'tax_amount': details['tax_amount'],
+            'date': details['date'],
+            'iso_date': details['iso_date'],
+            'payment_method': details['payment_method'],
+            'payment_status': details['payment_status'],
+            'items_count': len(details['items']),
+            'items': details['items'],
+            'qr_payload': details['qr_payload'],
+            'qr_code_base64': details['qr_code_base64'],
+        }
+    })
+
+
+def api_all_invoices_details(request):
+    """
+    Fetch complete invoice details (ID, customer name, total, date) for all invoices from the database.
+    Supports limit and query parameters.
+    """
+    limit = int(request.GET.get('limit', 100))
+    invoices = Invoice.objects.prefetch_related('items').all().order_by('-created_at')[:limit]
+    
+    results = []
+    for inv in invoices:
+        d = inv.get_complete_details()
+        results.append({
+            'id': d['id'],
+            'invoice_id': d['invoice_id'],
+            'invoice_number': d['invoice_number'],
+            'customer_name': d['customer_name'],
+            'customer_phone': d['customer_phone'],
+            'total': d['total'],
+            'total_amount': d['total_amount'],
+            'grand_total': d['total'],
+            'date': d['date'],
+            'iso_date': d['iso_date'],
+            'payment_status': d['payment_status'],
+            'payment_method': d['payment_method'],
+            'items_count': len(d['items']),
+        })
+        
+    return JsonResponse({
+        'status': 'success',
+        'success': True,
+        'total_count': len(results),
+        'invoices': results
+    })
+
+
 # 8b. Dedicated Invoice QR Inspection & Showcase View
 @login_required
 def invoice_qr_view(request, invoice_id):

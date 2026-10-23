@@ -134,6 +134,38 @@ class Invoice(models.Model):
         )
         return self.qr_code_image
 
+    def get_complete_details(self):
+        """
+        Fetch complete invoice details directly from this saved database model:
+        - ID: Database primary key ID (id) and unique Invoice Number (invoice_number)
+        - Customer Name: customer_name and customer_phone
+        - Total: grand_total, subtotal, and tax_amount
+        - Date: formatted string and datetime
+        - Line items and QR payload
+        """
+        from .invoice_qr import fetch_invoice_data
+        data = fetch_invoice_data(self)
+        return {
+            'id': self.id,
+            'invoice_id': self.id,
+            'invoice_number': self.invoice_number,
+            'customer_name': self.customer_name,
+            'customer_phone': self.customer_phone or '',
+            'total': float(self.grand_total) if self.grand_total is not None else 0.0,
+            'total_amount': float(self.grand_total) if self.grand_total is not None else 0.0,
+            'subtotal': float(self.subtotal) if self.subtotal is not None else 0.0,
+            'tax_amount': float(self.tax_amount) if self.tax_amount is not None else 0.0,
+            'discount': float(self.discount) if self.discount is not None else 0.0,
+            'date': data.get('date'),
+            'iso_date': data.get('iso_date'),
+            'created_at': self.created_at,
+            'payment_method': self.payment_method,
+            'payment_status': self.payment_status,
+            'items': data.get('items', []),
+            'qr_payload': self.qr_code_payload or data.get('qr_payload'),
+            'qr_code_base64': self.qr_code_base64,
+        }
+
     def get_qr_data(self):
         """
         Fetch core data from this saved invoice model:

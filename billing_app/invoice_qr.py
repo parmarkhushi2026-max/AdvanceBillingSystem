@@ -313,3 +313,14 @@ def generate_invoice_qr_bundle(
         'products_summary': data['products_summary']
     }
 
+
+def fetch_invoice_details(invoice_or_id) -> Dict[str, Any]:
+    """
+    Fetch complete invoice details (ID, customer name, total amount, date) from the database:
+    - ID: Invoice ID and Invoice Number
+    - Customer Name: Customer name and contact
+    - Total: Total Amount (grand_total), Subtotal, and Taxes
+    - Date: Formatted date and datetime
+    """
+    return fetch_invoice_data(invoice_or_id)
+
