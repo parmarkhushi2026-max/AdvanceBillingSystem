@@ -222,6 +222,9 @@
                             <a href="{% url 'invoice_preview' inv.id %}" class="btn-quick-fill" style="text-decoration: none; background: #eef2ff; color: #4338ca; border-color: #c7d2fe;" title="Preview Invoice with Details & QR">
                                 <i class="fa-solid fa-file-invoice"></i> Preview
                             </a>
+                            <a href="{% url 'invoice_pdf' inv.id %}" class="btn-quick-fill" style="text-decoration: none; background: #fee2e2; color: #b91c1c; border-color: #fca5a5;" title="Download PDF (xhtml2pdf)">
+                                <i class="fa-solid fa-file-pdf"></i> PDF
+                            </a>
                             <a href="{% url 'invoice_detail' inv.id %}" class="btn-quick-fill" style="text-decoration: none;">
                                 <i class="fa-solid fa-print"></i> View / Print
                             </a>

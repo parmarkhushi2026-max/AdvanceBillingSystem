@@ -114,3 +114,26 @@ class InvoicePreviewTestCase(TestCase):
         self.assertEqual(number_to_indian_currency_words(1500), "Rupees One Thousand Five Hundred Only")
         self.assertEqual(number_to_indian_currency_words(25000), "Rupees Twenty Five Thousand Only")
         self.assertIn("Rupees", number_to_indian_currency_words(23234))
+
+    def test_download_pdf_button_present_in_preview_page(self):
+        """Verify Download PDF button linking to xhtml2pdf export is in preview HTML."""
+        self.client.force_login(self.dist_user)
+        url = reverse('invoice_preview', args=[self.invoice.id])
+        resp = self.client.get(url)
+        content = resp.content.decode('utf-8')
+        pdf_url = reverse('invoice_pdf', args=[self.invoice.id])
+        self.assertIn(pdf_url, content)
+        self.assertIn("Download PDF", content)
+
+    def test_download_pdf_via_xhtml2pdf_exports_valid_pdf_with_qr(self):
+        """Verify GET to /invoice/<id>/pdf/ generates and downloads valid PDF with embedded QR."""
+        self.client.force_login(self.dist_user)
+        url = reverse('invoice_pdf', args=[self.invoice.id])
+        resp = self.client.get(url)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.get('Content-Type'), 'application/pdf')
+        self.assertIn(f'filename="Invoice_{self.invoice.invoice_number}.pdf"', resp.get('Content-Disposition'))
+        # PDF binary starts with %PDF- header and contains substantial bytes
+        self.assertTrue(resp.content.startswith(b'%PDF-'))
+        self.assertGreater(len(resp.content), 2000)

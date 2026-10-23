@@ -1582,61 +1582,80 @@ try:
 except ImportError:
     pisa = None
 
+try:
+    import weasyprint
+except ImportError:
+    weasyprint = None
+
 import qrcode
 import base64
 from io import BytesIO
 
 @login_required
 def generate_invoice_pdf_view(request, invoice_id):
-    if not pisa:
-        messages.error(request, "PDF generation library (xhtml2pdf) is not installed.")
+    """
+    Exports a certified Tax Invoice as a PDF with embedded verified QR code
+    using xhtml2pdf (or WeasyPrint if available).
+    """
+    if not pisa and not weasyprint:
+        messages.error(request, "PDF generation library (xhtml2pdf or WeasyPrint) is not installed.")
         return redirect('invoice_detail', invoice_id=invoice_id)
         
     invoice = get_object_or_404(Invoice, id=invoice_id)
     profile = getattr(invoice.distributor, 'profile', None) if invoice.distributor else None
-    upi_id = profile.upi_id if profile else 'advancebilling@upi'
-    business_name = profile.business_name if profile else 'Advance Billing Agency'
-
-    product_summary = ", ".join([f"{item.product_name} (x{item.quantity})" for item in invoice.items.all()])
-    formatted_date = invoice.created_at.strftime('%Y-%m-%d %H:%M')
     
+    business_name = getattr(profile, 'business_name', None) or 'Advance Billing Agency'
+    business_phone = getattr(profile, 'phone', None) or '+91 98765 43210'
+    business_address = getattr(profile, 'address', None) or 'Commercial Hub, Business Park, Phase II'
+    business_gstin = getattr(profile, 'gstin', None) or '27AABCU9603R1ZM'
+    upi_id = getattr(profile, 'upi_id', None) or 'advancebilling@upi'
+
+    # Retrieve or generate verified invoice QR code bundle
+    from .invoice_qr import generate_invoice_qr_bundle
     try:
-        raw_qr = invoice.qr_code_base64
-        if raw_qr and raw_qr.startswith('data:image/png;base64,'):
-            qr_base64 = raw_qr.split('data:image/png;base64,')[1]
-        else:
-            qr_base64 = raw_qr
+        bundle = generate_invoice_qr_bundle(invoice)
+        qr_base64 = bundle['qr_base64']
     except Exception:
-        qr_data = (
-            f"Invoice No: {invoice.invoice_number}\n"
-            f"Date: {formatted_date}\n"
-            f"Customer: {invoice.customer_name}\n"
-            f"Products: {product_summary}\n"
-            f"Total Bill: Rs.{invoice.grand_total}"
-        )
-        qr = qrcode.make(qr_data)
-        buffer = BytesIO()
-        qr.save(buffer, format="PNG")
-        qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        qr_base64 = invoice.qr_code_base64
+
+    # Financial details
+    tax_amt = float(invoice.tax_amount or 0.0)
+    cgst_amount = round(tax_amt / 2, 2)
+    sgst_amount = round(tax_amt / 2, 2)
+    grand_total_words = number_to_indian_currency_words(invoice.grand_total)
 
     context = {
         'invoice': invoice,
         'items': invoice.items.all(),
         'upi_id': upi_id,
         'business_name': business_name,
+        'business_phone': business_phone,
+        'business_address': business_address,
+        'business_gstin': business_gstin,
         'qr_base64': qr_base64,
+        'cgst_amount': cgst_amount,
+        'sgst_amount': sgst_amount,
+        'grand_total_words': grand_total_words,
     }
     
     template = get_template('billing/invoice_pdf.html')
     html = template.render(context)
     
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
-    
-    pisa_status = pisa.CreatePDF(html, dest=response)
-    if pisa_status.err:
-        return HttpResponse('Error generating PDF', status=500)
-    return response
+    # Render with WeasyPrint if available, otherwise xhtml2pdf
+    if weasyprint:
+        pdf_bytes = weasyprint.HTML(string=html).write_pdf()
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
+        return response
+    elif pisa:
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
+        pisa_status = pisa.CreatePDF(html, dest=response)
+        if pisa_status.err:
+            return HttpResponse('Error generating PDF with xhtml2pdf', status=500)
+        return response
+    else:
+        return HttpResponse('No PDF generation library found', status=500)
     
 @login_required
 def invoice_list_view(request):

@@ -2,167 +2,353 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Invoice PDF</title>
+    <title>Tax Invoice #{{ invoice.invoice_number }}</title>
     <style>
         @page {
-            size: a4;
-            margin: 1cm;
+            size: a4 portrait;
+            margin: 1.2cm;
             @frame footer {
                 -pdf-frame-content: footerContent;
                 bottom: 1cm;
-                margin-left: 1cm;
-                margin-right: 1cm;
+                margin-left: 1.2cm;
+                margin-right: 1.2cm;
                 height: 1cm;
             }
         }
-        body { font-family: Helvetica, sans-serif; font-size: 13px; color: #334155; }
-        .invoice-box { width: 100%; }
-        .header-table { width: 100%; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; margin-bottom: 20px; }
-        .header-table td { vertical-align: middle; }
-        .logo { width: 250px; height: auto; }
-        .company-info { text-align: right; color: #64748b; font-size: 12px; }
-        .company-name { font-size: 20px; font-weight: bold; color: #0f172a; margin-bottom: 5px; }
-        
-        .title-bar { background-color: #4f46e5; color: #ffffff; padding: 10px; font-weight: bold; font-size: 16px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
-        
-        .details-table { width: 100%; margin-bottom: 30px; }
-        .details-table td { vertical-align: top; width: 50%; }
-        .section-title { font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; }
-        .detail-text { font-size: 14px; font-weight: bold; color: #0f172a; }
-        
-        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .items-table th { background-color: #f1f5f9; color: #475569; padding: 10px; text-align: left; font-size: 12px; text-transform: uppercase; border-bottom: 2px solid #cbd5e1; }
-        .items-table td { padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #334155; }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            color: #1e293b;
+            line-height: 1.4;
+        }
+        .header-table {
+            width: 100%;
+            border-bottom: 2.5px solid #4f46e5;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+        .header-table td {
+            vertical-align: top;
+        }
+        .company-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0f172a;
+            margin-bottom: 3px;
+        }
+        .company-subtitle {
+            font-size: 10px;
+            color: #64748b;
+            line-height: 1.35;
+        }
+        .title-box {
+            text-align: right;
+        }
+        .invoice-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #4f46e5;
+            letter-spacing: 0.5px;
+        }
+        .invoice-number {
+            font-size: 13px;
+            font-weight: bold;
+            color: #0f172a;
+            margin-top: 2px;
+        }
+
+        .party-table {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .party-box {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 10px 12px;
+        }
+        .section-label {
+            font-size: 9px;
+            font-weight: bold;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .customer-name {
+            font-size: 13px;
+            font-weight: bold;
+            color: #0f172a;
+            margin-bottom: 3px;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: separate;
+            margin-bottom: 18px;
+        }
+        .items-table th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            padding: 8px 10px;
+            border-bottom: 1.5px solid #cbd5e1;
+            text-align: left;
+        }
+        .items-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 11px;
+            color: #1e293b;
+        }
         .text-right { text-align: right; }
         .text-center { text-align: center; }
-        
-        .totals-table { width: 40%; float: right; border-collapse: collapse; }
-        .totals-table td { padding: 8px; text-align: right; border-bottom: 1px solid #f1f5f9; }
-        .totals-table .total-row td { font-weight: bold; font-size: 16px; color: #0f172a; border-top: 2px solid #0f172a; border-bottom: none; }
-        
-        .clear { clear: both; }
-        .notes { margin-top: 30px; padding: 15px; background-color: #f8fafc; border-left: 4px solid #38bdf8; font-size: 12px; color: #64748b; }
-        
-        #footerContent { text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+
+        .summary-table {
+            width: 100%;
+            margin-top: 10px;
+        }
+        .summary-table td {
+            vertical-align: top;
+        }
+
+        .totals-box {
+            width: 100%;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+        }
+        .totals-row {
+            padding: 4px 0;
+            font-size: 11px;
+            color: #475569;
+        }
+        .grand-total-row {
+            border-top: 1.5px solid #0f172a;
+            margin-top: 6px;
+            padding-top: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #4f46e5;
+        }
+
+        .qr-card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 8px 10px;
+            text-align: center;
+        }
+        .qr-img {
+            width: 110px;
+            height: 110px;
+        }
+        .qr-caption {
+            font-size: 9px;
+            font-weight: bold;
+            color: #059669;
+            margin-top: 4px;
+        }
+
+        .amount-words {
+            background-color: #eef2ff;
+            border-left: 3px solid #4f46e5;
+            padding: 6px 10px;
+            margin-top: 14px;
+            font-size: 10px;
+            color: #1e293b;
+        }
+
+        .footer-declaration {
+            margin-top: 24px;
+            padding-top: 10px;
+            border-top: 1px dashed #cbd5e1;
+            font-size: 9px;
+            color: #64748b;
+        }
+        .signature-block {
+            text-align: right;
+            font-size: 10px;
+            color: #0f172a;
+        }
+
+        #footerContent {
+            text-align: center;
+            font-size: 9px;
+            color: #94a3b8;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 8px;
+        }
     </style>
 </head>
 <body>
-    <div class="invoice-box">
-        <table class="header-table">
-            <tr>
-                <td>
-                    <div style="font-size: 20px; font-weight: bold; color: #4f46e5; letter-spacing: -0.5px;">
-                        {{ business_name|default:"Advance Billing" }}
-                    </div>
-                    <span style="font-size: 10px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Verified Billing & POS</span>
-                </td>
-                <td class="company-info">
-                    <div class="company-name">{{ business_name }}</div>
-                    Advance Billing & POS Solutions<br>
-                    UPI ID: {{ upi_id }}
-                </td>
-            </tr>
-        </table>
+    <!-- Top Header -->
+    <table class="header-table">
+        <tr>
+            <td style="width: 60%;">
+                <div class="company-name">{{ business_name|default:"Advance Billing Agency" }}</div>
+                <div class="company-subtitle">
+                    {{ business_address|default:"Commercial Hub, Business Park, Phase II" }}<br>
+                    Phone: {{ business_phone|default:"+91 98765 43210" }} &bull; UPI ID: {{ upi_id }}<br>
+                    <strong>GSTIN: {{ business_gstin|default:"27AABCU9603R1ZM" }}</strong>
+                </div>
+            </td>
+            <td style="width: 40%;" class="title-box">
+                <div class="invoice-title">TAX INVOICE</div>
+                <div class="invoice-number">#{{ invoice.invoice_number }}</div>
+                <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
+                    Date: <strong>{{ invoice.created_at|date:"d M, Y h:i A" }}</strong>
+                </div>
+                <div style="font-size: 10px; color: #059669; font-weight: bold; margin-top: 2px;">
+                    Status: {{ invoice.payment_status|default:"PAID" }}
+                </div>
+            </td>
+        </tr>
+    </table>
 
-        <div class="title-bar">
-            Tax Invoice #{{ invoice.invoice_number }}
-        </div>
-
-        <table class="details-table">
-            <tr>
-                <td>
-                    <div class="section-title">Billed To</div>
-                    <div class="detail-text">{{ invoice.customer_name }}</div>
-                    Phone: {{ invoice.customer_phone }}<br>
-                    {% if invoice.customer_ref and invoice.customer_ref.address %}{{ invoice.customer_ref.address }}<br>{% endif %}
-                    {% if invoice.customer_ref and invoice.customer_ref.city %}{{ invoice.customer_ref.city }}<br>{% endif %}
-                    {% if invoice.customer_ref and invoice.customer_ref.gstin %}GSTIN: {{ invoice.customer_ref.gstin }}<br>{% endif %}
-                </td>
-                <td class="text-right">
-                    <div class="section-title">Invoice Details</div>
-                    <div class="detail-text">Date: {{ invoice.created_at|date:"d M, Y" }}</div>
-                    Payment Status: <span style="color: #10b981; font-weight: bold;">{{ invoice.payment_status }}</span><br>
-                    Payment Method: {{ invoice.payment_method }}
-                </td>
-            </tr>
-        </table>
-
-        <table class="items-table">
-            <thead>
-                <tr>
-                    <th style="width: 5%;">#</th>
-                    <th style="width: 45%;">Description</th>
-                    <th class="text-center" style="width: 10%;">Qty</th>
-                    <th class="text-right" style="width: 15%;">Rate</th>
-                    <th class="text-right" style="width: 10%;">Tax</th>
-                    <th class="text-right" style="width: 15%;">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in items %}
-                <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>
-                        <strong>{{ item.product_name }}</strong><br>
-                        <span style="font-size: 10px; color: #94a3b8;">Discount: ₹{{ item.discount|floatformat:2 }}</span>
-                    </td>
-                    <td class="text-center">{{ item.quantity }}</td>
-                    <td class="text-right">₹{{ item.unit_price|floatformat:2 }}</td>
-                    <td class="text-right">{{ item.tax_rate }}%</td>
-                    <td class="text-right"><strong>₹{{ item.total|floatformat:2 }}</strong></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <table class="totals-table">
-            <tr>
-                <td>Subtotal:</td>
-                <td>₹{{ invoice.subtotal|floatformat:2 }}</td>
-            </tr>
-            <tr>
-                <td>Total Discount:</td>
-                <td style="color: #ef4444;">- ₹{{ invoice.discount|floatformat:2 }}</td>
-            </tr>
-            <tr>
-                <td>Total GST:</td>
-                <td>₹{{ invoice.tax_amount|floatformat:2 }}</td>
-            </tr>
-            <tr class="total-row">
-                <td>Grand Total:</td>
-                <td>₹{{ invoice.grand_total|floatformat:2 }}</td>
-            </tr>
-        </table>
-        
-        <div class="clear"></div>
-
-        <table style="width: 100%; margin-top: 20px;">
-            <tr>
-                <td style="width: 75%; vertical-align: bottom;">
-                    <div class="notes" style="margin-top: 0;">
-                        <strong>Notes & Terms:</strong><br>
-                        {% if invoice.notes %}
-                            {{ invoice.notes }}<br>
+    <!-- Billing & Customer Info -->
+    <table class="party-table">
+        <tr>
+            <td style="width: 50%; padding-right: 8px;">
+                <div class="party-box">
+                    <div class="section-label">Billed To (Customer):</div>
+                    <div class="customer-name">{{ invoice.customer_name }}</div>
+                    <div style="font-size: 11px; color: #475569;">
+                        Phone: {{ invoice.customer_phone }}<br>
+                        {% if invoice.customer_ref and invoice.customer_ref.address %}
+                            Address: {{ invoice.customer_ref.address }}{% if invoice.customer_ref.city %}, {{ invoice.customer_ref.city }}{% endif %}<br>
                         {% endif %}
-                        Thank you for your business! This is a computer-generated tax invoice verified with QR Code.
+                        {% if invoice.customer_ref and invoice.customer_ref.gstin %}
+                            <strong>Customer GSTIN: {{ invoice.customer_ref.gstin }}</strong>
+                        {% endif %}
                     </div>
+                </div>
+            </td>
+            <td style="width: 50%; padding-left: 8px;">
+                <div class="party-box">
+                    <div class="section-label">Invoice & Payment Info:</div>
+                    <div style="font-size: 11px; color: #475569; line-height: 1.5;">
+                        <strong>Payment Method:</strong> {{ invoice.payment_method }}<br>
+                        <strong>Merchant UPI:</strong> {{ upi_id }}<br>
+                        <strong>Place of Supply:</strong> Maharashtra (27)<br>
+                        <strong>Reverse Charge:</strong> No
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Itemized Products Table -->
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th style="width: 5%;">#</th>
+                <th style="width: 45%;">Item Description</th>
+                <th class="text-center" style="width: 10%;">Qty</th>
+                <th class="text-right" style="width: 14%;">Rate</th>
+                <th class="text-right" style="width: 12%;">Tax</th>
+                <th class="text-right" style="width: 14%;">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                    <strong>{{ item.product_name }}</strong><br>
+                    <span style="font-size: 9px; color: #64748b;">HSN/SAC: 8471 &bull; Standard GST</span>
                 </td>
-                <td style="width: 25%; text-align: right; vertical-align: bottom;">
+                <td class="text-center">{{ item.quantity }}</td>
+                <td class="text-right">Rs. {{ item.unit_price|floatformat:2 }}</td>
+                <td class="text-right">{{ item.tax_rate }}%</td>
+                <td class="text-right"><strong>Rs. {{ item.total|floatformat:2 }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Summary & QR Section -->
+    <table class="summary-table">
+        <tr>
+            <!-- Left: QR Code Verification Card -->
+            <td style="width: 48%; padding-right: 10px;">
+                <div class="qr-card">
                     {% if qr_base64 %}
                         {% if "data:image" in qr_base64 %}
-                            <img src="{{ qr_base64 }}" style="width: 90px; height: 90px;" /><br>
+                            <img src="{{ qr_base64 }}" class="qr-img"><br>
                         {% else %}
-                            <img src="data:image/png;base64,{{ qr_base64 }}" style="width: 90px; height: 90px;" /><br>
+                            <img src="data:image/png;base64,{{ qr_base64 }}" class="qr-img"><br>
                         {% endif %}
-                        <span style="font-size: 10px; color: #64748b; display: block; margin-top: 5px;">Scan to Verify Invoice</span>
+                        <div class="qr-caption">[VERIFIED INVOICE QR CODE]</div>
+                        <div style="font-size: 8px; color: #64748b; margin-top: 2px;">
+                            Encodes ID #{{ invoice.id }} &bull; {{ invoice.customer_name }} &bull; Rs.{{ invoice.grand_total|floatformat:2 }}
+                        </div>
                     {% endif %}
-                </td>
-            </tr>
-        </table>
+                </div>
+            </td>
+
+            <!-- Right: Totals Calculation Box -->
+            <td style="width: 52%; padding-left: 10px;">
+                <div class="totals-box">
+                    <table style="width: 100%;">
+                        <tr class="totals-row">
+                            <td>Taxable Subtotal:</td>
+                            <td class="text-right">Rs. {{ invoice.subtotal|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="totals-row">
+                            <td>Central GST (CGST):</td>
+                            <td class="text-right">+ Rs. {{ cgst_amount|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="totals-row">
+                            <td>State GST (SGST):</td>
+                            <td class="text-right">+ Rs. {{ sgst_amount|floatformat:2 }}</td>
+                        </tr>
+                        {% if invoice.discount and invoice.discount > 0 %}
+                        <tr class="totals-row">
+                            <td>Discount:</td>
+                            <td class="text-right" style="color: #dc2626;">- Rs. {{ invoice.discount|floatformat:2 }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr class="grand-total-row">
+                            <td>Grand Total:</td>
+                            <td class="text-right">Rs. {{ invoice.grand_total|floatformat:2 }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Amount in Words -->
+    {% if grand_total_words %}
+    <div class="amount-words">
+        <strong>Amount in Words:</strong> {{ grand_total_words }}
     </div>
-    
+    {% endif %}
+
+    <!-- Terms & Signature -->
+    <table style="width: 100%; margin-top: 20px;">
+        <tr>
+            <td style="width: 65%; font-size: 9px; color: #64748b; vertical-align: bottom;">
+                <strong>Terms &amp; Conditions:</strong><br>
+                1. Goods once sold will not be accepted back after 7 days.<br>
+                2. Computer-generated tax invoice verified with dynamic QR code.<br>
+                3. Subject to jurisdiction of local courts.
+            </td>
+            <td style="width: 35%; text-align: right; vertical-align: bottom;">
+                <div class="signature-block">
+                    <div style="font-size: 9px; color: #059669; font-weight: bold; margin-bottom: 24px;">
+                        [ DIGITALLY VERIFIED ]
+                    </div>
+                    <strong>For {{ business_name|default:"Advance Billing Agency" }}</strong><br>
+                    <span style="font-size: 9px; color: #64748b;">Authorized Signatory</span>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Fixed Page Footer -->
     <div id="footerContent">
-        Generated by Advance Billing System &bull; Page <pdf:pagenumber> of <pdf:pagecount>
+        Generated by Advance Billing System &bull; Verified Tax Invoice with QR Code &bull; Page <pdf:pagenumber> of <pdf:pagecount>
     </div>
 </body>
 </html>

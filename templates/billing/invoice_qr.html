@@ -16,6 +16,9 @@
         </a>
     </div>
     <div style="display: flex; gap: 10px; align-items: center;">
+        <a href="{% url 'invoice_pdf' invoice.id %}" class="btn-export-pdf" style="text-decoration: none; display: inline-flex; align-items: center; padding: 0.6rem 1.2rem; background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 600; gap: 8px;" title="Download PDF with QR using xhtml2pdf">
+            <i class="fa-solid fa-file-pdf"></i> Download PDF
+        </a>
         <a href="{% url 'invoice_qr_image' invoice.id %}" download="Invoice_{{ invoice.invoice_number }}_QR.png" class="btn-export-pdf" style="text-decoration: none; display: inline-flex; align-items: center; padding: 0.6rem 1.2rem; background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 600; gap: 8px;">
             <i class="fa-solid fa-download"></i> Download QR (PNG)
         </a>

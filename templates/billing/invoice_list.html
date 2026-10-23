@@ -148,6 +148,9 @@
                                     <a href="{% url 'invoice_preview' invoice.id %}" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem; background: #eef2ff; color: #4f46e5; border-color: #c7d2fe;" title="Preview Invoice with Details & QR">
                                         <i class="fa-solid fa-file-invoice"></i> Preview
                                     </a>
+                                    <a href="{% url 'invoice_pdf' invoice.id %}" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem; background: #fee2e2; color: #b91c1c; border-color: #fca5a5;" title="Download PDF (xhtml2pdf)">
+                                        <i class="fa-solid fa-file-pdf"></i> PDF
+                                    </a>
                                     <a href="{% url 'invoice_qr' invoice.id %}" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem; background: #e0e7ff; color: #4338ca; border-color: #c7d2fe;" title="View QR Code">
                                         <i class="fa-solid fa-qrcode"></i> QR
                                     </a>

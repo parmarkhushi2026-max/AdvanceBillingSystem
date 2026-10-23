@@ -592,9 +592,14 @@
             <i class="fa-solid fa-download"></i> <span class="hide-mobile">QR PNG</span>
         </a>
 
-        <!-- Download PDF -->
-        <button type="button" onclick="downloadInvoicePDF()" id="btn-pdf-export" class="btn-secondary-action" style="font-size: 0.85rem; padding: 7px 14px; background: #fef08a; color: #854d0e; border-color: #fde047; cursor: pointer; gap: 6px;">
+        <!-- Download PDF via xhtml2pdf / WeasyPrint (Server-side with QR) -->
+        <a href="{% url 'invoice_pdf' invoice.id %}" id="btn-server-pdf" class="btn-primary-action" style="text-decoration: none; font-size: 0.85rem; padding: 7px 16px; background: #dc2626; border: 1px solid #b91c1c; color: #ffffff; gap: 7px; display: inline-flex; align-items: center; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25); border-radius: var(--radius-sm); font-weight: 700;" title="Download official PDF with verified QR code using xhtml2pdf">
             <i class="fa-solid fa-file-pdf"></i> Download PDF
+        </a>
+
+        <!-- Download PDF (Client html2pdf) -->
+        <button type="button" onclick="downloadInvoicePDF()" id="btn-pdf-export" class="btn-secondary-action" style="font-size: 0.85rem; padding: 7px 12px; background: #fef08a; color: #854d0e; border-color: #fde047; cursor: pointer; gap: 6px;" title="Export current preview directly to PDF">
+            <i class="fa-solid fa-file-arrow-down"></i> <span class="hide-mobile">Client PDF</span>
         </button>
 
         <!-- Print Invoice Preview -->
