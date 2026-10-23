@@ -11,6 +11,9 @@
         <a href="{% if user.is_superuser or user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}" class="btn-secondary-action" style="text-decoration: none; font-size: 0.9rem;">
             <i class="fa-solid fa-gauge"></i> Dashboard
         </a>
+        <a href="{% url 'invoice_preview' invoice.id %}" class="btn-secondary-action" style="text-decoration: none; font-size: 0.9rem; background: #eef2ff; color: #4338ca; border-color: #c7d2fe;">
+            <i class="fa-solid fa-file-invoice"></i> Preview Invoice
+        </a>
     </div>
     <div style="display: flex; gap: 10px; align-items: center;">
         <a href="{% url 'invoice_qr_image' invoice.id %}" download="Invoice_{{ invoice.invoice_number }}_QR.png" class="btn-export-pdf" style="text-decoration: none; display: inline-flex; align-items: center; padding: 0.6rem 1.2rem; background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 600; gap: 8px;">

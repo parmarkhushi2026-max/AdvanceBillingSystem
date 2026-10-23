@@ -1,0 +1,1030 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Preview Invoice #{{ invoice.invoice_number }} - Advance Billing System{% endblock %}
+
+{% block content %}
+<!-- Include html2pdf.js for Client-Side High-Definition PDF Generation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+/* ==========================================================================
+   PREVIEW INVOICE DYNAMIC STYLES & THEMES
+   ========================================================================== */
+:root {
+    --preview-accent: #4f46e5;
+    --preview-accent-light: #eef2ff;
+    --preview-accent-border: #c7d2fe;
+}
+
+/* Theme Accents */
+.theme-indigo { --preview-accent: #4f46e5; --preview-accent-light: #eef2ff; --preview-accent-border: #c7d2fe; }
+.theme-emerald { --preview-accent: #059669; --preview-accent-light: #ecfdf5; --preview-accent-border: #a7f3d0; }
+.theme-cyan { --preview-accent: #0891b2; --preview-accent-light: #ecfeff; --preview-accent-border: #a5f3fc; }
+.theme-slate { --preview-accent: #1e293b; --preview-accent-light: #f1f5f9; --preview-accent-border: #cbd5e1; }
+.theme-rose { --preview-accent: #e11d48; --preview-accent-light: #fff1f2; --preview-accent-border: #fecdd3; }
+
+/* Control & Action Header */
+.preview-control-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1rem 1.4rem;
+    margin-bottom: 1.8rem;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+.view-mode-tabs {
+    display: inline-flex;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.mode-tab-btn {
+    border: none;
+    background: transparent;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #64748b;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mode-tab-btn.active {
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.theme-pill-selector {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f8fafc;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+}
+
+.theme-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.15s ease;
+}
+
+.theme-dot:hover {
+    transform: scale(1.2);
+}
+
+.theme-dot.selected {
+    border-color: #0f172a;
+    box-shadow: 0 0 0 2px #ffffff;
+}
+
+/* Standard A4 Sheet Preview */
+.a4-preview-canvas {
+    max-width: 940px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 16px 36px -8px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.03);
+    padding: 2.8rem 3rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.a4-preview-canvas::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: var(--preview-accent);
+}
+
+.preview-watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-30deg);
+    font-size: 5.5rem;
+    font-weight: 900;
+    color: rgba(15, 23, 42, 0.025);
+    pointer-events: none;
+    user-select: none;
+    letter-spacing: 0.1em;
+    z-index: 0;
+}
+
+/* Header & Meta */
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+    padding-bottom: 1.8rem;
+    border-bottom: 2px solid #f1f5f9;
+    margin-bottom: 1.8rem;
+    position: relative;
+    z-index: 1;
+}
+
+.preview-brand-title {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px 0;
+}
+
+.preview-brand-sub {
+    color: #64748b;
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.preview-meta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--preview-accent-light);
+    color: var(--preview-accent);
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--preview-accent-border);
+    margin-bottom: 6px;
+}
+
+.preview-invoice-num {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--preview-accent);
+    letter-spacing: -0.01em;
+}
+
+/* Grid Cards for Billing Parties */
+.preview-party-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 1;
+}
+
+.party-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.2rem 1.4rem;
+}
+
+.party-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.party-name {
+    font-size: 1.12rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+
+.party-detail {
+    font-size: 0.86rem;
+    color: #475569;
+    line-height: 1.45;
+}
+
+/* Table of Items */
+.preview-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-bottom: 2rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+}
+
+.preview-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 14px;
+    border-bottom: 2px solid #e2e8f0;
+    text-align: left;
+}
+
+.preview-table td {
+    padding: 12px 14px;
+    font-size: 0.88rem;
+    color: #1e293b;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.preview-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.preview-table tbody tr:hover {
+    background-color: #fafafa;
+}
+
+/* QR Code & Calculations Footer Grid */
+.preview-bottom-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #f1f5f9;
+    position: relative;
+    z-index: 1;
+}
+
+/* QR Code Box */
+.preview-qr-box {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.4rem;
+    display: flex;
+    gap: 1.4rem;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.qr-frame {
+    background: #ffffff;
+    padding: 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+    flex-shrink: 0;
+}
+
+.qr-frame img {
+    width: 130px;
+    height: 130px;
+    display: block;
+    image-rendering: pixelated;
+    border-radius: 6px;
+}
+
+.qr-meta-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.qr-badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #059669;
+    background: #ecfdf5;
+    padding: 3px 9px;
+    border-radius: 12px;
+    margin-bottom: 6px;
+}
+
+.qr-switcher-btns {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.qr-switcher-btn {
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.qr-switcher-btn.active {
+    background: var(--preview-accent);
+    color: #ffffff;
+    border-color: var(--preview-accent);
+}
+
+/* Total Calculations Card */
+.totals-breakdown-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.3rem 1.5rem;
+}
+
+.totals-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+.totals-row.grand-total {
+    border-top: 2px solid #0f172a;
+    margin-top: 8px;
+    padding-top: 10px;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.totals-row.grand-total span:last-child {
+    color: var(--preview-accent);
+    font-size: 1.45rem;
+}
+
+/* Amount in Words Box */
+.words-amount-box {
+    margin-top: 1.5rem;
+    padding: 0.85rem 1.2rem;
+    background: var(--preview-accent-light);
+    border-left: 4px solid var(--preview-accent);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: #1e293b;
+    position: relative;
+    z-index: 1;
+}
+
+/* Footer Declarations */
+.preview-legal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px dashed #cbd5e1;
+    position: relative;
+    z-index: 1;
+}
+
+.signature-stamp {
+    text-align: center;
+    min-width: 200px;
+}
+
+.signature-line {
+    border-bottom: 1.5px solid #0f172a;
+    height: 48px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 4px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.8rem;
+    color: #475569;
+}
+
+/* ==========================================================================
+   MODE 2: 3-INCH (80mm) THERMAL POS RECEIPT PREVIEW
+   ========================================================================== */
+.thermal-preview-container {
+    display: none;
+    max-width: 360px;
+    margin: 0 auto;
+    background: #ffffff;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05);
+    padding: 1.8rem 1.4rem;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.82rem;
+    color: #000000;
+    border-top: 4px dashed #94a3b8;
+    border-bottom: 4px dashed #94a3b8;
+    position: relative;
+}
+
+.thermal-header {
+    text-align: center;
+    margin-bottom: 1.2rem;
+    border-bottom: 1px dashed #000;
+    padding-bottom: 0.8rem;
+}
+
+.thermal-store-name {
+    font-size: 1.25rem;
+    font-weight: 900;
+    margin-bottom: 2px;
+}
+
+.thermal-item-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.thermal-divider {
+    border-top: 1px dashed #000;
+    margin: 8px 0;
+}
+
+.thermal-qr-center {
+    text-align: center;
+    margin: 1.2rem 0;
+}
+
+.thermal-qr-center img {
+    width: 140px;
+    height: 140px;
+    image-rendering: pixelated;
+    display: inline-block;
+    border: 1px solid #000;
+    padding: 4px;
+}
+
+/* Notification Toast */
+.share-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #0f172a;
+    color: #ffffff;
+    padding: 12px 20px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    z-index: 9999;
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.share-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ==========================================================================
+   PRINT STYLES - ZERO DISTRACTION CLEAN OUTPUT
+   ========================================================================== */
+@media print {
+    body {
+        background: #ffffff !important;
+    }
+    .sidebar,
+    .app-header,
+    .preview-control-bar,
+    .no-print,
+    .share-toast {
+        display: none !important;
+    }
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+    }
+    .a4-preview-canvas {
+        max-width: 100% !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+    .thermal-preview-container {
+        box-shadow: none !important;
+        border-top: none !important;
+        border-bottom: none !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+</style>
+
+<!-- ==========================================================================
+     TOP ACTION & CONTROL BAR
+     ========================================================================== -->
+<div class="preview-control-bar no-print">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <!-- Back Navigation -->
+        <a href="{% url 'invoice_list' %}" class="btn-secondary-action" style="text-decoration: none; font-size: 0.85rem; padding: 7px 14px; gap: 6px;">
+            <i class="fa-solid fa-arrow-left"></i> All Invoices
+        </a>
+        <a href="{% url 'invoice_detail' invoice.id %}" class="btn-secondary-action" style="text-decoration: none; font-size: 0.85rem; padding: 7px 14px; gap: 6px;" title="Full Invoice Details">
+            <i class="fa-solid fa-file-lines"></i> Detail View
+        </a>
+
+        <!-- View Mode Switcher -->
+        <div class="view-mode-tabs">
+            <button type="button" class="mode-tab-btn active" id="tab-btn-a4" onclick="switchPreviewMode('a4')">
+                <i class="fa-solid fa-file-invoice"></i> A4 GST Invoice Preview
+            </button>
+            <button type="button" class="mode-tab-btn" id="tab-btn-thermal" onclick="switchPreviewMode('thermal')">
+                <i class="fa-solid fa-receipt"></i> 3" POS Slip Preview
+            </button>
+        </div>
+
+        <!-- Color Theme Pill Selector -->
+        <div class="theme-pill-selector" title="Preview invoice in custom corporate accent">
+            <span style="font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-right: 2px;">Theme:</span>
+            <div class="theme-dot selected" style="background: #4f46e5;" onclick="setPreviewTheme('theme-indigo', this)" title="Indigo Classic"></div>
+            <div class="theme-dot" style="background: #059669;" onclick="setPreviewTheme('theme-emerald', this)" title="Emerald Green"></div>
+            <div class="theme-dot" style="background: #0891b2;" onclick="setPreviewTheme('theme-cyan', this)" title="Cyan Fintech"></div>
+            <div class="theme-dot" style="background: #1e293b;" onclick="setPreviewTheme('theme-slate', this)" title="Slate Modern"></div>
+            <div class="theme-dot" style="background: #e11d48;" onclick="setPreviewTheme('theme-rose', this)" title="Rose Corporate"></div>
+        </div>
+    </div>
+
+    <!-- Actions: Print, PDF, QR Download, Share -->
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <!-- Copy Link Button -->
+        <button type="button" onclick="copyPreviewLink()" class="btn-secondary-action" style="font-size: 0.85rem; padding: 7px 12px; cursor: pointer; gap: 6px;" title="Copy shareable preview URL">
+            <i class="fa-solid fa-link"></i> <span class="hide-mobile">Share</span>
+        </button>
+
+        <!-- QR Decoder Link -->
+        <a href="{% url 'qr_decoder_view' %}" class="btn-secondary-action" style="text-decoration: none; font-size: 0.85rem; padding: 7px 12px; background: #fdf4ff; color: #a21caf; border-color: #f5d0fe; gap: 6px;" title="Verify in QR Decoder">
+            <i class="fa-solid fa-qrcode"></i> <span class="hide-mobile">QR Decoder</span>
+        </a>
+
+        <!-- Download QR Image (PNG) -->
+        <a href="{% url 'invoice_qr_image' invoice.id %}" download="Invoice_{{ invoice.invoice_number }}_QR.png" class="btn-secondary-action" style="text-decoration: none; font-size: 0.85rem; padding: 7px 12px; background: #e0f2fe; color: #0369a1; border-color: #bae6fd; gap: 6px;" title="Download PNG QR">
+            <i class="fa-solid fa-download"></i> <span class="hide-mobile">QR PNG</span>
+        </a>
+
+        <!-- Download PDF -->
+        <button type="button" onclick="downloadInvoicePDF()" id="btn-pdf-export" class="btn-secondary-action" style="font-size: 0.85rem; padding: 7px 14px; background: #fef08a; color: #854d0e; border-color: #fde047; cursor: pointer; gap: 6px;">
+            <i class="fa-solid fa-file-pdf"></i> Download PDF
+        </button>
+
+        <!-- Print Invoice Preview -->
+        <button type="button" onclick="window.print()" class="btn-primary-action" style="font-size: 0.85rem; padding: 7px 16px; cursor: pointer; gap: 6px;">
+            <i class="fa-solid fa-print"></i> Print Invoice
+        </button>
+    </div>
+</div>
+
+
+<!-- ==========================================================================
+     FORMAT 1: A4 GST TAX INVOICE PREVIEW CANVAS
+     ========================================================================== -->
+<div class="a4-preview-canvas theme-indigo" id="invoice-preview-printable">
+    <div class="preview-watermark">PREVIEW</div>
+
+    <!-- Header Section -->
+    <div class="preview-header">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                <div class="brand-icon" style="width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--preview-accent); color: #ffffff; font-size: 1rem;">
+                    <i class="fa-solid fa-receipt"></i>
+                </div>
+                <h1 class="preview-brand-title">{{ business_name }}</h1>
+            </div>
+            <div class="preview-brand-sub">
+                <div>{{ business_address }}</div>
+                <div><i class="fa-solid fa-phone" style="font-size: 0.75rem;"></i> {{ business_phone }} &bull; <i class="fa-solid fa-envelope" style="font-size: 0.75rem;"></i> {{ business_email }}</div>
+                <div style="font-weight: 700; color: #0f172a; margin-top: 3px;">
+                    GSTIN: <span style="font-family: monospace; letter-spacing: 0.5px;">{{ business_gstin }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: right;">
+            <div class="preview-meta-badge">
+                <i class="fa-solid fa-shield-check"></i> ORIGINAL TAX INVOICE
+            </div>
+            <div class="preview-invoice-num">#{{ invoice.invoice_number }}</div>
+            <div style="font-size: 0.88rem; color: #64748b; margin-top: 4px;">
+                Date: <strong style="color: #0f172a;">{{ invoice.created_at|date:"d M, Y h:i A" }}</strong>
+            </div>
+            <div style="margin-top: 6px;">
+                <span class="badge-status {{ invoice.payment_status|lower }}" style="display: inline-block; font-size: 0.8rem; padding: 4px 10px; border-radius: 12px; font-weight: 800;">
+                    ● {{ invoice.payment_status }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Billed To & Payment Meta Grid -->
+    <div class="preview-party-grid">
+        <div class="party-card">
+            <div class="party-label">
+                <i class="fa-solid fa-user-check"></i> BILLED TO / CUSTOMER:
+            </div>
+            <div class="party-name">{{ invoice.customer_name }}</div>
+            <div class="party-detail">
+                <div><i class="fa-solid fa-phone" style="font-size: 0.75rem; color: var(--preview-accent);"></i> {{ invoice.customer_phone }}</div>
+                {% if invoice.customer_ref and invoice.customer_ref.email %}
+                    <div><i class="fa-solid fa-envelope" style="font-size: 0.75rem;"></i> {{ invoice.customer_ref.email }}</div>
+                {% endif %}
+                {% if invoice.customer_ref and invoice.customer_ref.address %}
+                    <div>{{ invoice.customer_ref.address }}{% if invoice.customer_ref.city %}, {{ invoice.customer_ref.city }}{% endif %}</div>
+                {% endif %}
+                {% if invoice.customer_ref and invoice.customer_ref.gstin %}
+                    <div style="font-weight: 700; color: var(--preview-accent); margin-top: 4px;">
+                        Customer GSTIN: <span style="font-family: monospace;">{{ invoice.customer_ref.gstin }}</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="party-card">
+            <div class="party-label">
+                <i class="fa-solid fa-credit-card"></i> PAYMENT & SETTLEMENT INFO:
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.88rem; margin-top: 6px;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #64748b;">Payment Method:</span>
+                    <strong style="color: #0f172a;">{{ invoice.payment_method }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #64748b;">Merchant UPI VPA:</span>
+                    <strong style="color: var(--preview-accent); font-family: monospace;">{{ upi_id }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #64748b;">Place of Supply:</span>
+                    <strong style="color: #0f172a;">Maharashtra (27)</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #64748b;">Reverse Charge:</span>
+                    <strong style="color: #0f172a;">No</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Itemized Products Table -->
+    <table class="preview-table">
+        <thead>
+            <tr>
+                <th style="width: 5%;">#</th>
+                <th style="width: 40%;">Item Description</th>
+                <th style="width: 10%; text-align: center;">Qty</th>
+                <th style="width: 15%; text-align: right;">Unit Rate</th>
+                <th style="width: 15%; text-align: right;">Tax Rate</th>
+                <th style="width: 15%; text-align: right;">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in enriched_items %}
+            <tr>
+                <td style="color: #94a3b8; font-weight: 600;">{{ item.index }}</td>
+                <td>
+                    <div style="font-weight: 700; color: #0f172a;">{{ item.name }}</div>
+                    <div style="font-size: 0.76rem; color: #94a3b8;">HSN/SAC: 8471 &bull; Standard GST</div>
+                </td>
+                <td style="text-align: center; font-weight: 700;">{{ item.quantity }}</td>
+                <td style="text-align: right; color: #475569;">₹{{ item.unit_price|floatformat:2 }}</td>
+                <td style="text-align: right; color: #64748b;">{{ item.tax_rate }}%</td>
+                <td style="text-align: right; font-weight: 800; color: #0f172a;">₹{{ item.total|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+                {% for item in items %}
+                <tr>
+                    <td style="color: #94a3b8; font-weight: 600;">{{ forloop.counter }}</td>
+                    <td style="font-weight: 700; color: #0f172a;">{{ item.product_name }}</td>
+                    <td style="text-align: center; font-weight: 700;">{{ item.quantity }}</td>
+                    <td style="text-align: right; color: #475569;">₹{{ item.unit_price|floatformat:2 }}</td>
+                    <td style="text-align: right; color: #64748b;">{{ item.tax_rate }}%</td>
+                    <td style="text-align: right; font-weight: 800; color: #0f172a;">₹{{ item.total|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Bottom Grid: Verified QR Code Panel + Financial Summary -->
+    <div class="preview-bottom-grid">
+        
+        <!-- Left: Verified Interactive QR Section -->
+        <div class="preview-qr-box">
+            <div class="qr-frame">
+                <img id="preview-qr-img" src="{{ qr_base64 }}" alt="QR Code for Invoice #{{ invoice.invoice_number }}">
+            </div>
+            <div class="qr-meta-info">
+                <div class="qr-badge-status" id="qr-badge-label">
+                    <i class="fa-solid fa-shield-check"></i> <span id="qr-status-text">Verified Database QR</span>
+                </div>
+                <div style="font-size: 0.85rem; font-weight: 800; color: #0f172a; margin-bottom: 3px;">
+                    Scan & Verify Bill
+                </div>
+                <div style="font-size: 0.76rem; color: #64748b; line-height: 1.4;" id="qr-desc-text">
+                    Encodes Invoice ID #{{ invoice.id }}, Customer Name, Date, and Amount for instant verification.
+                </div>
+
+                <!-- QR Switcher Controls -->
+                <div class="qr-switcher-btns no-print">
+                    <button type="button" class="qr-switcher-btn active" id="btn-qr-data" onclick="togglePreviewQR('data')">
+                        <i class="fa-solid fa-database"></i> Invoice Data
+                    </button>
+                    <button type="button" class="qr-switcher-btn" id="btn-qr-upi" onclick="togglePreviewQR('upi')">
+                        <i class="fa-solid fa-mobile-screen"></i> UPI Payment
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Totals Breakdown Card -->
+        <div class="totals-breakdown-card">
+            <div class="totals-row">
+                <span>Taxable Subtotal:</span>
+                <strong style="color: #0f172a;">₹{{ subtotal|floatformat:2 }}</strong>
+            </div>
+            <div class="totals-row">
+                <span>Central GST (CGST):</span>
+                <span style="color: #059669; font-weight: 600;">+₹{{ cgst_amount|floatformat:2 }}</span>
+            </div>
+            <div class="totals-row">
+                <span>State GST (SGST):</span>
+                <span style="color: #059669; font-weight: 600;">+₹{{ sgst_amount|floatformat:2 }}</span>
+            </div>
+            {% if invoice.discount and invoice.discount > 0 %}
+            <div class="totals-row">
+                <span>Discount Applied:</span>
+                <span style="color: #dc2626;">-₹{{ invoice.discount|floatformat:2 }}</span>
+            </div>
+            {% endif %}
+            <div class="totals-row grand-total">
+                <span>Grand Total:</span>
+                <span>₹{{ grand_total|floatformat:2 }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Amount in Indian Words -->
+    {% if grand_total_words %}
+    <div class="words-amount-box">
+        <strong>Amount in Words:</strong> {{ grand_total_words }}
+    </div>
+    {% endif %}
+
+    <!-- Legal Declarations & Digital Signature -->
+    <div class="preview-legal-footer">
+        <div style="font-size: 0.78rem; color: #64748b; max-width: 500px; line-height: 1.45;">
+            <div style="font-weight: 700; color: #0f172a; margin-bottom: 2px;">Terms & Conditions:</div>
+            <div>1. Goods once sold will not be taken back or exchanged after 7 days.</div>
+            <div>2. This computer-generated tax invoice is cryptographically verified via embedded QR.</div>
+            <div>3. Subject to local jurisdiction only. E. & O.E.</div>
+        </div>
+
+        <div class="signature-stamp">
+            <div class="signature-line">
+                <span style="color: #10b981; font-weight: 700;">DIGITALLY VERIFIED</span>
+            </div>
+            <div style="font-size: 0.75rem; font-weight: 800; color: #0f172a; text-transform: uppercase;">
+                For {{ business_name }}
+            </div>
+            <div style="font-size: 0.72rem; color: #94a3b8;">Authorized Signatory</div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ==========================================================================
+     FORMAT 2: 3-INCH (80mm) THERMAL POS RECEIPT PREVIEW
+     ========================================================================== -->
+<div class="thermal-preview-container" id="thermal-preview-printable">
+    <div class="thermal-header">
+        <div class="thermal-store-name">{{ business_name|upper }}</div>
+        <div>{{ business_address }}</div>
+        <div>Ph: {{ business_phone }}</div>
+        <div>GSTIN: {{ business_gstin }}</div>
+        <div class="thermal-divider"></div>
+        <div style="font-weight: bold;">*** TAX INVOICE ***</div>
+        <div>Bill No: #{{ invoice.invoice_number }}</div>
+        <div>Date: {{ invoice.created_at|date:"d-m-Y H:i" }}</div>
+        <div>Customer: {{ invoice.customer_name }}</div>
+    </div>
+
+    <div>
+        <div class="thermal-item-row" style="font-weight: bold; border-bottom: 1px dashed #000; padding-bottom: 4px;">
+            <span>ITEM</span>
+            <span>QTY</span>
+            <span>AMT</span>
+        </div>
+        {% for item in items %}
+        <div class="thermal-item-row" style="margin-top: 4px;">
+            <span style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item.product_name }}</span>
+            <span>x{{ item.quantity }}</span>
+            <span>{{ item.total|floatformat:2 }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="thermal-divider"></div>
+
+    <div>
+        <div class="thermal-item-row">
+            <span>Subtotal:</span>
+            <span>Rs. {{ subtotal|floatformat:2 }}</span>
+        </div>
+        <div class="thermal-item-row">
+            <span>CGST:</span>
+            <span>Rs. {{ cgst_amount|floatformat:2 }}</span>
+        </div>
+        <div class="thermal-item-row">
+            <span>SGST:</span>
+            <span>Rs. {{ sgst_amount|floatformat:2 }}</span>
+        </div>
+        <div class="thermal-divider"></div>
+        <div class="thermal-item-row" style="font-size: 1.05rem; font-weight: bold;">
+            <span>TOTAL:</span>
+            <span>Rs. {{ grand_total|floatformat:2 }}</span>
+        </div>
+        <div class="thermal-item-row" style="margin-top: 4px;">
+            <span>Payment Mode:</span>
+            <span>{{ invoice.payment_method }}</span>
+        </div>
+        <div class="thermal-item-row">
+            <span>Status:</span>
+            <span style="font-weight: bold;">{{ invoice.payment_status }}</span>
+        </div>
+    </div>
+
+    <div class="thermal-qr-center">
+        <img id="thermal-qr-img" src="{{ qr_base64 }}" alt="QR Code">
+        <div style="font-size: 0.72rem; margin-top: 4px; font-weight: bold;">SCAN TO VERIFY / PAY VIA UPI</div>
+        <div style="font-size: 0.68rem; color: #475569;">VPA: {{ upi_id }}</div>
+    </div>
+
+    <div style="text-align: center; font-size: 0.74rem; border-top: 1px dashed #000; padding-top: 8px;">
+        <div>*** THANK YOU VISIT AGAIN ***</div>
+        <div style="font-size: 0.65rem; color: #64748b; margin-top: 2px;">Powered by Advance Billing System</div>
+    </div>
+</div>
+
+
+<!-- Notification Toast -->
+<div class="share-toast" id="shareToast">
+    <i class="fa-solid fa-circle-check" style="color: #10b981; font-size: 1.2rem;"></i>
+    <span id="shareToastMsg">Invoice preview link copied to clipboard!</span>
+</div>
+
+
+<!-- ==========================================================================
+     INTERACTIVE JAVASCRIPT LOGIC
+     ========================================================================== -->
+<script>
+// Dynamic QR Code Sources
+const invoiceDataQRSrc = "{{ qr_base64 }}";
+const upiPaymentQRSrc = "{{ upi_qr_base64 }}";
+
+// Toggle between standard Invoice Data QR and UPI Payment QR
+function togglePreviewQR(mode) {
+    const qrImg = document.getElementById('preview-qr-img');
+    const thermalQrImg = document.getElementById('thermal-qr-img');
+    const btnData = document.getElementById('btn-qr-data');
+    const btnUpi = document.getElementById('btn-qr-upi');
+    const badgeLabel = document.getElementById('qr-badge-label');
+    const statusText = document.getElementById('qr-status-text');
+    const descText = document.getElementById('qr-desc-text');
+
+    if (mode === 'upi') {
+        if (qrImg) qrImg.src = upiPaymentQRSrc;
+        if (thermalQrImg) thermalQrImg.src = upiPaymentQRSrc;
+        btnUpi.classList.add('active');
+        btnData.classList.remove('active');
+        badgeLabel.style.background = '#e0f2fe';
+        badgeLabel.style.color = '#0284c7';
+        statusText.textContent = 'Instant UPI Payment QR';
+        descText.textContent = 'Scan with GPay, PhonePe, Paytm or BHIM to pay ₹{{ grand_total|floatformat:2 }} instantly.';
+    } else {
+        if (qrImg) qrImg.src = invoiceDataQRSrc;
+        if (thermalQrImg) thermalQrImg.src = invoiceDataQRSrc;
+        btnData.classList.add('active');
+        btnUpi.classList.remove('active');
+        badgeLabel.style.background = '#ecfdf5';
+        badgeLabel.style.color = '#059669';
+        statusText.textContent = 'Verified Database QR';
+        descText.textContent = 'Encodes Invoice ID #{{ invoice.id }}, Customer Name, Date, and Amount for instant verification.';
+    }
+}
+
+// Switch between A4 Standard Sheet and 3" Thermal Slip
+function switchPreviewMode(mode) {
+    const a4Canvas = document.getElementById('invoice-preview-printable');
+    const thermalCanvas = document.getElementById('thermal-preview-printable');
+    const btnA4 = document.getElementById('tab-btn-a4');
+    const btnThermal = document.getElementById('tab-btn-thermal');
+
+    if (mode === 'thermal') {
+        a4Canvas.style.display = 'none';
+        thermalCanvas.style.display = 'block';
+        btnThermal.classList.add('active');
+        btnA4.classList.remove('active');
+    } else {
+        thermalCanvas.style.display = 'none';
+        a4Canvas.style.display = 'block';
+        btnA4.classList.add('active');
+        btnThermal.classList.remove('active');
+    }
+}
+
+// Set Corporate Accent Color Theme
+function setPreviewTheme(themeClass, el) {
+    const canvas = document.getElementById('invoice-preview-printable');
+    canvas.className = 'a4-preview-canvas ' + themeClass;
+    document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('selected'));
+    if (el) el.classList.add('selected');
+}
+
+// Copy Shareable Preview Link
+function copyPreviewLink() {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+        showToast("Invoice Preview link copied to clipboard!");
+    }).catch(() => {
+        showToast("Link: " + url);
+    });
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('shareToast');
+    const msgEl = document.getElementById('shareToastMsg');
+    if (!toast || !msgEl) return;
+    msgEl.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 2800);
+}
+
+// Download High-Resolution PDF via html2pdf
+function downloadInvoicePDF() {
+    const btn = document.getElementById('btn-pdf-export');
+    const origHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Exporting PDF...';
+    btn.disabled = true;
+
+    // Pick whichever preview mode is active
+    const isThermal = document.getElementById('thermal-preview-printable').style.display === 'block';
+    const element = isThermal ? document.getElementById('thermal-preview-printable') : document.getElementById('invoice-preview-printable');
+    const filename = 'Invoice_{{ invoice.invoice_number }}_Preview.pdf';
+
+    const opt = {
+        margin:       isThermal ? [0.2, 0.2, 0.2, 0.2] : [0.3, 0.3, 0.3, 0.3],
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'in', format: isThermal ? [3.5, 8.5] : 'letter', orientation: 'portrait' }
+    };
+
+    if (typeof html2pdf !== 'undefined') {
+        html2pdf().set(opt).from(element).save().then(() => {
+            btn.innerHTML = origHTML;
+            btn.disabled = false;
+            showToast("PDF downloaded successfully!");
+        }).catch(err => {
+            console.error('PDF Export Error:', err);
+            btn.innerHTML = origHTML;
+            btn.disabled = false;
+            window.print();
+        });
+    } else {
+        btn.innerHTML = origHTML;
+        btn.disabled = false;
+        window.print();
+    }
+}
+</script>
+{% endblock %}

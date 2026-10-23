@@ -53,12 +53,14 @@ urlpatterns = [
     path('distributor/profile/', views.distributor_profile_view, name='distributor_profile'),
     path('distributor/billing/', views.create_invoice_view, name='create_invoice'),
     path('invoice/<int:invoice_id>/', views.invoice_detail_view, name='invoice_detail'),
+    path('invoice/<int:invoice_id>/preview/', views.invoice_preview_view, name='invoice_preview'),
     path('invoice/<int:invoice_id>/qr/', views.invoice_qr_view, name='invoice_qr'),
     path('invoice/<int:invoice_id>/qr.png', views.invoice_qr_image_view, name='invoice_qr_image'),
     path('invoice/<int:invoice_id>/qr-image/', views.invoice_qr_image_view, name='invoice_qr_image_alt'),
     path('invoice/<int:invoice_id>/pdf/', views.generate_invoice_pdf_view, name='invoice_pdf'),
     path('api/invoice/<int:invoice_id>/qr-code/', views.api_invoice_qr_code, name='api_invoice_qr_code'),
     path('api/invoice/<int:invoice_id>/qr/', views.api_invoice_qr_code, name='api_invoice_qr_code_alt'),
+    path('api/invoice/<int:invoice_id>/preview/', views.api_invoice_preview, name='api_invoice_preview'),
 
     # Invoices & Financial Reports
     path('invoices/', views.invoice_list_view, name='invoice_list'),

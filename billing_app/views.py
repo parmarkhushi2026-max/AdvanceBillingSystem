@@ -655,6 +655,201 @@ def invoice_detail_view(request, invoice_id):
     return render(request, 'billing/invoice_detail.html', context)
 
 
+def number_to_indian_currency_words(amount):
+    """Convert a numeric amount into standard Indian currency words (Rupees ... Only)."""
+    try:
+        val = int(round(float(amount)))
+    except (ValueError, TypeError):
+        return ""
+    if val == 0:
+        return "Rupees Zero Only"
+    
+    ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+            "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"]
+    tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+    
+    def two_digits(n):
+        if n < 20:
+            return ones[n]
+        return tens[n // 10] + (" " + ones[n % 10] if n % 10 != 0 else "")
+    
+    def three_digits(n):
+        if n >= 100:
+            return ones[n // 100] + " Hundred" + (" and " + two_digits(n % 100) if n % 100 != 0 else "")
+        return two_digits(n)
+    
+    parts = []
+    crore = val // 10000000
+    val %= 10000000
+    lakh = val // 100000
+    val %= 100000
+    thousand = val // 1000
+    val %= 1000
+    remainder = val
+    
+    if crore > 0:
+        parts.append(three_digits(crore) + " Crore")
+    if lakh > 0:
+        parts.append(two_digits(lakh) + " Lakh")
+    if thousand > 0:
+        parts.append(two_digits(thousand) + " Thousand")
+    if remainder > 0:
+        parts.append(three_digits(remainder))
+    
+    words = " ".join(parts).strip()
+    return f"Rupees {words} Only"
+
+
+# 8-Preview. Dedicated Preview Invoice Page with Complete Details & Verified QR Code
+@login_required
+def invoice_preview_view(request, invoice_id):
+    """
+    Renders a comprehensive, high-aesthetic 'Preview Invoice' page for any invoice.
+    Includes full company & customer metadata, line items, taxes (CGST/SGST),
+    amount in words, verified dynamic QR code, and interactive UPI payment QR switcher.
+    Supports both standard A4 Tax Invoice preview and 80mm Thermal POS Slip preview modes.
+    """
+    from .invoice_qr import generate_invoice_qr_bundle
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    profile = getattr(invoice.distributor, 'profile', None) if invoice.distributor else None
+    
+    business_name = getattr(profile, 'business_name', None) or 'Advance Billing Agency'
+    business_phone = getattr(profile, 'phone', None) or '+91 98765 43210'
+    business_email = invoice.distributor.email if (invoice.distributor and invoice.distributor.email) else 'billing@advancebilling.com'
+    business_address = getattr(profile, 'address', None) or 'Commercial Hub, Business Park, Phase II'
+    business_gstin = getattr(profile, 'gstin', None) or '27AABCU9603R1ZM'
+    upi_id = getattr(profile, 'upi_id', None) or 'advancebilling@upi'
+
+    # Build QR Code bundle encoding core database attributes
+    qr_bundle = generate_invoice_qr_bundle(invoice)
+
+    # Dynamic UPI Payment format & QR
+    upi_payment_url = f"upi://pay?pa={upi_id}&pn={business_name.replace(' ', '%20')}&am={invoice.grand_total}&tn={invoice.invoice_number}&cu=INR"
+    
+    import qrcode
+    from io import BytesIO
+    import base64
+    upi_qr_obj = qrcode.QRCode(box_size=6, border=2)
+    upi_qr_obj.add_data(upi_payment_url)
+    upi_qr_obj.make(fit=True)
+    buf_upi = BytesIO()
+    upi_qr_obj.make_image(fill_color="black", back_color="white").save(buf_upi, format="PNG")
+    upi_qr_base64 = f"data:image/png;base64,{base64.b64encode(buf_upi.getvalue()).decode('utf-8')}"
+
+    # Financial and Tax calculations
+    subtotal = float(invoice.subtotal) if invoice.subtotal else 0.0
+    tax_amount = float(invoice.tax_amount) if invoice.tax_amount else 0.0
+    cgst_amount = round(tax_amount / 2, 2)
+    sgst_amount = round(tax_amount / 2, 2)
+    grand_total = float(invoice.grand_total) if invoice.grand_total else 0.0
+    grand_total_words = number_to_indian_currency_words(grand_total)
+
+    items = list(invoice.items.all())
+    enriched_items = []
+    for idx, it in enumerate(items, 1):
+        rate = float(it.unit_price) if it.unit_price else 0.0
+        tax_pct = float(it.tax_rate) if it.tax_rate else 18.0
+        line_tot = float(it.total) if it.total else 0.0
+        base_line = round(rate * it.quantity, 2)
+        it_tax = round(line_tot - base_line, 2) if line_tot > base_line else round(base_line * (tax_pct / 100), 2)
+        enriched_items.append({
+            'index': idx,
+            'item': it,
+            'name': it.product_name,
+            'quantity': it.quantity,
+            'unit_price': rate,
+            'tax_rate': tax_pct,
+            'cgst_rate': tax_pct / 2,
+            'sgst_rate': tax_pct / 2,
+            'tax_amount': it_tax,
+            'total': line_tot,
+        })
+
+    is_admin = request.user.is_superuser or (profile and profile.role == 'ADMIN')
+
+    context = {
+        'invoice': invoice,
+        'items': items,
+        'enriched_items': enriched_items,
+        'bundle': qr_bundle,
+        'qr_base64': qr_bundle['qr_base64'],
+        'invoice_qr_base64': qr_bundle['qr_base64'],
+        'upi_qr_base64': upi_qr_base64,
+        'upi_payment_url': upi_payment_url,
+        'text_payload': qr_bundle['text_payload'],
+        'json_payload': qr_bundle['json_payload'],
+        'business_name': business_name,
+        'business_phone': business_phone,
+        'business_email': business_email,
+        'business_address': business_address,
+        'business_gstin': business_gstin,
+        'upi_id': upi_id,
+        'subtotal': subtotal,
+        'tax_amount': tax_amount,
+        'cgst_amount': cgst_amount,
+        'sgst_amount': sgst_amount,
+        'grand_total': grand_total,
+        'grand_total_words': grand_total_words,
+        'is_admin': is_admin,
+    }
+    return render(request, 'billing/invoice_preview.html', context)
+
+
+# 8-Preview-API. REST API endpoint to fetch complete Preview Invoice data & QR as JSON
+def api_invoice_preview(request, invoice_id):
+    """
+    JSON API returning all structured invoice details, line items, tax split,
+    amount in words, and QR Data URIs for client-side consumption or mobile preview.
+    """
+    from .invoice_qr import generate_invoice_qr_bundle
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    profile = getattr(invoice.distributor, 'profile', None) if invoice.distributor else None
+    
+    business_name = profile.business_name if profile and profile.business_name else 'Advance Billing Agency'
+    upi_id = profile.upi_id if profile and profile.upi_id else 'advancebilling@upi'
+    bundle = generate_invoice_qr_bundle(invoice)
+
+    subtotal = float(invoice.subtotal) if invoice.subtotal else 0.0
+    tax_amount = float(invoice.tax_amount) if invoice.tax_amount else 0.0
+    grand_total = float(invoice.grand_total) if invoice.grand_total else 0.0
+
+    items_data = [
+        {
+            'name': item.product_name,
+            'quantity': item.quantity,
+            'unit_price': float(item.unit_price) if item.unit_price else 0.0,
+            'tax_rate': float(item.tax_rate) if item.tax_rate else 18.0,
+            'total': float(item.total) if item.total else 0.0,
+        }
+        for item in invoice.items.all()
+    ]
+
+    return JsonResponse({
+        'status': 'success',
+        'success': True,
+        'invoice': {
+            'id': invoice.id,
+            'invoice_number': invoice.invoice_number,
+            'created_at': invoice.created_at.strftime('%Y-%m-%d %H:%M'),
+            'customer_name': invoice.customer_name,
+            'customer_phone': invoice.customer_phone or '',
+            'payment_method': invoice.payment_method,
+            'payment_status': invoice.payment_status,
+            'subtotal': subtotal,
+            'tax_amount': tax_amount,
+            'cgst_amount': round(tax_amount / 2, 2),
+            'sgst_amount': round(tax_amount / 2, 2),
+            'grand_total': grand_total,
+            'grand_total_words': number_to_indian_currency_words(grand_total),
+            'business_name': business_name,
+            'upi_id': upi_id,
+            'items': items_data,
+            'qr_code_base64': bundle['qr_base64'],
+            'qr_payload': bundle['text_payload'],
+        }
+    })
+
+
 # 8b. Dedicated Invoice QR Inspection & Showcase View
 @login_required
 def invoice_qr_view(request, invoice_id):

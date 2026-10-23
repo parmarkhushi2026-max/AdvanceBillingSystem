@@ -20,6 +20,9 @@
         <button type="button" onclick="exportInvoiceToPDF()" id="btn-pdf-download" class="btn-export-pdf" style="text-decoration: none; display: flex; align-items: center; justify-content: center; padding: 0.6rem 1.2rem; background: #fef08a; color: #854d0e; border: 1px solid #fde047; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 600; gap: 8px; cursor: pointer;">
             <i class="fa-solid fa-file-arrow-down"></i> Download PDF (Client)
         </button>
+        <a href="{% url 'invoice_preview' invoice.id %}" class="btn-secondary-action" style="text-decoration: none; display: flex; align-items: center; justify-content: center; padding: 0.6rem 1.2rem; background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 700; gap: 8px;">
+            <i class="fa-solid fa-file-invoice"></i> Preview Invoice
+        </a>
         <a href="{% url 'invoice_qr' invoice.id %}" class="btn-secondary-action" style="text-decoration: none; display: flex; align-items: center; justify-content: center; padding: 0.6rem 1.2rem; background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 600; gap: 8px;">
             <i class="fa-solid fa-qrcode"></i> View QR Code
         </a>

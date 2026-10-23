@@ -218,9 +218,14 @@
                     <td style="font-weight: 800; font-size: 1.05rem;">₹{{ inv.grand_total|floatformat:2 }}</td>
                     <td><span class="badge-status paid">{{ inv.payment_status }}</span></td>
                     <td>
-                        <a href="{% url 'invoice_detail' inv.id %}" class="btn-quick-fill" style="text-decoration: none;">
-                            <i class="fa-solid fa-print"></i> View / Print Receipt
-                        </a>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <a href="{% url 'invoice_preview' inv.id %}" class="btn-quick-fill" style="text-decoration: none; background: #eef2ff; color: #4338ca; border-color: #c7d2fe;" title="Preview Invoice with Details & QR">
+                                <i class="fa-solid fa-file-invoice"></i> Preview
+                            </a>
+                            <a href="{% url 'invoice_detail' inv.id %}" class="btn-quick-fill" style="text-decoration: none;">
+                                <i class="fa-solid fa-print"></i> View / Print
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% empty %}

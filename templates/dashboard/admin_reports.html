@@ -368,6 +368,7 @@
                             <th>Tax (GST)</th>
                             <th>Grand Total</th>
                             <th>Status</th>
+                            <th style="text-align: right;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -389,7 +390,7 @@
                             </td>
                             <td>
                                 <span style="font-size: 0.85rem; color: #475569;">
-                                    <i class="fa-solid fa-qrcode" style="color: #06b6d4; margin-right: 4px;"></i> {{ inv.payment_method }}
+                                     <i class="fa-solid fa-qrcode" style="color: #06b6d4; margin-right: 4px;"></i> {{ inv.payment_method }}
                                 </span>
                             </td>
                             <td style="font-size: 0.9rem;">₹{{ inv.subtotal|floatformat:2 }}</td>
@@ -402,10 +403,18 @@
                                     <span class="badge-status pending"><i class="fa-solid fa-clock"></i> {{ inv.payment_status }}</span>
                                 {% endif %}
                             </td>
+                            <td style="white-space: nowrap; text-align: right;">
+                                <a href="{% url 'invoice_preview' inv.id %}" class="btn-quick-fill" style="text-decoration: none; padding: 4px 8px; font-size: 0.78rem; background: #eef2ff; color: #4f46e5; border-color: #c7d2fe;" title="Preview Invoice with Details & QR">
+                                    <i class="fa-solid fa-file-invoice"></i> Preview
+                                </a>
+                                <a href="{% url 'invoice_detail' inv.id %}" class="btn-quick-fill" style="text-decoration: none; padding: 4px 8px; font-size: 0.78rem;" title="View Invoice">
+                                    <i class="fa-solid fa-eye"></i> View
+                                </a>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="9" style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
+                            <td colspan="10" style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
                                 <i class="fa-solid fa-file-circle-xmark" style="font-size: 2.5rem; margin-bottom: 0.75rem;"></i>
                                 <p style="margin: 0;">No sales records found matching this date or distributor criteria.</p>
                             </td>
