@@ -8,6 +8,33 @@ A feature-packed, production-ready Django Billing, QR Payment, and Financial Int
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
+## 🛠️ 🌟 Feature: Manual Entries via Django Admin & Management Command
+
+Complete administrative interface supporting rapid, verified manual entry of Customers, Invoices, and itemized billing line items directly through Django Admin (`/django-admin/`):
+- **Django Admin Customization (`billing_app/admin.py`)**:
+  - **`InvoiceAdmin` with `InvoiceItemInline`**:
+    - Manage invoice details, select Customer from registered database records (ForeignKey), and add multiple `InvoiceItem` rows simultaneously on the same page.
+    - Automatic customer pre-fill: selecting a `Customer` automatically fills `customer_name` and `customer_phone`.
+    - Automatic total calculation: line item quantities, unit prices, discounts, and GST rates are automatically summed into `subtotal`, `tax_amount`, and `grand_total` when saving.
+    - Automatic QR generation: verified dynamic QR code PNG and structured payload are generated and displayed with preview upon save.
+  - **`CustomerAdmin` with `CustomerInvoiceInline`**:
+    - Manage customer profiles, GSTIN numbers, and view complete history of invoices issued to the customer directly within the customer view.
+  - **`InvoiceItemAdmin`**:
+    - Direct audit table for all individual invoice line items across the system.
+  - **Admin Site Branding**:
+    - Header: *"Advance Billing System - Administration"*
+    - Title: *"Advance Billing Admin Portal"*
+- **Default Superuser Credentials**:
+  - **URL**: `http://127.0.0.1:8000/django-admin/`
+  - **Username**: `admin`
+  - **Password**: `admin123`
+- **CLI Management Command**:
+  - `python manage.py seed_admin_manual_entries [--count 3]`: Performs realistic manual entries of Customers, Invoices, and line items, printing full terminal audit logs with verified QR status.
+- **Automated Test Suite**:
+  - 3 unit tests in `billing_app/test_admin_manual_entries.py` verifying admin dashboard access, manual customer creation via admin form, and manual invoice creation with inlined item rows and automatic QR generation.
+
+---
+
 ## 🗄️ 🌟 Core Database Models: Invoice, InvoiceItem & Customer Architecture
 
 Clean, scalable relational data layer designed for high-throughput billing, financial audits, and multi-tenant distributor invoicing:
