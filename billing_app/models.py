@@ -81,11 +81,52 @@ class Invoice(models.Model):
     qr_code_payload = models.TextField(blank=True, null=True, help_text='Structured payload encoded inside the QR')
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __init__(self, *args, **kwargs):
+        total_amount = kwargs.pop('total_amount', None)
+        date = kwargs.pop('date', None)
+        super().__init__(*args, **kwargs)
+        if total_amount is not None:
+            self.grand_total = total_amount
+        if date is not None:
+            self.created_at = date
+
+    @property
+    def invoice_id(self):
+        """Returns invoice primary key ID."""
+        return self.id
+
+    @property
+    def total_amount(self):
+        """Alias property for grand_total total amount."""
+        return self.grand_total
+
+    @total_amount.setter
+    def total_amount(self, value):
+        self.grand_total = value
+
+    @property
+    def date(self):
+        """Alias property for invoice date (created_at)."""
+        return self.created_at
+
+    @date.setter
+    def date(self, value):
+        self.created_at = value
+
     def save(self, *args, **kwargs):
-        if self.customer and not self.customer_ref:
-            self.customer_ref = self.customer
+        if self.customer:
+            if not self.customer_name:
+                self.customer_name = self.customer.name
+            if not self.customer_phone:
+                self.customer_phone = self.customer.phone
+            if not self.customer_ref:
+                self.customer_ref = self.customer
         elif self.customer_ref and not self.customer:
             self.customer = self.customer_ref
+            if not self.customer_name:
+                self.customer_name = self.customer_ref.name
+            if not self.customer_phone:
+                self.customer_phone = self.customer_ref.phone
 
         # Support skipping automatic QR code generation if explicitly requested
         skip_qr = kwargs.pop('skip_qr_generation', False)
@@ -231,6 +272,32 @@ class InvoiceItem(models.Model):
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text='Discount on item in INR')
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=18.00)
     total = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __init__(self, *args, **kwargs):
+        total_amount = kwargs.pop('total_amount', None)
+        super().__init__(*args, **kwargs)
+        if total_amount is not None:
+            self.total = total_amount
+
+    @property
+    def total_amount(self):
+        """Alias property for total."""
+        return self.total
+
+    @total_amount.setter
+    def total_amount(self, value):
+        self.total = value
+
+    def save(self, *args, **kwargs):
+        if self.total is None:
+            from decimal import Decimal
+            qty = Decimal(str(self.quantity or 1))
+            price = Decimal(str(self.unit_price or '0.00'))
+            disc = Decimal(str(self.discount or '0.00'))
+            tax = Decimal(str(self.tax_rate or '0.00'))
+            base = (price * qty) - disc
+            self.total = (base + (base * (tax / Decimal('100.00')))).quantize(Decimal('0.01'))
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.product_name} x {self.quantity}"

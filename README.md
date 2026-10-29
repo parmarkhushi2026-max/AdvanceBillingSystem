@@ -8,6 +8,40 @@ A feature-packed, production-ready Django Billing, QR Payment, and Financial Int
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
+## 🗄️ 🌟 Core Database Models: Invoice, InvoiceItem & Customer Architecture
+
+Clean, scalable relational data layer designed for high-throughput billing, financial audits, and multi-tenant distributor invoicing:
+- **`Customer` Model (`billing_app/models.py`)**:
+  - `name`: Retail/wholesale client business or customer name (`CharField`).
+  - `email`: Customer email address for digital receipts and tax summaries (`EmailField`).
+  - `phone`: Customer contact mobile/phone number (`CharField`).
+  - `address` & `city`: Geographic billing address details (`TextField` / `CharField`).
+  - `gstin`: 15-character GST Identification Number for B2B tax credits (`CharField`).
+  - `created_by`: Foreign key to `User` (Distributor/Admin owner) with reverse relation `user.customers`.
+  - `created_at`: Automatic creation timestamp.
+- **`Invoice` Model (`billing_app/models.py`)**:
+  - `invoice ID`: Database primary key ID (`id`) and formatted unique business reference (`invoice_number` / `invoice_id`).
+  - `customer`: ForeignKey relationship linking to `Customer` model with reverse relation `customer.invoices.all()`.
+  - `total amount`: Verified bill amount (`grand_total` and `total_amount` property), subtotal, discount, and tax totals.
+  - `date`: Invoice billing timestamp (`created_at` and `date` property).
+  - `distributor`: ForeignKey linking to the issuing distributor user account (`User`).
+  - `payment_status` & `payment_method`: Payment lifecycle state (`PAID`, `PENDING`, `FAILED`) and payment instrument (`UPI QR Code`, `Cash`, `Net Banking`).
+  - `qr_code_image` & `qr_code_payload`: Dynamic QR code storage generated automatically on model save.
+  - Helper methods: `get_complete_details()`, `get_qr_data()`, `get_qr_text_payload()`, `get_qr_json_payload()`, `generate_qr_code()`.
+- **`InvoiceItem` Model (`billing_app/models.py`)**:
+  - `invoice`: ForeignKey linking to parent `Invoice` model with cascading delete and reverse query `invoice.items.all()`.
+  - `product`: Optional ForeignKey linking to inventory catalog `Product` model.
+  - `product_name`: Snapshot of item name preserving historical bill accuracy even if catalog items change.
+  - `quantity`: Number of units sold (`PositiveIntegerField`).
+  - `unit_price`: Item rate per unit (`DecimalField`).
+  - `discount`: Line-item specific discount (`DecimalField`).
+  - `tax_rate`: GST tax percentage (`5%`, `12%`, `18%`, `28%`).
+  - `total` / `total_amount`: Final line item amount including taxes with auto-calculation fallback on save.
+- **Automated Test Suite**:
+  - Verified with 4 unit tests in `billing_app/test_models_structure.py` covering model creation, foreign keys, auto calculations, and reverse queries.
+
+---
+
 ## 📥 🌟 Feature: Download Buttons & Success/Failure Alerts Notification Engine
 
 Full-stack document export and download infrastructure with real-time UI feedback, progress states, and success/failure alerts:
