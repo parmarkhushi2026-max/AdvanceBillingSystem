@@ -390,10 +390,15 @@
                         {% else %}
                             <img src="data:image/png;base64,{{ qr_base64 }}" class="qr-img"><br>
                         {% endif %}
-                        <div class="qr-badge-verified">[ DIGITALLY VERIFIED QR INVOICE ]</div>
+                        <div class="qr-badge-verified">{{ qr_caption|default:"[ DIGITALLY VERIFIED QR INVOICE ]" }}</div>
                         <div class="qr-meta-text">
-                            Scan with GPay, PhonePe, Paytm, or BHIM<br>
-                            Encodes ID #{{ invoice.id }} &bull; Total: Rs.{{ invoice.grand_total|floatformat:2 }} &bull; {{ invoice.customer_name }}
+                            {% if qr_mode == 'upi' %}
+                                Scan with GPay, PhonePe, Paytm, or BHIM to pay<br>
+                                Payee: {{ upi_id }} &bull; Amount: Rs.{{ invoice.grand_total|floatformat:2 }}
+                            {% else %}
+                                Scan with GPay, PhonePe, Paytm, or BHIM<br>
+                                Encodes ID #{{ invoice.id }} &bull; Total: Rs.{{ invoice.grand_total|floatformat:2 }} &bull; {{ invoice.customer_name }}
+                            {% endif %}
                         </div>
                     {% endif %}
                 </div>

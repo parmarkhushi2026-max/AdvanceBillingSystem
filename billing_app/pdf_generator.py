@@ -31,8 +31,12 @@ except ImportError:
     REPORTLAB_AVAILABLE = False
 
 
-def get_invoice_pdf_context(invoice):
-    """Build unified context dictionary for invoice PDF generation."""
+def get_invoice_pdf_context(invoice, qr_mode='text', qr_engine='auto'):
+    """
+    Build unified context dictionary for invoice PDF generation,
+    dynamically generating the verified QR code matching the requested mode
+    ('text', 'upi', 'json') and embedding it into the layout.
+    """
     from .views import number_to_indian_currency_words
     from .invoice_qr import generate_invoice_qr_bundle
 
@@ -43,18 +47,27 @@ def get_invoice_pdf_context(invoice):
     business_gstin = getattr(profile, 'gstin', None) or '27AABCU9603R1ZM'
     upi_id = getattr(profile, 'upi_id', None) or 'advancebilling@upi'
 
+    # Dynamically generate QR code bundle for live invoice values
     try:
-        bundle = generate_invoice_qr_bundle(invoice)
+        bundle = generate_invoice_qr_bundle(invoice, engine=qr_engine, payload_format=qr_mode)
         qr_base64 = bundle['qr_base64']
-        qr_bytes = bundle['png_bytes']
+        qr_bytes = bundle['qr_bytes']
+        qr_payload = bundle['active_payload']
     except Exception:
         qr_base64 = invoice.qr_code_base64
         qr_bytes = None
+        qr_payload = invoice.qr_code_payload or ''
 
     tax_amt = float(invoice.tax_amount or 0.0)
     cgst_amount = round(tax_amt / 2, 2)
     sgst_amount = round(tax_amt / 2, 2)
     grand_total_words = number_to_indian_currency_words(invoice.grand_total)
+
+    qr_caption = "[ DIGITALLY VERIFIED QR INVOICE ]"
+    if qr_mode == 'upi':
+        qr_caption = "[ INSTANT UPI PAYMENT QR ]"
+    elif qr_mode == 'json':
+        qr_caption = "[ STRUCTURED JSON QR METADATA ]"
 
     return {
         'invoice': invoice,
@@ -66,20 +79,24 @@ def get_invoice_pdf_context(invoice):
         'business_gstin': business_gstin,
         'qr_base64': qr_base64,
         'qr_bytes': qr_bytes,
+        'qr_payload': qr_payload,
+        'active_payload': qr_payload,
+        'qr_mode': qr_mode,
+        'qr_caption': qr_caption,
         'cgst_amount': cgst_amount,
         'sgst_amount': sgst_amount,
         'grand_total_words': grand_total_words,
     }
 
 
-def render_invoice_to_pdf_xhtml2pdf(invoice, template_name='billing/invoice_pdf.html'):
+def render_invoice_to_pdf_xhtml2pdf(invoice, template_name='billing/invoice_pdf.html', qr_mode='text', qr_engine='auto'):
     """
-    Generate PDF bytes using xhtml2pdf from the HTML/CSS invoice template.
+    Generate PDF bytes using xhtml2pdf with embedded dynamically generated QR code.
     """
     if not pisa:
         raise RuntimeError("xhtml2pdf is not installed on the system.")
 
-    context = get_invoice_pdf_context(invoice)
+    context = get_invoice_pdf_context(invoice, qr_mode=qr_mode, qr_engine=qr_engine)
     template = get_template(template_name)
     html_content = template.render(context)
 
@@ -123,14 +140,15 @@ class NumberedCanvas(canvas.Canvas):
         self.restoreState()
 
 
-def render_invoice_to_pdf_reportlab(invoice):
+def render_invoice_to_pdf_reportlab(invoice, qr_mode='text', qr_engine='auto'):
     """
-    Generate PDF bytes using ReportLab direct Flowable elements and table layouts.
+    Generate PDF bytes using ReportLab direct Flowable elements and table layouts,
+    embedding dynamically generated QR code (modes: 'text', 'upi', 'json').
     """
     if not REPORTLAB_AVAILABLE:
         raise RuntimeError("ReportLab is not installed on the system.")
 
-    context = get_invoice_pdf_context(invoice)
+    context = get_invoice_pdf_context(invoice, qr_mode=qr_mode, qr_engine=qr_engine)
     pdf_buffer = io.BytesIO()
 
     doc = SimpleDocTemplate(
@@ -331,11 +349,16 @@ def render_invoice_to_pdf_reportlab(invoice):
         except Exception:
             qr_img_flowable = None
 
+    caption_text = context.get('qr_caption') or ('[ INSTANT UPI PAYMENT QR ]' if qr_mode == 'upi' else '[ DIGITALLY VERIFIED QR INVOICE ]')
+    if qr_mode == 'upi':
+        sub_desc = f"Scan with GPay, PhonePe, Paytm, BHIM to pay Rs. {invoice.grand_total:.2f}<br/>Direct to UPI: {context.get('upi_id', 'N/A')}"
+    else:
+        sub_desc = f"Scan to verify Invoice #{invoice.id} • Rs. {invoice.grand_total:.2f}<br/>{invoice.customer_name} • {context.get('formatted_date', '')}"
+
     qr_desc = (
         f"<para align='center'>"
-        f"<font size='7' color='#059669'><b>[ DIGITALLY VERIFIED QR INVOICE ]</b></font><br/>"
-        f"<font size='6.5' color='#64748b'>Scan with GPay, PhonePe, Paytm, BHIM<br/>"
-        f"Encodes #{invoice.id} • Rs. {invoice.grand_total:.2f} • {invoice.customer_name}</font>"
+        f"<font size='7' color='#059669'><b>{caption_text}</b></font><br/>"
+        f"<font size='6.5' color='#64748b'>{sub_desc}</font>"
         f"</para>"
     )
     qr_elements = []
@@ -422,28 +445,33 @@ def render_invoice_to_pdf_reportlab(invoice):
     return pdf_buffer.getvalue()
 
 
-def generate_invoice_pdf_bytes(invoice, engine='auto'):
+def generate_invoice_pdf_bytes(invoice, engine='auto', qr_mode='text', qr_engine='auto'):
     """
     Unified entrypoint to generate certified invoice PDF bytes using either:
     - 'xhtml2pdf': HTML/CSS template to PDF
     - 'reportlab': Direct high-performance Flowable Canvas PDF
     - 'auto': Attempts xhtml2pdf first, automatically falls back to ReportLab.
+    
+    Supports embedding dynamically generated QR codes in modes:
+    - 'text': Comprehensive invoice summary
+    - 'upi': Instant UPI payment intent (upi://pay?...)
+    - 'json': Structured JSON payload for automated verification systems
     """
     engine = (engine or 'auto').lower()
 
     if engine == 'reportlab':
-        return render_invoice_to_pdf_reportlab(invoice)
+        return render_invoice_to_pdf_reportlab(invoice, qr_mode=qr_mode, qr_engine=qr_engine)
     elif engine == 'xhtml2pdf':
-        return render_invoice_to_pdf_xhtml2pdf(invoice)
+        return render_invoice_to_pdf_xhtml2pdf(invoice, qr_mode=qr_mode, qr_engine=qr_engine)
     else:  # auto
         try:
             if pisa:
-                return render_invoice_to_pdf_xhtml2pdf(invoice)
+                return render_invoice_to_pdf_xhtml2pdf(invoice, qr_mode=qr_mode, qr_engine=qr_engine)
             elif REPORTLAB_AVAILABLE:
-                return render_invoice_to_pdf_reportlab(invoice)
+                return render_invoice_to_pdf_reportlab(invoice, qr_mode=qr_mode, qr_engine=qr_engine)
         except Exception:
             if REPORTLAB_AVAILABLE:
-                return render_invoice_to_pdf_reportlab(invoice)
+                return render_invoice_to_pdf_reportlab(invoice, qr_mode=qr_mode, qr_engine=qr_engine)
             raise
 
     raise RuntimeError("No supported PDF engine available. Please install xhtml2pdf or reportlab.")

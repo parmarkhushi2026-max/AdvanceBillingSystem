@@ -1692,6 +1692,8 @@ def generate_invoice_pdf_view(request, invoice_id):
     """
     is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json'
     engine = request.GET.get('engine', 'auto')
+    qr_mode = request.GET.get('qr_mode', request.GET.get('mode', 'text')).strip().lower()
+    qr_engine = request.GET.get('qr_engine', 'auto').strip().lower()
 
     try:
         invoice = Invoice.objects.get(id=invoice_id)
@@ -1709,7 +1711,7 @@ def generate_invoice_pdf_view(request, invoice_id):
         return redirect('invoice_detail', invoice_id=invoice_id)
 
     try:
-        pdf_bytes = generate_invoice_pdf_bytes(invoice, engine=engine)
+        pdf_bytes = generate_invoice_pdf_bytes(invoice, engine=engine, qr_mode=qr_mode, qr_engine=qr_engine)
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
         return response

@@ -8,6 +8,33 @@ A feature-packed, production-ready Django Billing, QR Payment, and Financial Int
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
+## 📱 🌟 Feature: Dynamically Generated QR Code Embedded into PDF Layout
+
+Enterprise-grade on-the-fly QR code generation and direct embedding into both PDF generation pipelines (`xhtml2pdf` HTML/CSS and `ReportLab` Direct Flowable Canvas):
+- **Dynamic On-The-Fly Generation (`billing_app/invoice_qr.py`)**:
+  - Live model values are extracted and encoded dynamically without relying on stale disk caches:
+    - **Invoice ID & Number**: e.g., `#INV-2026-QR-999`
+    - **Customer Name & Contact**: e.g., `Vikramaditya Singhania`
+    - **Total Amount**: Live `grand_total` formatting e.g., `Rs. 2310.00`
+    - **Invoice Date**: Creation timestamp formatted to Indian standard datetime
+    - **Itemized Breakdown**: Dynamic product names and quantities
+  - **Selectable Payload Modes (`qr_mode`)**:
+    - **`'text'` (Default)**: Human and optical-scanner-readable verification summary.
+    - **`'upi'`**: Instant UPI payment intent URI compliant with NPCI specification (`upi://pay?pa={upi_id}&pn={business_name}&am={grand_total}&cu=INR&tn=Invoice_{invoice_number}`). Scannable by Google Pay, PhonePe, Paytm, and BHIM.
+    - **`'json'`**: Machine-readable JSON string formatted for automated accounting and verification parsers.
+  - **Dual Engine Backends**:
+    - Works with `qrcode` or `segno` libraries via auto-detection (`qr_engine='auto'|'qrcode'|'segno'`).
+- **Direct PDF Layout Embedding (`billing_app/pdf_generator.py`)**:
+  - **`xhtml2pdf` Layout**: Encodes the dynamic QR bundle into high-density base64 data URIs (`data:image/png;base64,...`), rendered in a dedicated verification card alongside dynamic scan instructions and status captions.
+  - **`ReportLab` Canvas Layout**: Directly streams PNG byte buffers into ReportLab `Image` Flowable elements embedded seamlessly into summary tables.
+- **HTTP Endpoint & CLI Integration**:
+  - **HTTP View**: `GET /invoice/<id>/pdf/?qr_mode=upi&engine=reportlab`
+  - **CLI Command**: `python manage.py generate_invoice_pdf <invoice_id> --qr-mode upi --engine auto --output invoice.pdf`
+- **Comprehensive Test Suite**:
+  - 7 automated tests in `billing_app/test_embed_dynamic_qr_pdf.py` verifying dynamic QR payload construction, PDF context bundling, xhtml2pdf QR embedding, ReportLab Flowable QR embedding, unified entrypoint, view query parameters, and CLI commands.
+
+---
+
 ## 📄 🌟 Feature: Dual-Engine PDF Generation Integration (xhtml2pdf & ReportLab)
 
 High-performance, enterprise-grade PDF rendering service integrating both `xhtml2pdf` and `ReportLab` into a unified pipeline:

@@ -85,6 +85,10 @@ def fetch_invoice_data(invoice_or_id) -> Dict[str, Any]:
 
     products_summary = ", ".join([f"{it['name']} (x{it['quantity']})" for it in items_list])
 
+    profile = getattr(invoice.distributor, 'profile', None) if invoice.distributor else None
+    upi_id = getattr(profile, 'upi_id', None) or 'advancebilling@upi'
+    business_name = getattr(profile, 'business_name', None) or 'AdvanceBilling'
+
     return {
         'invoice': invoice,
         'invoice_id': invoice.id,
@@ -101,6 +105,8 @@ def fetch_invoice_data(invoice_or_id) -> Dict[str, Any]:
         'created_at': date_val,
         'payment_status': invoice.payment_status or 'PAID',
         'payment_method': invoice.payment_method or 'UPI QR Code',
+        'upi_id': upi_id,
+        'business_name': business_name,
         'items': items_list,
         'products_summary': products_summary,
         'notes': invoice.notes or ''
@@ -111,8 +117,17 @@ def build_invoice_qr_payload(data: Dict[str, Any], payload_format: str = 'text')
     """
     Constructs the QR payload string encoding the fetched invoice values:
     Invoice ID, Customer name, Total amount, and Date.
+    Supports formats:
+    - 'text': key-value formatted text for scanners
+    - 'json': structured JSON payload
+    - 'upi': dynamic UPI pay string (upi://pay?pa=...&am=...)
     """
     fmt = (payload_format or 'text').lower()
+
+    if fmt == 'upi':
+        upi_id = data.get('upi_id') or 'advancebilling@upi'
+        biz_name = data.get('business_name') or 'AdvanceBilling'
+        return f"upi://pay?pa={upi_id}&pn={biz_name}&am={data['grand_total_str']}&cu=INR&tn=Invoice_{data['invoice_number']}"
 
     if fmt == 'json':
         payload_dict = {
@@ -271,6 +286,7 @@ def generate_invoice_qr(
 def generate_invoice_qr_bundle(
     invoice_or_id,
     engine: str = 'auto',
+    payload_format: str = 'text',
     box_size: int = 6,
     border: int = 2
 ) -> Dict[str, Any]:
@@ -282,13 +298,14 @@ def generate_invoice_qr_bundle(
     data = fetch_invoice_data(invoice_or_id)
     text_payload = build_invoice_qr_payload(data, payload_format='text')
     json_payload = build_invoice_qr_payload(data, payload_format='json')
+    active_payload = build_invoice_qr_payload(data, payload_format=payload_format)
 
     active_engine = resolve_engine(engine)
 
     if active_engine == 'segno':
-        png_bytes = generate_qr_with_segno(text_payload, scale=box_size, border=border)
+        png_bytes = generate_qr_with_segno(active_payload, scale=box_size, border=border)
     else:
-        png_bytes = generate_qr_with_qrcode(text_payload, box_size=box_size, border=border)
+        png_bytes = generate_qr_with_qrcode(active_payload, box_size=box_size, border=border)
 
     b64_str = base64.b64encode(png_bytes).decode('utf-8')
     data_uri = f"data:image/png;base64,{b64_str}"
@@ -305,6 +322,8 @@ def generate_invoice_qr_bundle(
         'created_at': data['created_at'],
         'text_payload': text_payload,
         'json_payload': json_payload,
+        'active_payload': active_payload,
+        'payload_format': payload_format,
         'qr_base64': data_uri,
         'raw_b64': b64_str,
         'qr_bytes': png_bytes,

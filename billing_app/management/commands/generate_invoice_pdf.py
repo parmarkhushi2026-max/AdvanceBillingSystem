@@ -21,6 +21,20 @@ class Command(BaseCommand):
             help='PDF rendering engine to use (default: auto).'
         )
         parser.add_argument(
+            '--qr-mode',
+            type=str,
+            default='text',
+            choices=['text', 'upi', 'json'],
+            help='Dynamic QR code payload format (default: text).'
+        )
+        parser.add_argument(
+            '--qr-engine',
+            type=str,
+            default='auto',
+            choices=['auto', 'qrcode', 'segno'],
+            help='QR generation engine backend (default: auto).'
+        )
+        parser.add_argument(
             '--output',
             type=str,
             default='',
@@ -30,6 +44,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         inv_identifier = options['invoice_id'].strip()
         engine = options.get('engine', 'auto')
+        qr_mode = options.get('qr_mode', 'text')
+        qr_engine = options.get('qr_engine', 'auto')
         output_path = options.get('output', '').strip()
 
         # Resolve Invoice
@@ -45,10 +61,10 @@ class Command(BaseCommand):
         if not invoice:
             raise CommandError(f"Invoice '{inv_identifier}' not found in the database.")
 
-        self.stdout.write(f"Generating PDF for Invoice #{invoice.invoice_number} (ID: {invoice.id}) using engine: '{engine}'...")
+        self.stdout.write(f"Generating PDF for Invoice #{invoice.invoice_number} (ID: {invoice.id}) [PDF Engine: '{engine}', QR Mode: '{qr_mode}']...")
 
         try:
-            pdf_bytes = generate_invoice_pdf_bytes(invoice, engine=engine)
+            pdf_bytes = generate_invoice_pdf_bytes(invoice, engine=engine, qr_mode=qr_mode, qr_engine=qr_engine)
         except Exception as e:
             raise CommandError(f"PDF generation failed: {e}")
 
