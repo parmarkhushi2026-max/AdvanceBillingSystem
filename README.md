@@ -8,6 +8,24 @@ A feature-packed, production-ready Django Billing, QR Payment, and Financial Int
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
+## 🎨 🌟 Feature: Styled Invoice HTML/CSS Template for Certified PDF Export
+
+Production-grade, pixel-perfect A4 GST Tax Invoice template engineered specifically for PDF export engines (`xhtml2pdf` and `WeasyPrint`):
+- **Visual Design & Typography (`templates/billing/invoice_pdf.html`)**:
+  - **A4 Portrait Page Spec**: Exact `@page` frame geometry (`size: a4 portrait; margin: 1cm;`) with dynamic bottom page numbering (`Page <pdf:pagenumber> of <pdf:pagecount>`).
+  - **Corporate Header**: Deep Indigo accent border with issuing business name, registered business address, contact phone, merchant UPI ID, and official GSTIN badge.
+  - **Tax Invoice Block**: Prominent invoice title, reference ID (`#INV-xxxx`), billing timestamp, and color-coded status badge (`PAID` in emerald / `PENDING` in amber).
+  - **Dual Party Cards**: Shaded slate containers (`#f8fafc`) separating *Billed To Customer Details* (Name, Phone, Email, Address, GSTIN) from *Invoice & Tax Logistics* (Payment method, place of supply, reverse charge).
+  - **High-Contrast Line Items Table**: Dark header strip with item index, itemized product names, HSN codes, quantity count, unit price, GST rate %, and line totals.
+  - **Embedded Certified QR Code Box**: High-resolution dynamic QR code image, verification caption (`[ DIGITALLY VERIFIED QR INVOICE ]`), and decoded parameters.
+  - **Financial Breakdown & Indian Currency In Words**: Taxable subtotal, CGST, SGST, discount, bold grand total divider, and Indian numbering currency words strip (`Rupees Six Thousand Eight Hundred Forty Four Only`).
+  - **Legal Terms & Signature Block**: Standard commercial warranty terms, digital verification seal, and authorized signatory signature box.
+  - **Engine Compatibility**: Formatted strictly without unsupported CSS (`border-collapse` or missing Unicode font glyphs) ensuring 100% warning-free, fast generation under `xhtml2pdf`.
+- **Automated Test Suite**:
+  - 2 automated unit tests in `billing_app/test_invoice_pdf_template.py` verifying document content-type, attachment headers, `%PDF-` binary signature, template structure, and Indian currency words rendering.
+
+---
+
 ## 🛠️ 🌟 Feature: Manual Entries via Django Admin & Management Command
 
 Complete administrative interface supporting rapid, verified manual entry of Customers, Invoices, and itemized billing line items directly through Django Admin (`/django-admin/`):
