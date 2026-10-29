@@ -1686,10 +1686,12 @@ from io import BytesIO
 def generate_invoice_pdf_view(request, invoice_id):
     """
     Exports a certified Tax Invoice as a PDF with embedded verified QR code
-    using xhtml2pdf (or WeasyPrint if available).
+    using xhtml2pdf or ReportLab.
+    Supports ?engine=xhtml2pdf|reportlab|auto (defaults to auto).
     Provides structured error responses for AJAX/fetch requests and friendly alerts.
     """
     is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json'
+    engine = request.GET.get('engine', 'auto')
 
     try:
         invoice = Invoice.objects.get(id=invoice_id)
@@ -1699,71 +1701,18 @@ def generate_invoice_pdf_view(request, invoice_id):
         messages.error(request, f"Invoice #{invoice_id} not found.")
         return redirect('invoice_list')
 
-    if not pisa and not weasyprint:
+    from .pdf_generator import generate_invoice_pdf_bytes, pisa, REPORTLAB_AVAILABLE
+    if not pisa and not REPORTLAB_AVAILABLE and not weasyprint:
         if is_ajax:
-            return JsonResponse({'status': 'error', 'success': False, 'error': 'PDF generation engine (xhtml2pdf / WeasyPrint) is not installed.'}, status=500)
-        messages.error(request, "PDF generation library (xhtml2pdf or WeasyPrint) is not installed.")
+            return JsonResponse({'status': 'error', 'success': False, 'error': 'No PDF generation library (xhtml2pdf / ReportLab) is installed.'}, status=500)
+        messages.error(request, "PDF generation library (xhtml2pdf or ReportLab) is not installed.")
         return redirect('invoice_detail', invoice_id=invoice_id)
-        
-    profile = getattr(invoice.distributor, 'profile', None) if invoice.distributor else None
-    
-    business_name = getattr(profile, 'business_name', None) or 'Advance Billing Agency'
-    business_phone = getattr(profile, 'phone', None) or '+91 98765 43210'
-    business_address = getattr(profile, 'address', None) or 'Commercial Hub, Business Park, Phase II'
-    business_gstin = getattr(profile, 'gstin', None) or '27AABCU9603R1ZM'
-    upi_id = getattr(profile, 'upi_id', None) or 'advancebilling@upi'
 
-    # Retrieve or generate verified invoice QR code bundle
-    from .invoice_qr import generate_invoice_qr_bundle
     try:
-        bundle = generate_invoice_qr_bundle(invoice)
-        qr_base64 = bundle['qr_base64']
-    except Exception:
-        qr_base64 = invoice.qr_code_base64
-
-    # Financial details
-    tax_amt = float(invoice.tax_amount or 0.0)
-    cgst_amount = round(tax_amt / 2, 2)
-    sgst_amount = round(tax_amt / 2, 2)
-    grand_total_words = number_to_indian_currency_words(invoice.grand_total)
-
-    context = {
-        'invoice': invoice,
-        'items': invoice.items.all(),
-        'upi_id': upi_id,
-        'business_name': business_name,
-        'business_phone': business_phone,
-        'business_address': business_address,
-        'business_gstin': business_gstin,
-        'qr_base64': qr_base64,
-        'cgst_amount': cgst_amount,
-        'sgst_amount': sgst_amount,
-        'grand_total_words': grand_total_words,
-    }
-    
-    try:
-        template = get_template('billing/invoice_pdf.html')
-        html = template.render(context)
-        
-        # Render with WeasyPrint if available, otherwise xhtml2pdf
-        if weasyprint:
-            pdf_bytes = weasyprint.HTML(string=html).write_pdf()
-            response = HttpResponse(pdf_bytes, content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
-            return response
-        elif pisa:
-            response = HttpResponse(content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
-            pisa_status = pisa.CreatePDF(html, dest=response)
-            if pisa_status.err:
-                if is_ajax:
-                    return JsonResponse({'status': 'error', 'success': False, 'error': 'Error rendering PDF stream with xhtml2pdf.'}, status=500)
-                return HttpResponse('Error generating PDF with xhtml2pdf', status=500)
-            return response
-        else:
-            if is_ajax:
-                return JsonResponse({'status': 'error', 'success': False, 'error': 'No PDF generation library found on server.'}, status=500)
-            return HttpResponse('No PDF generation library found', status=500)
+        pdf_bytes = generate_invoice_pdf_bytes(invoice, engine=engine)
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
+        return response
     except Exception as exc:
         if is_ajax:
             return JsonResponse({'status': 'error', 'success': False, 'error': f'Failed to generate invoice PDF: {str(exc)}'}, status=500)

@@ -8,6 +8,32 @@ A feature-packed, production-ready Django Billing, QR Payment, and Financial Int
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
+## 📄 🌟 Feature: Dual-Engine PDF Generation Integration (xhtml2pdf & ReportLab)
+
+High-performance, enterprise-grade PDF rendering service integrating both `xhtml2pdf` and `ReportLab` into a unified pipeline:
+- **Architecture (`billing_app/pdf_generator.py`)**:
+  - **`xhtml2pdf` Engine**: Translates responsive HTML/CSS templates (`templates/billing/invoice_pdf.html`) directly into certified A4 PDF documents with custom typography, table styles, and embedded QR codes.
+  - **`ReportLab` Engine**: Direct canvas & Flowable pipeline (`SimpleDocTemplate`, `Table`, `Paragraph`, `Image`, `NumberedCanvas`) generating crisp, vector-sharp PDFs with minimal memory footprint and high concurrency throughput.
+  - **Unified Entrypoint (`generate_invoice_pdf_bytes`)**:
+    ```python
+    from billing_app.pdf_generator import generate_invoice_pdf_bytes
+    # Supports engine='auto', engine='xhtml2pdf', or engine='reportlab'
+    pdf_bytes = generate_invoice_pdf_bytes(invoice, engine='auto')
+    ```
+  - **Automatic Fallback Protection**: If one engine encounters a library or system limitation, `engine='auto'` automatically falls back to the complementary engine seamlessly without interrupting user downloads.
+- **HTTP View Integration (`/invoice/<id>/pdf/`)**:
+  - Supports query parameter selection:
+    - `GET /invoice/<id>/pdf/?engine=xhtml2pdf`: Force HTML template rendering via `xhtml2pdf`.
+    - `GET /invoice/<id>/pdf/?engine=reportlab`: Force direct canvas document rendering via `ReportLab`.
+    - `GET /invoice/<id>/pdf/`: Default automatic selection.
+- **CLI Management Command**:
+  - Command: `python manage.py generate_invoice_pdf <invoice_id> [--engine xhtml2pdf|reportlab|auto] [--output <path.pdf>]`
+  - Example: `python manage.py generate_invoice_pdf 1 --engine reportlab --output test_invoice.pdf`
+- **Automated Test Suite**:
+  - 5 comprehensive tests in `billing_app/test_pdf_integration.py` verifying `xhtml2pdf` binary generation, `ReportLab` binary generation, auto-fallback, HTTP view parameters, and CLI command execution.
+
+---
+
 ## 🎨 🌟 Feature: Styled Invoice HTML/CSS Template for Certified PDF Export
 
 Production-grade, pixel-perfect A4 GST Tax Invoice template engineered specifically for PDF export engines (`xhtml2pdf` and `WeasyPrint`):
