@@ -850,7 +850,7 @@ def api_invoice_preview(request, invoice_id):
     })
 
 
-# 8-Details-API. Fetch complete invoice details (ID, customer name, total, date) from database
+    # 8-Details-API. Fetch complete invoice details (ID, customer name, total, date) from database
 def api_invoice_details(request, invoice_id):
     """
     Fetch complete invoice details directly from the database:
@@ -859,11 +859,20 @@ def api_invoice_details(request, invoice_id):
     - Total: Grand Total, Subtotal, and Tax
     - Date: Creation Date
     - Line items summary and QR payload
+    Supports ?download=1 to export/download as JSON attachment.
     """
-    invoice = get_object_or_404(Invoice, id=invoice_id)
+    try:
+        invoice = Invoice.objects.get(id=invoice_id)
+    except Invoice.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'success': False,
+            'error': f'Invoice with ID #{invoice_id} not found in database.'
+        }, status=404)
+
     details = invoice.get_complete_details()
     
-    return JsonResponse({
+    response = JsonResponse({
         'status': 'success',
         'success': True,
         'invoice': {
@@ -886,13 +895,17 @@ def api_invoice_details(request, invoice_id):
             'qr_payload': details['qr_payload'],
             'qr_code_base64': details['qr_code_base64'],
         }
-    })
+    }, json_dumps_params={'indent': 2})
+
+    if request.GET.get('download') in ('1', 'true', 'yes'):
+        response['Content-Disposition'] = f'attachment; filename="Invoice_{details["invoice_number"]}_Details.json"'
+    return response
 
 
 def api_all_invoices_details(request):
     """
     Fetch complete invoice details (ID, customer name, total, date) for all invoices from the database.
-    Supports limit and query parameters.
+    Supports limit, query parameters, and ?download=1 for file download.
     """
     limit = int(request.GET.get('limit', 100))
     invoices = Invoice.objects.prefetch_related('items').all().order_by('-created_at')[:limit]
@@ -916,12 +929,16 @@ def api_all_invoices_details(request):
             'items_count': len(d['items']),
         })
         
-    return JsonResponse({
+    response = JsonResponse({
         'status': 'success',
         'success': True,
         'total_count': len(results),
         'invoices': results
-    })
+    }, json_dumps_params={'indent': 2})
+
+    if request.GET.get('download') in ('1', 'true', 'yes'):
+        response['Content-Disposition'] = 'attachment; filename="All_Invoices_Details.json"'
+    return response
 
 
 # 8b. Dedicated Invoice QR Inspection & Showcase View
@@ -1670,12 +1687,24 @@ def generate_invoice_pdf_view(request, invoice_id):
     """
     Exports a certified Tax Invoice as a PDF with embedded verified QR code
     using xhtml2pdf (or WeasyPrint if available).
+    Provides structured error responses for AJAX/fetch requests and friendly alerts.
     """
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json'
+
+    try:
+        invoice = Invoice.objects.get(id=invoice_id)
+    except Invoice.DoesNotExist:
+        if is_ajax:
+            return JsonResponse({'status': 'error', 'success': False, 'error': f'Invoice #{invoice_id} not found in database.'}, status=404)
+        messages.error(request, f"Invoice #{invoice_id} not found.")
+        return redirect('invoice_list')
+
     if not pisa and not weasyprint:
+        if is_ajax:
+            return JsonResponse({'status': 'error', 'success': False, 'error': 'PDF generation engine (xhtml2pdf / WeasyPrint) is not installed.'}, status=500)
         messages.error(request, "PDF generation library (xhtml2pdf or WeasyPrint) is not installed.")
         return redirect('invoice_detail', invoice_id=invoice_id)
         
-    invoice = get_object_or_404(Invoice, id=invoice_id)
     profile = getattr(invoice.distributor, 'profile', None) if invoice.distributor else None
     
     business_name = getattr(profile, 'business_name', None) or 'Advance Billing Agency'
@@ -1712,24 +1741,34 @@ def generate_invoice_pdf_view(request, invoice_id):
         'grand_total_words': grand_total_words,
     }
     
-    template = get_template('billing/invoice_pdf.html')
-    html = template.render(context)
-    
-    # Render with WeasyPrint if available, otherwise xhtml2pdf
-    if weasyprint:
-        pdf_bytes = weasyprint.HTML(string=html).write_pdf()
-        response = HttpResponse(pdf_bytes, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
-        return response
-    elif pisa:
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
-        pisa_status = pisa.CreatePDF(html, dest=response)
-        if pisa_status.err:
-            return HttpResponse('Error generating PDF with xhtml2pdf', status=500)
-        return response
-    else:
-        return HttpResponse('No PDF generation library found', status=500)
+    try:
+        template = get_template('billing/invoice_pdf.html')
+        html = template.render(context)
+        
+        # Render with WeasyPrint if available, otherwise xhtml2pdf
+        if weasyprint:
+            pdf_bytes = weasyprint.HTML(string=html).write_pdf()
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
+            return response
+        elif pisa:
+            response = HttpResponse(content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="Invoice_{invoice.invoice_number}.pdf"'
+            pisa_status = pisa.CreatePDF(html, dest=response)
+            if pisa_status.err:
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'success': False, 'error': 'Error rendering PDF stream with xhtml2pdf.'}, status=500)
+                return HttpResponse('Error generating PDF with xhtml2pdf', status=500)
+            return response
+        else:
+            if is_ajax:
+                return JsonResponse({'status': 'error', 'success': False, 'error': 'No PDF generation library found on server.'}, status=500)
+            return HttpResponse('No PDF generation library found', status=500)
+    except Exception as exc:
+        if is_ajax:
+            return JsonResponse({'status': 'error', 'success': False, 'error': f'Failed to generate invoice PDF: {str(exc)}'}, status=500)
+        messages.error(request, f"Error generating PDF: {str(exc)}")
+        return redirect('invoice_detail', invoice_id=invoice_id)
     
 @login_required
 def invoice_list_view(request):

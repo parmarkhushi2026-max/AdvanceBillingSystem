@@ -544,3 +544,176 @@ function initBillingCalculator() {
     calculateTotals();
 }
 
+// ==========================================================================
+// UNIVERSAL DOWNLOAD & SUCCESS/FAILURE ALERT NOTIFICATION ENGINE
+// ==========================================================================
+
+window.showAppAlert = function(type, message, duration = 4000) {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = `toast-banner ${type}`;
+    
+    let icon = '<i class="fa-solid fa-circle-info"></i>';
+    if (type === 'success') {
+        icon = '<i class="fa-solid fa-circle-check" style="font-size: 1.15rem; color: #10b981;"></i>';
+    } else if (type === 'error' || type === 'danger') {
+        icon = '<i class="fa-solid fa-circle-exclamation" style="font-size: 1.15rem; color: #ef4444;"></i>';
+    } else if (type === 'warning') {
+        icon = '<i class="fa-solid fa-triangle-exclamation" style="font-size: 1.15rem; color: #f59e0b;"></i>';
+    }
+
+    toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px; max-width: 90%;">
+            ${icon}
+            <span style="line-height: 1.4;">${message}</span>
+        </div>
+        <button type="button" class="toast-close" onclick="this.parentElement.remove();"><i class="fa-solid fa-xmark"></i></button>
+    `;
+    container.appendChild(toast);
+
+    // Also update any inline download alert box if present on the page
+    const inlineBox = document.getElementById('download-alert-container');
+    if (inlineBox) {
+        inlineBox.style.display = 'block';
+        inlineBox.className = `alert alert-${type === 'error' ? 'danger' : type}`;
+        inlineBox.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 10px; background: ${type === 'success' ? '#ecfdf5' : '#fef2f2'}; border: 1.5px solid ${type === 'success' ? '#a7f3d0' : '#fca5a5'}; color: ${type === 'success' ? '#065f46' : '#991b1b'}; font-weight: 600;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    ${icon}
+                    <span>${message}</span>
+                </div>
+                <button type="button" onclick="this.closest('#download-alert-container').style.display='none';" style="background:none; border:none; color:inherit; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        `;
+    }
+
+    setTimeout(() => {
+        toast.style.animation = 'fadeOutRight 0.3s ease-in forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+};
+
+window.downloadFileWithAlerts = async function(buttonEl, url, defaultFilename = 'download.pdf', successMsg = null, failureMsg = null) {
+    if (!url) {
+        window.showAppAlert('error', 'Download URL is missing or invalid.');
+        return false;
+    }
+
+    let origHTML = '';
+    if (buttonEl) {
+        origHTML = buttonEl.innerHTML;
+        buttonEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Downloading...';
+        buttonEl.disabled = true;
+        buttonEl.style.pointerEvents = 'none';
+    }
+
+    try {
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (!response.ok) {
+            let errorText = `Download failed (HTTP ${response.status})`;
+            try {
+                const errJson = await response.json();
+                if (errJson && errJson.error) {
+                    errorText = errJson.error;
+                }
+            } catch (e) {
+                const text = await response.text();
+                if (text && text.length < 200) {
+                    errorText = text;
+                }
+            }
+            throw new Error(errorText);
+        }
+
+        // Extract filename from Content-Disposition if present
+        let filename = defaultFilename;
+        const disposition = response.headers.get('content-disposition');
+        if (disposition && disposition.indexOf('filename=') !== -1) {
+            const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+            if (matches != null && matches[1]) {
+                filename = matches[1].replace(/['"]/g, '');
+            }
+        }
+
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+
+        setTimeout(() => {
+            window.URL.revokeObjectURL(blobUrl);
+            a.remove();
+        }, 1000);
+
+        const okMsg = successMsg || `"${filename}" downloaded successfully!`;
+        window.showAppAlert('success', okMsg);
+        return true;
+    } catch (err) {
+        console.error('Download error:', err);
+        const errMsg = failureMsg || `Download failed: ${err.message || 'Unable to download file. Please try again.'}`;
+        window.showAppAlert('error', errMsg);
+        return false;
+    } finally {
+        if (buttonEl) {
+            buttonEl.innerHTML = origHTML;
+            buttonEl.disabled = false;
+            buttonEl.style.pointerEvents = 'auto';
+        }
+    }
+};
+
+window.downloadServerPDF = function(buttonEl, invoiceId, invoiceNumber) {
+    const url = `/invoice/${invoiceId}/pdf/`;
+    const filename = `Invoice_${invoiceNumber || invoiceId}.pdf`;
+    return window.downloadFileWithAlerts(
+        buttonEl,
+        url,
+        filename,
+        `Invoice #${invoiceNumber || invoiceId} PDF downloaded successfully!`,
+        `Failed to download PDF for Invoice #${invoiceNumber || invoiceId}. Please check server or retry.`
+    );
+};
+
+window.downloadInvoiceJSON = function(buttonEl, invoiceId, invoiceNumber) {
+    const url = `/api/invoice/${invoiceId}/details/?download=1`;
+    const filename = `Invoice_${invoiceNumber || invoiceId}_Details.json`;
+    return window.downloadFileWithAlerts(
+        buttonEl,
+        url,
+        filename,
+        `Invoice #${invoiceNumber || invoiceId} data JSON downloaded successfully!`,
+        `Failed to export JSON for Invoice #${invoiceNumber || invoiceId}. Please check server or retry.`
+    );
+};
+
+window.downloadAllInvoicesJSON = function(buttonEl, evt) {
+    if (evt && evt.preventDefault) evt.preventDefault();
+    const url = `/api/invoices/details/?download=1`;
+    const filename = `All_Invoices_Details.json`;
+    return window.downloadFileWithAlerts(
+        buttonEl,
+        url,
+        filename,
+        `All Invoices data JSON exported successfully!`,
+        `Failed to export all invoices data. Please try again.`
+    );
+};
+
+

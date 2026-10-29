@@ -316,9 +316,9 @@
         <main class="app-container {% block main_container_class %}{% endblock %}" style="{% block main_container_style %}max-width: 1300px; margin: 0 auto; padding: 2rem 1.5rem;{% endblock %}">
     {% endif %}
 
-            <!-- Common Flash Messages -->
-            {% if messages %}
-                <div class="toast-container" id="toast-container">
+            <!-- Common Flash Messages & Toast Container -->
+            <div class="toast-container" id="toast-container">
+                {% if messages %}
                     {% for message in messages %}
                         <div class="toast-banner {{ message.tags }}">
                             {% if message.tags == 'success' %}
@@ -332,17 +332,17 @@
                             <button type="button" class="toast-close" onclick="this.parentElement.remove();"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                     {% endfor %}
-                </div>
-                <script>
-                    setTimeout(() => {
-                        const toasts = document.querySelectorAll('.toast-banner');
-                        toasts.forEach(toast => {
-                            toast.style.animation = 'fadeOutRight 0.3s ease-in forwards';
-                            setTimeout(() => toast.remove(), 300);
-                        });
-                    }, 5000);
-                </script>
-            {% endif %}
+                    <script>
+                        setTimeout(() => {
+                            const toasts = document.querySelectorAll('.toast-banner');
+                            toasts.forEach(toast => {
+                                toast.style.animation = 'fadeOutRight 0.3s ease-in forwards';
+                                setTimeout(() => toast.remove(), 300);
+                            });
+                        }, 5000);
+                    </script>
+                {% endif %}
+            </div>
 
             <!-- ONE SINGLE CONTENT BLOCK -->
             {% block content %}{% endblock %}

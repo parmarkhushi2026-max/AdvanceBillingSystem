@@ -9,7 +9,10 @@
         <p class="page-subtitle">View, filter by date range, and audit all generated invoices.</p>
     </div>
     <div class="page-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-        <a href="{% url 'invoice_report_pdf' %}{% if start_date or end_date or status_filter %}?start_date={{ start_date }}&end_date={{ end_date }}&status={{ status_filter }}{% endif %}" class="btn-secondary-action" style="background: #ffffff; color: #dc2626; border: 1.5px solid #fecaca; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);" title="Download Filtered Report as PDF using xhtml2pdf">
+        <a href="{% url 'api_all_invoices_details' %}?download=1" onclick="downloadAllInvoicesJSON(this, event)" class="btn-secondary-action" style="background: #ecfdf5; color: #047857; border: 1.5px solid #a7f3d0; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 12px; text-decoration: none; cursor: pointer;" title="Download all fetched invoices details (ID, Customer, Total, Date) as JSON">
+            <i class="fa-solid fa-download"></i> Export JSON
+        </a>
+        <a href="{% url 'invoice_report_pdf' %}{% if start_date or end_date or status_filter %}?start_date={{ start_date }}&end_date={{ end_date }}&status={{ status_filter }}{% endif %}" onclick="downloadFileWithAlerts(this, this.href, 'Invoice_Range_Report.pdf', 'Invoice Report PDF downloaded successfully!'); return false;" class="btn-secondary-action" style="background: #ffffff; color: #dc2626; border: 1.5px solid #fecaca; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); cursor: pointer;" title="Download Filtered Report as PDF using xhtml2pdf">
             <i class="fa-solid fa-file-pdf"></i> Range PDF
         </a>
         <a href="{% url 'invoice_reports' %}" class="btn-secondary-action" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); color: #ffffff; border: none; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 12px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);">
@@ -148,7 +151,7 @@
                                     <a href="{% url 'invoice_preview' invoice.id %}" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem; background: #eef2ff; color: #4f46e5; border-color: #c7d2fe;" title="Preview Invoice with Details & QR">
                                         <i class="fa-solid fa-file-invoice"></i> Preview
                                     </a>
-                                    <a href="{% url 'invoice_pdf' invoice.id %}" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem; background: #fee2e2; color: #b91c1c; border-color: #fca5a5;" title="Download PDF (xhtml2pdf)">
+                                    <a href="{% url 'invoice_pdf' invoice.id %}" onclick="downloadServerPDF(this, '{{ invoice.id }}', '{{ invoice.invoice_number }}'); return false;" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem; background: #fee2e2; color: #b91c1c; border-color: #fca5a5; cursor: pointer;" title="Download PDF with Verified QR">
                                         <i class="fa-solid fa-file-pdf"></i> PDF
                                     </a>
                                     <a href="{% url 'invoice_qr' invoice.id %}" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem; background: #e0e7ff; color: #4338ca; border-color: #c7d2fe;" title="View QR Code">

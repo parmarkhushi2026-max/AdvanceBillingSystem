@@ -14,11 +14,14 @@
         <a href="{% url 'create_invoice' %}" class="btn-secondary-action" style="text-decoration: none; font-size: 0.9rem; background: #ecfdf5; color: #065f46;">
             <i class="fa-solid fa-plus"></i> New Bill
         </a>
-        <a href="{% url 'invoice_pdf' invoice.id %}" class="btn-export-pdf" style="text-decoration: none; display: flex; align-items: center; justify-content: center; padding: 0.6rem 1.2rem; background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 600; gap: 8px;">
+        <a href="{% url 'invoice_pdf' invoice.id %}" onclick="downloadServerPDF(this, '{{ invoice.id }}', '{{ invoice.invoice_number }}'); return false;" class="btn-export-pdf" style="text-decoration: none; display: flex; align-items: center; justify-content: center; padding: 0.6rem 1.2rem; background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 600; gap: 8px; cursor: pointer;">
             <i class="fa-solid fa-file-pdf"></i> Download PDF (Server)
         </a>
         <button type="button" onclick="exportInvoiceToPDF()" id="btn-pdf-download" class="btn-export-pdf" style="text-decoration: none; display: flex; align-items: center; justify-content: center; padding: 0.6rem 1.2rem; background: #fef08a; color: #854d0e; border: 1px solid #fde047; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 600; gap: 8px; cursor: pointer;">
             <i class="fa-solid fa-file-arrow-down"></i> Download PDF (Client)
+        </button>
+        <button type="button" onclick="downloadInvoiceJSON(this, '{{ invoice.id }}', '{{ invoice.invoice_number }}')" class="btn-export-pdf" style="text-decoration: none; display: flex; align-items: center; justify-content: center; padding: 0.6rem 1.2rem; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 600; gap: 8px; cursor: pointer;">
+            <i class="fa-solid fa-file-code"></i> Download JSON
         </button>
         <a href="{% url 'invoice_preview' invoice.id %}" class="btn-secondary-action" style="text-decoration: none; display: flex; align-items: center; justify-content: center; padding: 0.6rem 1.2rem; background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 700; gap: 8px;">
             <i class="fa-solid fa-file-invoice"></i> Preview Invoice
@@ -31,6 +34,9 @@
         </button>
     </div>
 </div>
+
+<!-- Live Download Alert Container -->
+<div id="download-alert-container" style="display: none; margin-bottom: 1.25rem;"></div>
 
 <div class="invoice-sheet" id="invoice-printable-area">
     <!-- Header -->
@@ -215,16 +221,25 @@ function exportInvoiceToPDF() {
         html2pdf().set(opt).from(element).save().then(() => {
             downloadBtn.innerHTML = origHTML;
             downloadBtn.disabled = false;
+            if (typeof window.showAppAlert === 'function') {
+                window.showAppAlert('success', 'Invoice #{{ invoice.invoice_number }} PDF downloaded successfully!');
+            }
         }).catch(err => {
             console.error('PDF export error:', err);
-            window.print();
             downloadBtn.innerHTML = origHTML;
             downloadBtn.disabled = false;
+            if (typeof window.showAppAlert === 'function') {
+                window.showAppAlert('error', 'Failed to generate PDF: ' + (err.message || 'Export error. Switched to print preview.'));
+            }
+            window.print();
         });
     } else {
-        window.print();
         downloadBtn.innerHTML = origHTML;
         downloadBtn.disabled = false;
+        if (typeof window.showAppAlert === 'function') {
+            window.showAppAlert('error', 'Client PDF generator not loaded. Switched to print preview.');
+        }
+        window.print();
     }
 }
 </script>

@@ -8,6 +8,39 @@ A feature-packed, production-ready Django Billing, QR Payment, and Financial Int
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
+## 📥 🌟 Feature: Download Buttons & Success/Failure Alerts Notification Engine
+
+Full-stack document export and download infrastructure with real-time UI feedback, progress states, and success/failure alerts:
+- **Download Action Buttons**:
+  - **Server-Side Official PDF**: Certified Tax Invoice export with verified embedded QR code via `xhtml2pdf` (`GET /invoice/<id>/pdf/`).
+  - **Client-Side High-Res PDF**: Instant browser-side PDF rendering via `html2pdf.js` with A4 GST / Thermal receipt mode presets.
+  - **Complete Invoice Details JSON**: Export complete fetched invoice metadata (ID, customer name, total amount, date, line items, and QR payload) via `GET /api/invoice/<id>/details/?download=1`.
+  - **All Invoices Batch Export**: Export all database invoices as JSON via `GET /api/invoices/details/?download=1`.
+  - **QR Code PNG Image**: Direct binary download of high-resolution QR image (`GET /invoice/<id>/qr/image/`).
+- **Interactive Success & Failure Alert Notifications**:
+  - **Real-Time Button Loading State**: Buttons dynamically toggle to `<i class="fa-solid fa-spinner fa-spin"></i> Downloading...` and disable during fetching to prevent accidental duplicate clicks.
+  - **Success Alerts**: Triggers prominent emerald alert toast banners (`"Invoice #INV-xxx PDF downloaded successfully!"`) with auto-dismiss and close controls.
+  - **Failure / Error Alerts**: Automatically catches HTTP 4xx, 5xx, or network issues and displays clear red diagnostic alerts (`"Failed to download PDF: Invoice not found or server error"`), restoring button states safely.
+  - **Inline Alert Containers**: `<div id="download-alert-container">` updates dynamically within pages for seamless visual feedback.
+  - **Graceful Fallbacks**: Intelligent fallback to native browser print preview (`window.print()`) if client generation libraries are unavailable.
+- **Universal JavaScript Engine (`static/js/main.js`)**:
+  - `window.showAppAlert(type, message, duration)`: Toast banner alert notification dispatcher.
+  - `window.downloadFileWithAlerts(buttonEl, url, filename, successMsg, failureMsg)`: Blob fetch with progress and alert dispatching.
+  - `window.downloadServerPDF(buttonEl, invoiceId, invoiceNumber)`: Dedicated invoice PDF downloader.
+  - `window.downloadInvoiceJSON(buttonEl, invoiceId, invoiceNumber)`: Dedicated invoice JSON downloader.
+  - `window.downloadAllInvoicesJSON(buttonEl, evt)`: Batch invoices downloader.
+- **Verified Across All Views**:
+  - **Preview Invoice Page** (`/invoice/<id>/preview/`)
+  - **Invoice Detail View** (`/invoice/<id>/`)
+  - **Invoice List View** (`/invoices/`)
+  - **Invoice QR Code Showcase** (`/invoice/<id>/qr/`)
+  - **QR Decoder Studio** (`/qr-decoder/`)
+  - **Audit Reports Section** (`/reports/invoices/`)
+- **Unit & Integration Tests**:
+  - 9 automated unit tests in `billing_app/test_download_alerts.py` verifying file streaming, attachment headers, error responses (404/500), template button presence, and alert hooks.
+
+---
+
 ## 📱 🌟 New Feature: Saved Invoice Model QR Code Generation Engine
 
 Fetch invoice data directly from the saved database model and dynamically generate high-resolution QR codes encoding these values:

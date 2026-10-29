@@ -588,12 +588,17 @@
         </a>
 
         <!-- Download QR Image (PNG) -->
-        <a href="{% url 'invoice_qr_image' invoice.id %}" download="Invoice_{{ invoice.invoice_number }}_QR.png" class="btn-secondary-action" style="text-decoration: none; font-size: 0.85rem; padding: 7px 12px; background: #e0f2fe; color: #0369a1; border-color: #bae6fd; gap: 6px;" title="Download PNG QR">
+        <a href="{% url 'invoice_qr_image' invoice.id %}" download="Invoice_{{ invoice.invoice_number }}_QR.png" onclick="window.showAppAlert('success', 'QR code PNG image downloaded successfully!');" class="btn-secondary-action" style="text-decoration: none; font-size: 0.85rem; padding: 7px 12px; background: #e0f2fe; color: #0369a1; border-color: #bae6fd; gap: 6px;" title="Download PNG QR">
             <i class="fa-solid fa-download"></i> <span class="hide-mobile">QR PNG</span>
         </a>
 
+        <!-- Download JSON Details -->
+        <button type="button" onclick="downloadInvoiceJSON(this, '{{ invoice.id }}', '{{ invoice.invoice_number }}')" id="btn-json-download" class="btn-secondary-action" style="font-size: 0.85rem; padding: 7px 12px; background: #ecfdf5; color: #047857; border-color: #a7f3d0; cursor: pointer; gap: 6px;" title="Download complete invoice details (ID, Customer, Total, Date) as JSON">
+            <i class="fa-solid fa-file-code"></i> <span class="hide-mobile">JSON Data</span>
+        </button>
+
         <!-- Download PDF via xhtml2pdf / WeasyPrint (Server-side with QR) -->
-        <a href="{% url 'invoice_pdf' invoice.id %}" id="btn-server-pdf" class="btn-primary-action" style="text-decoration: none; font-size: 0.85rem; padding: 7px 16px; background: #dc2626; border: 1px solid #b91c1c; color: #ffffff; gap: 7px; display: inline-flex; align-items: center; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25); border-radius: var(--radius-sm); font-weight: 700;" title="Download official PDF with verified QR code using xhtml2pdf">
+        <a href="{% url 'invoice_pdf' invoice.id %}" id="btn-server-pdf" onclick="downloadServerPDF(this, '{{ invoice.id }}', '{{ invoice.invoice_number }}'); return false;" class="btn-primary-action" style="text-decoration: none; font-size: 0.85rem; padding: 7px 16px; background: #dc2626; border: 1px solid #b91c1c; color: #ffffff; gap: 7px; display: inline-flex; align-items: center; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25); border-radius: var(--radius-sm); font-weight: 700; cursor: pointer;" title="Download official PDF with verified QR code using xhtml2pdf">
             <i class="fa-solid fa-file-pdf"></i> Download PDF
         </a>
 
@@ -608,6 +613,9 @@
         </button>
     </div>
 </div>
+
+<!-- Live Download Alert Container -->
+<div id="download-alert-container" style="display: none; margin-bottom: 1.25rem;"></div>
 
 
 <!-- ==========================================================================
@@ -1018,16 +1026,26 @@ function downloadInvoicePDF() {
         html2pdf().set(opt).from(element).save().then(() => {
             btn.innerHTML = origHTML;
             btn.disabled = false;
-            showToast("PDF downloaded successfully!");
+            if (typeof window.showAppAlert === 'function') {
+                window.showAppAlert("success", "Invoice #{{ invoice.invoice_number }} PDF downloaded successfully!");
+            } else {
+                showToast("PDF downloaded successfully!");
+            }
         }).catch(err => {
             console.error('PDF Export Error:', err);
             btn.innerHTML = origHTML;
             btn.disabled = false;
+            if (typeof window.showAppAlert === 'function') {
+                window.showAppAlert("error", "Failed to generate PDF: " + (err.message || "Export error. Switched to print preview."));
+            }
             window.print();
         });
     } else {
         btn.innerHTML = origHTML;
         btn.disabled = false;
+        if (typeof window.showAppAlert === 'function') {
+            window.showAppAlert("error", "Client PDF generator not loaded. Switched to print preview.");
+        }
         window.print();
     }
 }

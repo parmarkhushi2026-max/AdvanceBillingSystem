@@ -801,7 +801,7 @@
                             </a>
                             {% endif %}
                             {% if result.invoice_info.pdf_url %}
-                            <a href="{{ result.invoice_info.pdf_url }}" target="_blank" class="btn-receipt-action btn-pdf-action">
+                            <a href="{{ result.invoice_info.pdf_url }}" onclick="downloadFileWithAlerts(this, this.href, 'Invoice_{{ result.invoice_info.invoice_number }}.pdf', 'Invoice #{{ result.invoice_info.invoice_number }} PDF downloaded successfully!'); return false;" class="btn-receipt-action btn-pdf-action" title="Download Official Invoice PDF with QR">
                                 <i class="fa-solid fa-file-pdf"></i> Download PDF
                             </a>
                             {% endif %}
