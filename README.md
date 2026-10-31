@@ -8,6 +8,32 @@ A feature-packed, production-ready Django Billing, QR Payment, and Financial Int
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
+## 🔍 🌟 Feature: Preview Icon Beside Each Invoice Entry for Dynamic QR Code
+
+Interactive on-the-fly QR code preview directly inside the invoice table view:
+- **Interactive Preview Icon (`templates/billing/invoice_list.html`)**:
+  - Placed directly beside each invoice entry in the primary table column:
+    - Dedicated icon button `<button type="button" class="btn btn-sm btn-outline-primary qr-preview-icon" ...>` featuring `<i class="fa-solid fa-qrcode"></i>`.
+    - Clicking the icon immediately launches the dynamic QR preview modal (`#qrPreviewModal`) for that specific invoice.
+    - Also available inside the Action button group as `QR Preview`.
+- **Dynamic QR Code Preview Modal (`#qrPreviewModal`)**:
+  - **Dynamic Generation & Real-Time Loading**: Calls backend API `/api/invoice/<id>/qr-code/?mode=...` and streams live PNG data URIs.
+  - **Interactive Mode Switcher**:
+    - **`Instant UPI Pay`**: Generates live `upi://pay?pa=...` string scannable by Google Pay, PhonePe, Paytm, and BHIM.
+    - **`Certified Summary`**: Generates formatted key-value invoice verification text (Invoice ID, Customer, Date, Total Amount).
+    - **`JSON Metadata`**: Generates structured machine-readable JSON for automated accounting verification.
+  - **Live Verification Badge**: Displays `[ INSTANT UPI PAYMENT QR ]` or `[ DIGITALLY VERIFIED QR INVOICE ]`.
+  - **Live Financial & Customer Breakdown**: Displays Invoice Number, Customer Name, Grand Total amount, and Creation timestamp.
+  - **Decoded QR Payload Accordion**: Expandable view to inspect the exact encoded string payload.
+  - **Direct Export Actions**: "Save PNG" and "Certified PDF Download" with instant alert notifications.
+- **REST API Enhancement (`billing_app/views.py`)**:
+  - `GET /api/invoice/<id>/qr-code/?mode=upi|text|json`: Generates and returns dynamic QR metadata, active payload string, and Base64 Data URI on-the-fly without stale cache.
+  - `GET /invoice/<id>/qr.png?format=upi|text|json`: Delivers raw PNG image bytes.
+- **Automated Test Suite (`billing_app/test_invoice_qr_preview_icon.py`)**:
+  - 5 comprehensive unit tests verifying preview icon presence in table rows, modal DOM structure, dynamic payload formats via API, and raw PNG image streaming.
+
+---
+
 ## 📊 🌟 Feature: Fetch All Invoices & Display in Bootstrap-Styled Table
 
 Full-stack database querying and frontend presentation displaying all invoice records in a clean, modern, responsive Bootstrap-styled table:

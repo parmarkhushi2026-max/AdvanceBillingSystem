@@ -986,12 +986,13 @@ def invoice_qr_image_view(request, invoice_id):
 def api_invoice_qr_code(request, invoice_id):
     """
     JSON API returning fetched invoice data and the generated QR code (base64 Data URI)
-    supporting both qrcode and segno engines.
+    supporting both qrcode and segno engines and multiple payload formats ('text', 'upi', 'json').
     """
     from .invoice_qr import generate_invoice_qr_bundle
     invoice = get_object_or_404(Invoice, id=invoice_id)
     engine = request.GET.get('engine', 'auto')
-    bundle = generate_invoice_qr_bundle(invoice, engine=engine)
+    fmt = request.GET.get('mode', request.GET.get('format', 'text'))
+    bundle = generate_invoice_qr_bundle(invoice, engine=engine, payload_format=fmt)
     return JsonResponse({
         'status': 'success',
         'success': True,
@@ -1001,10 +1002,11 @@ def api_invoice_qr_code(request, invoice_id):
         'customer_phone': bundle['customer_phone'],
         'total_amount': bundle['total_amount'],
         'date': bundle['date'],
+        'active_payload': bundle.get('active_payload', bundle['text_payload']),
         'encoded_payload': bundle['text_payload'],
         'json_payload': bundle['json_payload'],
         'qr_data_uri': bundle['qr_base64'],
-        'qr_image_url': f"/invoice/{invoice.id}/qr.png?engine={bundle.get('engine_used', 'auto')}",
+        'qr_image_url': f"/invoice/{invoice.id}/qr.png?engine={bundle.get('engine_used', 'auto')}&format={fmt}",
         'engine_used': bundle.get('engine_used', 'auto'),
     })
 

@@ -145,3 +145,4 @@ class InvoiceBootstrapTableTestCase(TestCase):
         for inv in invoices:
             self.assertEqual(inv.payment_status, 'PAID')
         self.assertContains(response, 'badge bg-success')
+

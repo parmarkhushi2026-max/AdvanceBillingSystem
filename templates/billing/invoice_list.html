@@ -201,8 +201,25 @@
                         {% for invoice in invoices %}
                             <tr>
                                 <td>
-                                    <div class="fw-bold text-primary">#{{ invoice.invoice_number }}</div>
-                                    <small class="text-muted"><i class="fa-solid fa-hashtag me-1"></i>ID: {{ invoice.id }}</small>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-primary qr-preview-icon" 
+                                                data-invoice-id="{{ invoice.id }}"
+                                                data-invoice-number="{{ invoice.invoice_number }}"
+                                                data-customer-name="{{ invoice.customer_name }}"
+                                                data-grand-total="{{ invoice.grand_total|floatformat:2 }}"
+                                                data-created-at="{{ invoice.created_at|date:'M d, Y' }}"
+                                                data-status="{{ invoice.payment_status }}"
+                                                onclick="openDynamicQRModalFromBtn(this)"
+                                                title="Preview dynamically generated QR code for Invoice #{{ invoice.invoice_number }}"
+                                                aria-label="Preview QR Code">
+                                            <i class="fa-solid fa-qrcode"></i>
+                                        </button>
+                                        <div>
+                                            <div class="fw-bold text-primary">#{{ invoice.invoice_number }}</div>
+                                            <small class="text-muted"><i class="fa-solid fa-hashtag me-1"></i>ID: {{ invoice.id }}</small>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td>
                                     <div class="fw-semibold text-dark">{{ invoice.customer_name }}</div>
@@ -241,6 +258,17 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="btn-group btn-group-sm" role="group" aria-label="Invoice Actions">
+                                        <button type="button" 
+                                                class="btn btn-outline-info qr-preview-action-btn" 
+                                                data-customer-name="{{ invoice.customer_name }}"
+                                                data-grand-total="{{ invoice.grand_total|floatformat:2 }}"
+                                                data-created-at="{{ invoice.created_at|date:'M d, Y' }}"
+                                                data-status="{{ invoice.payment_status }}"
+                                                onclick="openDynamicQRModalFromBtn(this)"
+                                                style="padding: 4px 8px;" 
+                                                title="Preview dynamically generated QR code">
+                                            <i class="fa-solid fa-qrcode"></i> QR Preview
+                                        </button>
                                         <a href="{% url 'invoice_preview' invoice.id %}" class="btn btn-outline-primary" style="padding: 4px 8px;" title="Preview Invoice with Details & QR">
                                             <i class="fa-solid fa-file-invoice"></i> Preview
                                         </a>
@@ -387,4 +415,228 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<!-- DYNAMIC QR CODE PREVIEW MODAL -->
+<div class="modal fade" id="qrPreviewModal" tabindex="-1" aria-labelledby="qrPreviewModalLabel" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0 rounded-4 overflow-hidden">
+            <div class="modal-header bg-dark text-white px-4 py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 bg-primary rounded-3 text-white">
+                        <i class="fa-solid fa-qrcode fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="qrPreviewModalLabel">Dynamic QR Code Preview</h5>
+                        <small class="text-light opacity-75" id="modalInvSubtitle">Invoice #INV-...</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="closeDynamicQRModal()"></button>
+            </div>
+            
+            <div class="modal-body p-4 text-center">
+                <!-- QR Mode Selector -->
+                <div class="btn-group btn-group-sm mb-3 w-100" role="group" aria-label="QR Mode Selector">
+                    <button type="button" class="btn btn-outline-primary active fw-semibold" id="btnModeUpi" onclick="switchModalQRMode('upi')">
+                        <i class="fa-solid fa-bolt me-1"></i> Instant UPI Pay
+                    </button>
+                    <button type="button" class="btn btn-outline-primary fw-semibold" id="btnModeText" onclick="switchModalQRMode('text')">
+                        <i class="fa-solid fa-receipt me-1"></i> Certified Summary
+                    </button>
+                    <button type="button" class="btn btn-outline-primary fw-semibold" id="btnModeJson" onclick="switchModalQRMode('json')">
+                        <i class="fa-solid fa-code me-1"></i> JSON Metadata
+                    </button>
+                </div>
+
+                <!-- QR Container with Frame -->
+                <div class="p-3 bg-light rounded-4 border d-inline-block position-relative shadow-sm mb-3" style="min-width: 240px; min-height: 240px;">
+                    <div id="modalQRLoader" class="position-absolute top-50 start-50 translate-middle text-muted" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading dynamic QR code...</span>
+                        </div>
+                        <div class="small fw-semibold mt-2">Generating QR...</div>
+                    </div>
+                    <img id="modalQRImage" src="" alt="Dynamically Generated QR Code" class="img-fluid rounded-3" style="width: 210px; height: 210px; image-rendering: pixelated; display: block; margin: 0 auto;">
+                </div>
+
+                <!-- Verification Badge -->
+                <div class="mb-3">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-bold" id="modalQRBadge">
+                        <i class="fa-solid fa-bolt me-1"></i> [ INSTANT UPI PAYMENT QR ]
+                    </span>
+                </div>
+
+                <!-- Live Model Data Breakdown Card -->
+                <div class="card border-0 bg-light rounded-3 text-start p-3 mb-2">
+                    <div class="row g-2 small">
+                        <div class="col-6">
+                            <span class="text-muted d-block" style="font-size: 0.75rem;">Invoice Number:</span>
+                            <strong class="text-dark" id="modalInvNumber">-</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted d-block" style="font-size: 0.75rem;">Customer:</span>
+                            <strong class="text-dark" id="modalCustName">-</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted d-block" style="font-size: 0.75rem;">Grand Total:</span>
+                            <strong class="text-primary fs-6" id="modalTotalAmount">₹0.00</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted d-block" style="font-size: 0.75rem;">Date Created:</span>
+                            <span class="text-dark fw-semibold" id="modalInvDate">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Encoded Payload Preview -->
+                <details class="text-start mt-2">
+                    <summary class="small text-muted fw-semibold" style="cursor: pointer;">
+                        <i class="fa-solid fa-terminal me-1"></i> View Decoded QR Payload
+                    </summary>
+                    <pre class="bg-dark text-white p-2 rounded-3 small mt-2 mb-0" id="modalPayloadPreview" style="font-size: 0.75rem; max-height: 120px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;"></pre>
+                </details>
+            </div>
+
+            <div class="modal-footer bg-light px-4 py-3 d-flex justify-content-between">
+                <a id="modalDownloadQRPng" href="#" download="Invoice_QR.png" class="btn btn-sm btn-outline-primary fw-semibold">
+                    <i class="fa-solid fa-download me-1"></i> Save PNG
+                </a>
+                <div class="d-flex gap-2">
+                    <a id="modalDownloadPDF" href="#" class="btn btn-sm btn-danger fw-semibold" onclick="downloadServerPDF(this, currentModalInvoiceId, currentModalInvoiceNumber); return false;">
+                        <i class="fa-solid fa-file-pdf me-1"></i> PDF
+                    </a>
+                    <button type="button" class="btn btn-sm btn-secondary fw-semibold px-3" data-bs-dismiss="modal" onclick="closeDynamicQRModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap 5 Bundle JS for Modal interactions -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+let currentModalInvoiceId = null;
+let currentModalInvoiceNumber = null;
+let currentModalQRMode = 'upi';
+
+
+function openDynamicQRModalFromBtn(btn) {
+    var invId = btn.getAttribute('data-invoice-id');
+    var invNumber = btn.getAttribute('data-invoice-number');
+    var custName = btn.getAttribute('data-customer-name');
+    var totalAmt = btn.getAttribute('data-grand-total');
+    var invDate = btn.getAttribute('data-created-at');
+    var status = btn.getAttribute('data-status');
+    openDynamicQRModal(invId, invNumber, custName, totalAmt, invDate, status);
+}
+
+function openDynamicQRModal(invId, invNumber, custName, totalAmt, invDate, status) {
+    currentModalInvoiceId = invId;
+    currentModalInvoiceNumber = invNumber;
+    
+    document.getElementById('modalInvSubtitle').textContent = 'Invoice #' + invNumber + ' (ID: ' + invId + ')';
+    document.getElementById('modalInvNumber').textContent = '#' + invNumber;
+    document.getElementById('modalCustName').textContent = custName || 'N/A';
+    document.getElementById('modalTotalAmount').textContent = '₹' + totalAmt;
+    document.getElementById('modalInvDate').textContent = invDate || '';
+    
+    currentModalQRMode = 'upi';
+    updateModeButtons('upi');
+
+    document.getElementById('modalDownloadQRPng').href = '/invoice/' + invId + '/qr.png?format=' + currentModalQRMode;
+    document.getElementById('modalDownloadQRPng').download = 'Invoice_' + invNumber + '_QR.png';
+    document.getElementById('modalDownloadPDF').href = '/invoice/' + invId + '/pdf/?qr_mode=' + currentModalQRMode;
+    
+    loadModalQR(invId, currentModalQRMode);
+    
+    const modalEl = document.getElementById('qrPreviewModal');
+    if (window.bootstrap && bootstrap.Modal) {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    } else {
+        modalEl.classList.add('show');
+        modalEl.style.display = 'block';
+        modalEl.removeAttribute('aria-hidden');
+    }
+}
+
+function closeDynamicQRModal() {
+    const modalEl = document.getElementById('qrPreviewModal');
+    if (window.bootstrap && bootstrap.Modal) {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+    }
+    modalEl.classList.remove('show');
+    modalEl.style.display = 'none';
+    modalEl.setAttribute('aria-hidden', 'true');
+    const backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) backdrop.remove();
+}
+
+function switchModalQRMode(mode) {
+    currentModalQRMode = mode;
+    updateModeButtons(mode);
+    if (currentModalInvoiceId) {
+        document.getElementById('modalDownloadQRPng').href = '/invoice/' + currentModalInvoiceId + '/qr.png?format=' + mode;
+        document.getElementById('modalDownloadPDF').href = '/invoice/' + currentModalInvoiceId + '/pdf/?qr_mode=' + mode;
+        loadModalQR(currentModalInvoiceId, mode);
+    }
+}
+
+function updateModeButtons(activeMode) {
+    const modes = ['upi', 'text', 'json'];
+    modes.forEach(function(m) {
+        const btn = document.getElementById('btnMode' + m.charAt(0).toUpperCase() + m.slice(1));
+        if (btn) {
+            if (m === activeMode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+    });
+}
+
+function loadModalQR(invId, mode) {
+    const qrImg = document.getElementById('modalQRImage');
+    const loader = document.getElementById('modalQRLoader');
+    const payloadPre = document.getElementById('modalPayloadPreview');
+    const badge = document.getElementById('modalQRBadge');
+    
+    if (loader) loader.style.display = 'block';
+    if (qrImg) qrImg.style.opacity = '0.3';
+    
+    fetch('/api/invoice/' + invId + '/qr-code/?mode=' + mode)
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (loader) loader.style.display = 'none';
+            if (qrImg) {
+                qrImg.style.opacity = '1';
+                qrImg.src = data.qr_data_uri || ('/invoice/' + invId + '/qr.png?format=' + mode);
+            }
+            if (payloadPre) {
+                payloadPre.textContent = data.active_payload || data.encoded_payload || '';
+            }
+            if (badge) {
+                if (mode === 'upi') {
+                    badge.innerHTML = '<i class="fa-solid fa-bolt me-1"></i> [ INSTANT UPI PAYMENT QR ]';
+                    badge.className = 'badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fw-bold';
+                } else if (mode === 'json') {
+                    badge.innerHTML = '<i class="fa-solid fa-code me-1"></i> [ STRUCTURED JSON QR METADATA ]';
+                    badge.className = 'badge bg-info-subtle text-info border border-info-subtle px-3 py-2 rounded-pill fw-bold';
+                } else {
+                    badge.innerHTML = '<i class="fa-solid fa-circle-check me-1"></i> [ DIGITALLY VERIFIED QR INVOICE ]';
+                    badge.className = 'badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-bold';
+                }
+            }
+        })
+        .catch(function(err) {
+            if (loader) loader.style.display = 'none';
+            if (qrImg) {
+                qrImg.style.opacity = '1';
+                qrImg.src = '/invoice/' + invId + '/qr.png?format=' + mode + '&t=' + Date.now();
+            }
+        });
+}
+
 {% endblock %}
