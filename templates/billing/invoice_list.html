@@ -2,13 +2,77 @@
 
 {% block title %}All Invoices - Advance Billing System{% endblock %}
 
+{% block extra_css %}
+<!-- Bootstrap 5 CSS CDN for Bootstrap-styled Table Components -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<style>
+    /* Bootstrap Table & Layout Enhancements */
+    .invoice-bootstrap-table-wrapper {
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+    }
+    .invoice-bootstrap-table thead th {
+        background: #0f172a !important;
+        color: #f8fafc !important;
+        font-size: 0.78rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        padding: 13px 16px !important;
+        vertical-align: middle !important;
+        border-bottom: 2px solid #334155 !important;
+    }
+    .invoice-bootstrap-table tbody td {
+        padding: 13px 16px !important;
+        vertical-align: middle !important;
+        font-size: 0.90rem !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+    }
+    .invoice-bootstrap-table tbody tr:hover {
+        background-color: #f8fafc !important;
+    }
+    .badge-status-pill {
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        padding: 5px 12px;
+        border-radius: 9999px;
+    }
+    /* Ensure Bootstrap reset doesn't break app-wrapper flex layout */
+    .app-wrapper {
+        display: flex !important;
+    }
+    .main-content {
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title"><i class="fa-solid fa-file-invoice" style="color: var(--primary);"></i> Invoices</h1>
-        <p class="page-subtitle">View, filter by date range, and audit all generated invoices.</p>
+        <h1 class="page-title d-flex align-items-center gap-2">
+            <i class="fa-solid fa-file-invoice" style="color: var(--primary);"></i> Invoices
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 px-3 py-1" style="font-size: 0.8rem !important;">
+                <i class="fa-solid fa-table me-1"></i> Bootstrap Table
+            </span>
+        </h1>
+        <p class="page-subtitle">Fetch all invoice records from the database and display them in a responsive Bootstrap-styled table.</p>
     </div>
     <div class="page-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        {% if per_page == 'all' %}
+            <a href="?per_page=10{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn-secondary-action" style="padding: 10px 16px; border-radius: 12px; font-weight: 600;" title="Switch to Paginated View">
+                <i class="fa-solid fa-layer-group"></i> Paginated View (10)
+            </a>
+        {% else %}
+            <a href="?per_page=all{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn-secondary-action" style="background: #eef2ff; color: #4338ca; border-color: #c7d2fe; padding: 10px 16px; border-radius: 12px; font-weight: 700;" title="Fetch and display all invoice records at once">
+                <i class="fa-solid fa-list-check"></i> View All ({{ total_invoices_count }})
+            </a>
+        {% endif %}
         <a href="{% url 'api_all_invoices_details' %}?download=1" onclick="downloadAllInvoicesJSON(this, event)" class="btn-secondary-action" style="background: #ecfdf5; color: #047857; border: 1.5px solid #a7f3d0; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 12px; text-decoration: none; cursor: pointer;" title="Download all fetched invoices details (ID, Customer, Total, Date) as JSON">
             <i class="fa-solid fa-download"></i> Export JSON
         </a>
@@ -65,7 +129,7 @@
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
     <div class="dashboard-card" style="padding: 1.25rem 1.5rem; border-left: 4px solid #4f46e5; margin: 0; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);">
         <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em;">
-            <i class="fa-solid fa-file-invoice" style="color: #4f46e5; margin-right: 6px;"></i> Total Invoices in Range
+            <i class="fa-solid fa-file-invoice" style="color: #4f46e5; margin-right: 6px;"></i> Total Invoices
         </div>
         <div style="font-size: 1.65rem; font-weight: 800; color: #0f172a; margin-top: 4px;">
             {{ total_invoices_count }}
@@ -74,7 +138,7 @@
             {% if start_date or end_date %}
                 Range: {{ start_date|default:"Start" }} to {{ end_date|default:"Present" }}
             {% else %}
-                All time total
+                All records fetched from DB
             {% endif %}
         </div>
     </div>
@@ -87,7 +151,7 @@
             ₹{{ total_amount_collected|floatformat:2 }}
         </div>
         <div style="font-size: 0.78rem; color: #10b981; margin-top: 2px;">
-            Settled collections in range
+            Settled collections
         </div>
     </div>
 
@@ -99,7 +163,7 @@
             ₹{{ total_amount_billed|floatformat:2 }}
         </div>
         <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 2px;">
-            Gross value in range
+            Gross value in DB
         </div>
     </div>
 
@@ -111,88 +175,137 @@
             ₹{{ total_pending_amount|floatformat:2 }}
         </div>
         <div style="font-size: 0.78rem; color: #d97706; margin-top: 2px;">
-            Pending payments in range
+            Pending payments
         </div>
     </div>
 </div>
 
-<div class="dashboard-card" id="tableViewContainer">
-    <div class="table-responsive">
-        <table class="app-table">
-            <thead>
-                <tr>
-                    <th>Invoice #</th>
-                    <th>Customer Name</th>
-                    <th>Products</th>
-                    <th>Date</th>
-                    <th style="text-align: right;">Total Amount</th>
-                    <th style="text-align: center;">Status</th>
-                    <th style="text-align: right;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if invoices %}
-                    {% for invoice in invoices %}
+<!-- Bootstrap-styled Invoices Table Card -->
+<div class="dashboard-card" id="tableViewContainer" style="padding: 0; overflow: hidden; border: none; background: transparent;">
+    <div class="invoice-bootstrap-table-wrapper">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered align-middle app-table invoice-bootstrap-table mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th scope="col" style="width: 14%;">Invoice #</th>
+                        <th scope="col" style="width: 22%;">Customer Name</th>
+                        <th scope="col" style="width: 24%;">Products / Items</th>
+                        <th scope="col" style="width: 13%;">Date</th>
+                        <th scope="col" class="text-end" style="width: 12%;">Total Amount</th>
+                        <th scope="col" class="text-center" style="width: 7%;">Status</th>
+                        <th scope="col" class="text-end" style="width: 8%;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if invoices %}
+                        {% for invoice in invoices %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-primary">#{{ invoice.invoice_number }}</div>
+                                    <small class="text-muted"><i class="fa-solid fa-hashtag me-1"></i>ID: {{ invoice.id }}</small>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark">{{ invoice.customer_name }}</div>
+                                    {% if invoice.customer_phone %}
+                                        <small class="text-muted"><i class="fa-solid fa-phone me-1" style="font-size: 0.75rem;"></i>{{ invoice.customer_phone }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if invoice.items.all %}
+                                        <div class="d-flex flex-wrap gap-1">
+                                            {% for item in invoice.items.all %}
+                                                <span class="badge bg-light text-dark border" style="font-weight: 500;">
+                                                    {{ item.product_name }} <strong class="text-primary">&times;{{ item.quantity }}</strong>
+                                                </span>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted fst-italic">No line items</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="text-nowrap fw-semibold text-dark">{{ invoice.created_at|date:"M d, Y" }}</div>
+                                    <small class="text-muted">{{ invoice.created_at|date:"h:i A" }}</small>
+                                </td>
+                                <td class="text-end">
+                                    <div class="fw-bold fs-6 text-dark">₹{{ invoice.grand_total|floatformat:2 }}</div>
+                                </td>
+                                <td class="text-center">
+                                    {% if invoice.payment_status == 'PAID' %}
+                                        <span class="badge bg-success badge-status-pill text-uppercase">PAID</span>
+                                    {% elif invoice.payment_status == 'PENDING' %}
+                                        <span class="badge bg-warning text-dark badge-status-pill text-uppercase">PENDING</span>
+                                    {% else %}
+                                        <span class="badge bg-danger badge-status-pill text-uppercase">{{ invoice.payment_status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="Invoice Actions">
+                                        <a href="{% url 'invoice_preview' invoice.id %}" class="btn btn-outline-primary" style="padding: 4px 8px;" title="Preview Invoice with Details & QR">
+                                            <i class="fa-solid fa-file-invoice"></i> Preview
+                                        </a>
+                                        <a href="{% url 'invoice_pdf' invoice.id %}" onclick="downloadServerPDF(this, '{{ invoice.id }}', '{{ invoice.invoice_number }}'); return false;" class="btn btn-outline-danger" style="padding: 4px 8px; cursor: pointer;" title="Download PDF with Verified QR">
+                                            <i class="fa-solid fa-file-pdf"></i> PDF
+                                        </a>
+                                        <a href="{% url 'invoice_qr' invoice.id %}" class="btn btn-outline-info" style="padding: 4px 8px;" title="View QR Code">
+                                            <i class="fa-solid fa-qrcode"></i> QR
+                                        </a>
+                                        <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-outline-secondary" style="padding: 4px 8px;" title="View Details">
+                                            <i class="fa-solid fa-eye"></i> View
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
                         <tr>
-                            <td style="font-weight: 700;">{{ invoice.invoice_number }}</td>
-                            <td>{{ invoice.customer_name }}</td>
-                            <td style="font-size: 0.85rem; color: var(--text-muted); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                {% for item in invoice.items.all %}
-                                    {{ item.product_name }} (x{{ item.quantity }}){% if not forloop.last %}, {% endif %}
-                                {% endfor %}
-                            </td>
-                            <td>{{ invoice.created_at|date:"M d, Y" }}</td>
-                            <td style="text-align: right; font-weight: 700;">₹{{ invoice.grand_total|floatformat:2 }}</td>
-                            <td style="text-align: center;">
-                                <span class="badge-status {{ invoice.payment_status|lower }}">{{ invoice.payment_status }}</span>
-                            </td>
-                            <td style="text-align: right;">
-                                <div style="display: flex; gap: 6px; justify-content: flex-end;">
-                                    <a href="{% url 'invoice_preview' invoice.id %}" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem; background: #eef2ff; color: #4f46e5; border-color: #c7d2fe;" title="Preview Invoice with Details & QR">
-                                        <i class="fa-solid fa-file-invoice"></i> Preview
-                                    </a>
-                                    <a href="{% url 'invoice_pdf' invoice.id %}" onclick="downloadServerPDF(this, '{{ invoice.id }}', '{{ invoice.invoice_number }}'); return false;" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem; background: #fee2e2; color: #b91c1c; border-color: #fca5a5; cursor: pointer;" title="Download PDF with Verified QR">
-                                        <i class="fa-solid fa-file-pdf"></i> PDF
-                                    </a>
-                                    <a href="{% url 'invoice_qr' invoice.id %}" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem; background: #e0e7ff; color: #4338ca; border-color: #c7d2fe;" title="View QR Code">
-                                        <i class="fa-solid fa-qrcode"></i> QR
-                                    </a>
-                                    <a href="{% url 'invoice_detail' invoice.id %}" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem;" title="View Invoice">
-                                        <i class="fa-solid fa-eye"></i> View
-                                    </a>
+                            <td colspan="7" class="text-center py-5">
+                                <div class="text-muted">
+                                    <i class="fa-solid fa-file-invoice fs-1 mb-3 text-secondary d-block"></i>
+                                    <h4 class="fw-bold text-dark">No invoices found</h4>
+                                    <p class="text-muted small mb-0">No invoice records match your current database query or filter criteria.</p>
                                 </div>
                             </td>
                         </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="6" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
-                            <i class="fa-solid fa-file-invoice" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--text-light);"></i>
-                            <h4>No invoices found</h4>
-                        </td>
-                    </tr>
-                {% endif %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Pagination -->
-    {% if invoices.has_other_pages %}
-    <div style="padding: 1rem; display: flex; justify-content: center;">
-        <div style="display: flex; gap: 0.5rem;">
-            {% if invoices.has_previous %}
-                <a href="?page={{ invoices.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn-secondary-action" style="padding: 0.5rem 1rem;">Previous</a>
-            {% endif %}
-            
-            <span class="btn-secondary-action" style="padding: 0.5rem 1rem; background: var(--bg-card); cursor: default;">
-                Page {{ invoices.number }} of {{ invoices.paginator.num_pages }}
-            </span>
-            
-            {% if invoices.has_next %}
-                <a href="?page={{ invoices.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn-secondary-action" style="padding: 0.5rem 1rem;">Next</a>
-            {% endif %}
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
     </div>
+
+    <!-- Bootstrap-styled Pagination -->
+    {% if is_paginated or invoices.has_other_pages %}
+    <nav aria-label="Invoice navigation" class="mt-4">
+        <ul class="pagination pagination-sm justify-content-center">
+            {% if invoices.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ invoices.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if per_page %}&per_page={{ per_page }}{% endif %}">
+                        <i class="fa-solid fa-chevron-left me-1"></i> Previous
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fa-solid fa-chevron-left me-1"></i> Previous</span>
+                </li>
+            {% endif %}
+
+            <li class="page-item active" aria-current="page">
+                <span class="page-link fw-bold">Page {{ invoices.number }} of {{ invoices.paginator.num_pages }}</span>
+            </li>
+
+            {% if invoices.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ invoices.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if per_page %}&per_page={{ per_page }}{% endif %}">
+                        Next <i class="fa-solid fa-chevron-right ms-1"></i>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Next <i class="fa-solid fa-chevron-right ms-1"></i></span>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
     {% endif %}
 </div>
 

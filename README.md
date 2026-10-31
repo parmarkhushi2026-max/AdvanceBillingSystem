@@ -8,6 +8,38 @@ A feature-packed, production-ready Django Billing, QR Payment, and Financial Int
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
+## 📊 🌟 Feature: Fetch All Invoices & Display in Bootstrap-Styled Table
+
+Full-stack database querying and frontend presentation displaying all invoice records in a clean, modern, responsive Bootstrap-styled table:
+- **Optimized Database Fetching (`billing_app/views.py`)**:
+  - Fetches complete invoice records from the database using high-efficiency SQL joins:
+    ```python
+    invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').all().order_by('-created_at')
+    ```
+  - Eliminates N+1 queries by eager-loading foreign key customer profiles, distributors, and itemized invoice line items simultaneously.
+  - Supports both standard pagination (`?page=1&per_page=10`) and full database retrieval (`?per_page=all`) to view all records in a single unified view.
+  - Granular real-time search across Invoice Number, Customer Name, and Customer Phone (`?q=...`), alongside payment status filtering (`?status=PAID|PENDING|FAILED`).
+- **Bootstrap 5 Table Presentation (`templates/billing/invoice_list.html`)**:
+  - Built with responsive Bootstrap 5 components:
+    - **Table Structure**: `<table class="table table-striped table-hover table-bordered align-middle app-table invoice-bootstrap-table mb-0">`
+    - **Header Strip**: `<thead class="table-dark">` with uppercase typography, sorting indicators, and fixed column width ratios.
+    - **Record Cells**:
+      - **Invoice Number & ID**: Bold `#INV-...` reference with unique primary key badge (`#ID`).
+      - **Customer Details**: Registered Customer Name with phone icon and direct contact string.
+      - **Line Items Badges**: Itemized product pill badges (`<span class="badge bg-light text-dark border">Product &times;Qty</span>`).
+      - **Timestamp**: Formatted date (`M d, Y`) with human-readable time (`h:i A`).
+      - **Financial Grand Total**: Highlighted bold currency format (`₹X,XXX.XX`).
+      - **Status Badges**: Semantic Bootstrap pill badges (`badge bg-success` for PAID, `badge bg-warning text-dark` for PENDING, `badge bg-danger` for FAILED).
+      - **Action Group**: Bootstrap button group (`btn-group btn-group-sm`) providing Preview, PDF Download (with success/failure alerts), QR Code, and Detailed view.
+    - **Bootstrap Pagination**: `<nav class="pagination pagination-sm justify-content-center">` with `page-item` and `page-link`.
+- **Dedicated & Canonical Endpoints**:
+  - Canonical URL: `GET /invoices/`
+  - Dedicated Bootstrap Table URL: `GET /invoices/table/` (and alias `GET /invoices/bootstrap/`)
+- **Automated Test Suite (`billing_app/test_invoice_bootstrap_table.py`)**:
+  - 8 comprehensive unit tests verifying database record retrieval, Bootstrap class assertions, core field table rendering, dedicated endpoint routing, view-all query parameter, and real-time filtering.
+
+---
+
 ## 📱 🌟 Feature: Dynamically Generated QR Code Embedded into PDF Layout
 
 Enterprise-grade on-the-fly QR code generation and direct embedding into both PDF generation pipelines (`xhtml2pdf` HTML/CSS and `ReportLab` Direct Flowable Canvas):

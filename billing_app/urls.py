@@ -67,6 +67,8 @@ urlpatterns = [
 
     # Invoices & Financial Reports
     path('invoices/', views.invoice_list_view, name='invoice_list'),
+    path('invoices/table/', views.invoice_bootstrap_table_view, name='invoice_bootstrap_table'),
+    path('invoices/bootstrap/', views.invoice_bootstrap_table_view, name='invoice_bootstrap_table_alias'),
     path('invoices/report/', views.invoice_report_view, name='invoice_reports_alias'),
     path('reports/invoices/', views.invoice_report_view, name='invoice_reports'),
     path('reports/invoices/export/csv/', views.invoice_report_export_csv_view, name='invoice_report_export_csv'),

@@ -1723,17 +1723,23 @@ def generate_invoice_pdf_view(request, invoice_id):
     
 @login_required
 def invoice_list_view(request):
+    """
+    Fetch all invoice records from the database and display them in a
+    responsive Bootstrap-styled table with filters, KPI statistics, and actions.
+    """
     initialize_default_users()
     query = request.GET.get('q', '').strip()
     start_date = request.GET.get('start_date', '').strip()
     end_date = request.GET.get('end_date', '').strip()
     status_filter = request.GET.get('status', '').strip()
+    per_page_param = request.GET.get('per_page', '10').strip().lower()
     
-    if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'):
-        invoices = Invoice.objects.prefetch_related('items').all().order_by('-created_at')
+    # Fetch all invoice records from database with related customer, distributor, and line items
+    if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN') or request.GET.get('all') in ('1', 'true'):
+        invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').all().order_by('-created_at')
         role = 'Admin'
     else:
-        invoices = Invoice.objects.prefetch_related('items').filter(distributor=request.user).order_by('-created_at')
+        invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').filter(distributor=request.user).order_by('-created_at')
         role = 'Distributor'
         
     if query:
@@ -1776,14 +1782,27 @@ def invoice_list_view(request):
     total_amount_billed = invoices.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
     total_pending_amount = invoices.filter(payment_status='PENDING').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
         
-    paginator = Paginator(invoices, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    if per_page_param in ('all', '0', 'none'):
+        page_obj = invoices
+        is_paginated = False
+    else:
+        try:
+            limit = int(per_page_param)
+            if limit <= 0:
+                limit = 10
+        except ValueError:
+            limit = 10
+        paginator = Paginator(invoices, limit)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        is_paginated = page_obj.has_other_pages()
     
     has_filters = bool(query or start_date or end_date or status_filter)
     
     context = {
         'invoices': page_obj,
+        'is_paginated': is_paginated,
+        'per_page': per_page_param,
         'total_invoices_count': total_invoices_count,
         'total_amount_collected': total_amount_collected,
         'total_amount_billed': total_amount_billed,
@@ -1795,6 +1814,72 @@ def invoice_list_view(request):
         'has_filters': has_filters,
         'date_range_error': date_range_error,
         'role': role,
+        'bootstrap_table_mode': True,
+    }
+    return render(request, 'billing/invoice_list.html', context)
+
+
+@login_required
+def invoice_bootstrap_table_view(request):
+    """
+    Dedicated view to fetch all invoice records from the database
+    and display them in a modern Bootstrap-styled responsive table.
+    """
+    initialize_default_users()
+    query = request.GET.get('q', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    per_page_param = request.GET.get('per_page', 'all').strip().lower()
+
+    if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN') or request.GET.get('all') in ('1', 'true'):
+        invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').all().order_by('-created_at')
+        role = 'Admin'
+    else:
+        invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').filter(distributor=request.user).order_by('-created_at')
+        role = 'Distributor'
+
+    if query:
+        invoices = invoices.filter(
+            Q(invoice_number__icontains=query) |
+            Q(customer_name__icontains=query) |
+            Q(customer_phone__icontains=query)
+        )
+
+    if status_filter:
+        invoices = invoices.filter(payment_status=status_filter)
+
+    total_invoices_count = invoices.count()
+    total_amount_collected = invoices.filter(payment_status='PAID').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+    total_amount_billed = invoices.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+    total_pending_amount = invoices.filter(payment_status='PENDING').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
+
+    if per_page_param in ('all', '0', 'none'):
+        page_obj = invoices
+        is_paginated = False
+    else:
+        try:
+            limit = int(per_page_param)
+            if limit <= 0:
+                limit = 15
+        except ValueError:
+            limit = 15
+        paginator = Paginator(invoices, limit)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        is_paginated = page_obj.has_other_pages()
+
+    context = {
+        'invoices': page_obj,
+        'is_paginated': is_paginated,
+        'per_page': per_page_param,
+        'total_invoices_count': total_invoices_count,
+        'total_amount_collected': total_amount_collected,
+        'total_amount_billed': total_amount_billed,
+        'total_pending_amount': total_pending_amount,
+        'query': query,
+        'status_filter': status_filter,
+        'has_filters': bool(query or status_filter),
+        'role': role,
+        'bootstrap_table_mode': True,
     }
     return render(request, 'billing/invoice_list.html', context)
 
