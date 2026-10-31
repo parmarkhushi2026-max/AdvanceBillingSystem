@@ -862,7 +862,8 @@ def api_invoice_details(request, invoice_id):
     Supports ?download=1 to export/download as JSON attachment.
     """
     try:
-        invoice = Invoice.objects.get(id=invoice_id)
+        # Fetch corresponding invoice record and related customer entry from DB
+        invoice = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').get(id=invoice_id)
     except Invoice.DoesNotExist:
         return JsonResponse({
             'status': 'error',
@@ -1698,7 +1699,8 @@ def generate_invoice_pdf_view(request, invoice_id):
     qr_engine = request.GET.get('qr_engine', 'auto').strip().lower()
 
     try:
-        invoice = Invoice.objects.get(id=invoice_id)
+        # Fetch corresponding invoice record and related customer entry from DB
+        invoice = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').get(id=invoice_id)
     except Invoice.DoesNotExist:
         if is_ajax:
             return JsonResponse({'status': 'error', 'success': False, 'error': f'Invoice #{invoice_id} not found in database.'}, status=404)

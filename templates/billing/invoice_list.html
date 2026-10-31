@@ -187,13 +187,13 @@
             <table class="table table-striped table-hover table-bordered align-middle app-table invoice-bootstrap-table mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th scope="col" style="width: 14%;">Invoice #</th>
-                        <th scope="col" style="width: 22%;">Customer Name</th>
-                        <th scope="col" style="width: 24%;">Products / Items</th>
-                        <th scope="col" style="width: 13%;">Date</th>
-                        <th scope="col" class="text-end" style="width: 12%;">Total Amount</th>
+                        <th scope="col" style="width: 12%;">Invoice #</th>
+                        <th scope="col" style="width: 18%;">Customer Name</th>
+                        <th scope="col" style="width: 20%;">Products / Items</th>
+                        <th scope="col" style="width: 12%;">Date</th>
+                        <th scope="col" class="text-end" style="width: 11%;">Total Amount</th>
                         <th scope="col" class="text-center" style="width: 7%;">Status</th>
-                        <th scope="col" class="text-end" style="width: 8%;">Actions</th>
+                        <th scope="col" class="text-end" style="width: 20%;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -210,6 +210,7 @@
                                                 data-grand-total="{{ invoice.grand_total|floatformat:2 }}"
                                                 data-created-at="{{ invoice.created_at|date:'M d, Y' }}"
                                                 data-status="{{ invoice.payment_status }}"
+                                                data-qr-url="{% url 'invoice_qr' invoice.id %}"
                                                 onclick="openDynamicQRModalFromBtn(this)"
                                                 title="Preview dynamically generated QR code for Invoice #{{ invoice.invoice_number }}"
                                                 aria-label="Preview QR Code">
@@ -256,31 +257,40 @@
                                         <span class="badge bg-danger badge-status-pill text-uppercase">{{ invoice.payment_status }}</span>
                                     {% endif %}
                                 </td>
-                                <td class="text-end">
-                                    <div class="btn-group btn-group-sm" role="group" aria-label="Invoice Actions">
-                                        <button type="button" 
-                                                class="btn btn-outline-info qr-preview-action-btn" 
-                                                data-customer-name="{{ invoice.customer_name }}"
-                                                data-grand-total="{{ invoice.grand_total|floatformat:2 }}"
-                                                data-created-at="{{ invoice.created_at|date:'M d, Y' }}"
-                                                data-status="{{ invoice.payment_status }}"
-                                                onclick="openDynamicQRModalFromBtn(this)"
-                                                style="padding: 4px 8px;" 
-                                                title="Preview dynamically generated QR code">
-                                            <i class="fa-solid fa-qrcode"></i> QR Preview
-                                        </button>
-                                        <a href="{% url 'invoice_preview' invoice.id %}" class="btn btn-outline-primary" style="padding: 4px 8px;" title="Preview Invoice with Details & QR">
-                                            <i class="fa-solid fa-file-invoice"></i> Preview
+                                <td class="text-end text-nowrap">
+                                    <div class="d-inline-flex align-items-center justify-content-end gap-1 flex-wrap">
+                                        <a href="{% url 'invoice_pdf' invoice.id %}" 
+                                           onclick="downloadServerPDF(this, '{{ invoice.id }}', '{{ invoice.invoice_number }}'); return false;" 
+                                           class="btn btn-danger btn-sm download-pdf-btn" 
+                                           style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(220, 38, 38, 0.2);" 
+                                           title="Download Invoice #{{ invoice.invoice_number }} as PDF" 
+                                           aria-label="Download PDF for Invoice #{{ invoice.invoice_number }}" 
+                                           data-invoice-id="{{ invoice.id }}" 
+                                           data-customer-id="{{ invoice.customer_id|default:'' }}">
+                                            <i class="fa-solid fa-file-pdf"></i> Download PDF
                                         </a>
-                                        <a href="{% url 'invoice_pdf' invoice.id %}" onclick="downloadServerPDF(this, '{{ invoice.id }}', '{{ invoice.invoice_number }}'); return false;" class="btn btn-outline-danger" style="padding: 4px 8px; cursor: pointer;" title="Download PDF with Verified QR">
-                                            <i class="fa-solid fa-file-pdf"></i> PDF
-                                        </a>
-                                        <a href="{% url 'invoice_qr' invoice.id %}" class="btn btn-outline-info" style="padding: 4px 8px;" title="View QR Code">
-                                            <i class="fa-solid fa-qrcode"></i> QR
-                                        </a>
-                                        <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-outline-secondary" style="padding: 4px 8px;" title="View Details">
-                                            <i class="fa-solid fa-eye"></i> View
-                                        </a>
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="Invoice Actions">
+                                            <button type="button" 
+                                                    class="btn btn-outline-info qr-preview-action-btn" 
+                                                    data-invoice-id="{{ invoice.id }}"
+                                                    data-invoice-number="{{ invoice.invoice_number }}"
+                                                    data-customer-name="{{ invoice.customer_name }}"
+                                                    data-grand-total="{{ invoice.grand_total|floatformat:2 }}"
+                                                    data-created-at="{{ invoice.created_at|date:'M d, Y' }}"
+                                                    data-status="{{ invoice.payment_status }}"
+                                                    data-qr-url="{% url 'invoice_qr' invoice.id %}"
+                                                    onclick="openDynamicQRModalFromBtn(this)"
+                                                    style="padding: 4px 8px;" 
+                                                    title="Preview dynamically generated QR code">
+                                                <i class="fa-solid fa-qrcode"></i> QR Preview
+                                            </button>
+                                            <a href="{% url 'invoice_preview' invoice.id %}" class="btn btn-outline-primary" style="padding: 4px 8px;" title="Preview Invoice with Details & QR">
+                                                <i class="fa-solid fa-file-invoice"></i> Preview
+                                            </a>
+                                            <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-outline-secondary" style="padding: 4px 8px;" title="View Details">
+                                                <i class="fa-solid fa-eye"></i> View
+                                            </a>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>

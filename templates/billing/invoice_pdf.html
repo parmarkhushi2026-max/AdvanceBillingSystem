@@ -316,16 +316,22 @@
             <td style="width: 49%; padding-right: 6px;">
                 <div class="party-box">
                     <div class="party-label">Billed To (Customer Details)</div>
-                    <div class="party-name">{{ invoice.customer_name }}</div>
+                    <div class="party-name">{{ customer_name|default:invoice.customer_name }}</div>
                     <div class="party-info">
-                        Contact: {{ invoice.customer_phone }}<br>
-                        {% if invoice.customer and invoice.customer.email %}
+                        Contact: {{ customer_phone|default:invoice.customer_phone }}<br>
+                        {% if customer_email %}
+                            Email: {{ customer_email }}<br>
+                        {% elif invoice.customer and invoice.customer.email %}
                             Email: {{ invoice.customer.email }}<br>
                         {% endif %}
-                        {% if invoice.customer and invoice.customer.address %}
+                        {% if customer_address %}
+                            Address: {{ customer_address }}{% if customer_city %}, {{ customer_city }}{% endif %}<br>
+                        {% elif invoice.customer and invoice.customer.address %}
                             Address: {{ invoice.customer.address }}{% if invoice.customer.city %}, {{ invoice.customer.city }}{% endif %}<br>
                         {% endif %}
-                        {% if invoice.customer and invoice.customer.gstin %}
+                        {% if customer_gstin %}
+                            <strong>Customer GSTIN: {{ customer_gstin }}</strong>
+                        {% elif invoice.customer and invoice.customer.gstin %}
                             <strong>Customer GSTIN: {{ invoice.customer.gstin }}</strong>
                         {% endif %}
                     </div>

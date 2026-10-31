@@ -47,6 +47,15 @@ def get_invoice_pdf_context(invoice, qr_mode='text', qr_engine='auto'):
     business_gstin = getattr(profile, 'gstin', None) or '27AABCU9603R1ZM'
     upi_id = getattr(profile, 'upi_id', None) or 'advancebilling@upi'
 
+    # Customer entry fetched from DB
+    customer = invoice.customer or getattr(invoice, 'customer_ref', None)
+    customer_name = invoice.customer_name or (customer.name if customer else 'Valued Customer')
+    customer_phone = invoice.customer_phone or (customer.phone if customer else '')
+    customer_email = getattr(customer, 'email', None) or ''
+    customer_address = getattr(customer, 'address', None) or ''
+    customer_city = getattr(customer, 'city', None) or ''
+    customer_gstin = getattr(customer, 'gstin', None) or ''
+
     # Dynamically generate QR code bundle for live invoice values
     try:
         bundle = generate_invoice_qr_bundle(invoice, engine=qr_engine, payload_format=qr_mode)
@@ -71,6 +80,13 @@ def get_invoice_pdf_context(invoice, qr_mode='text', qr_engine='auto'):
 
     return {
         'invoice': invoice,
+        'customer': customer,
+        'customer_name': customer_name,
+        'customer_phone': customer_phone,
+        'customer_email': customer_email,
+        'customer_address': customer_address,
+        'customer_city': customer_city,
+        'customer_gstin': customer_gstin,
         'items': invoice.items.all(),
         'upi_id': upi_id,
         'business_name': business_name,
@@ -266,16 +282,25 @@ def render_invoice_to_pdf_reportlab(invoice, qr_mode='text', qr_engine='auto'):
     story.append(Spacer(1, 4))
 
     # 3. Customer Info and Logistics Table
-    cust = invoice.customer
+    cust = context.get('customer') or invoice.customer or getattr(invoice, 'customer_ref', None)
+    cust_name = context.get('customer_name') or invoice.customer_name
+    cust_phone = context.get('customer_phone') or invoice.customer_phone
+    cust_addr = context.get('customer_address') or (cust.address if cust else '')
+    cust_city = context.get('customer_city') or (cust.city if cust else '')
+    cust_gstin = context.get('customer_gstin') or (cust.gstin if cust else '')
+    cust_email = context.get('customer_email') or (cust.email if cust else '')
+
     cust_text = (
         f"<b>BILLED TO (CUSTOMER DETAILS)</b><br/>"
-        f"<b>{invoice.customer_name}</b><br/>"
-        f"Contact: {invoice.customer_phone}<br/>"
+        f"<b>{cust_name}</b><br/>"
+        f"Contact: {cust_phone}<br/>"
     )
-    if cust and cust.address:
-        cust_text += f"Address: {cust.address}" + (f", {cust.city}" if cust.city else "") + "<br/>"
-    if cust and cust.gstin:
-        cust_text += f"<b>Customer GSTIN: {cust.gstin}</b>"
+    if cust_email:
+        cust_text += f"Email: {cust_email}<br/>"
+    if cust_addr:
+        cust_text += f"Address: {cust_addr}" + (f", {cust_city}" if cust_city else "") + "<br/>"
+    if cust_gstin:
+        cust_text += f"<b>Customer GSTIN: {cust_gstin}</b>"
 
     logistics_text = (
         f"<b>INVOICE &amp; PAYMENT LOGISTICS</b><br/>"

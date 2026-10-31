@@ -115,3 +115,4 @@ class InvoiceQRPreviewIconTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'qr-preview-icon')
         self.assertContains(response, 'id="qrPreviewModal"')
+

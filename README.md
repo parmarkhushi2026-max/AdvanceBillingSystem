@@ -2,11 +2,40 @@
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 [![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
-[![Tests](https://img.shields.io/badge/Tests-155%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+[![Tests](https://img.shields.io/badge/Tests-160%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
 A feature-packed, production-ready Django Billing, QR Payment, and Financial Intelligence System designed for managing distributors, customers, dynamic UPI QR code billing, audit reporting, tax receipts, and ledger tracking.
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+
+## 📥 🌟 Feature: Download PDF Button Beside Each Row (With DB Customer & Invoice Data)
+
+A dedicated, styled "Download PDF" button placed beside each invoice row in the table, fetching accurate data directly from the corresponding Invoice ID and Customer DB records:
+- **Dedicated Row-Level "Download PDF" Button (`templates/billing/invoice_list.html`)**:
+  - Embedded prominently beside each invoice entry in the Actions table column:
+    - Styled with high-visibility Bootstrap button design: `<a href="/invoice/<id>/pdf/" class="btn btn-danger btn-sm download-pdf-btn" ...>` with `<i class="fa-solid fa-file-pdf"></i> Download PDF`.
+    - Distinct semantic data attributes: `data-invoice-id="{{ invoice.id }}"` and `data-customer-id="{{ invoice.customer_id }}"`.
+    - Integrated with instant client-side download streaming and alert notifications via `downloadServerPDF(this, '<id>', '<number>')`.
+- **Accurate Database-Driven PDF Generation (`billing_app/views.py` & `billing_app/pdf_generator.py`)**:
+  - Backend query fetches full relational data from the database using:
+    ```python
+    Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').get(id=invoice_id)
+    ```
+  - Accurately resolves the linked `Customer` model entry:
+    - Customer Name, Contact Number, Email, Billing Address, City, and GSTIN are retrieved directly from the DB entry.
+    - Graceful fallback for walk-in / legacy invoices without an attached foreign key customer record (`invoice.customer_name`, `invoice.customer_phone`).
+- **Comprehensive Dual-Engine PDF Export**:
+  - **`xhtml2pdf` Engine**: Certified HTML/CSS template (`templates/billing/invoice_pdf.html`) displaying full customer information box (name, contact, email, address, GSTIN) and dynamically generated QR code.
+  - **`ReportLab` Engine**: Programmatic canvas PDF generation with customer profile block and itemized billing ledger.
+- **Automated Test Suite (`billing_app/test_download_pdf_row_button.py`)**:
+  - 5 comprehensive automated tests:
+    - `test_download_pdf_button_rendered_beside_each_row`: Verifies presence, attributes, and styling of the "Download PDF" button for all invoices in the list.
+    - `test_pdf_view_fetches_customer_from_db`: Asserts that PDF export pulls exact customer data (Name, Phone, Email, GSTIN, Address) from the `Customer` DB record.
+    - `test_download_pdf_streams_valid_pdf_content`: Tests both `xhtml2pdf` and `reportlab` engines stream valid `%PDF` headers and attachment filenames.
+    - `test_download_pdf_404_for_nonexistent_invoice`: Handles invalid invoice IDs with proper 404 responses.
+    - `test_distributor_download_pdf_access_control`: Enforces distributor tenant isolation and unauthorized access prevention.
+
+---
 
 ## 🔍 🌟 Feature: Preview Icon Beside Each Invoice Entry for Dynamic QR Code
 
