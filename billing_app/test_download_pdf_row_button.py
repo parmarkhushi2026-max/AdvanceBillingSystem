@@ -141,3 +141,4 @@ class DownloadPDFRowButtonTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'download-pdf-btn')
         self.assertContains(response, reverse('invoice_pdf', args=[self.invoice.id]))
+

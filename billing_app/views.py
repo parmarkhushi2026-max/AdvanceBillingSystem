@@ -1,3 +1,4 @@
+import re
 import json
 import csv
 import uuid
@@ -906,13 +907,80 @@ def api_invoice_details(request, invoice_id):
 def api_all_invoices_details(request):
     """
     Fetch complete invoice details (ID, customer name, total, date) for all invoices from the database.
-    Supports limit, query parameters, and ?download=1 for file download.
+    Supports customer name, invoice ID, and general search filters with pagination to limit results per page.
+    Supports ?download=1 for JSON file download.
     """
-    limit = int(request.GET.get('limit', 100))
-    invoices = Invoice.objects.prefetch_related('items').all().order_by('-created_at')[:limit]
-    
+    customer_name = request.GET.get('customer_name', '').strip()
+    invoice_id = request.GET.get('invoice_id', '').strip()
+    query = request.GET.get('q', '').strip()
+    per_page_param = (
+        request.GET.get('per_page') or 
+        request.GET.get('limit') or 
+        request.GET.get('page_size') or 
+        '100'
+    ).strip().lower()
+
+    invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').all().order_by('-created_at')
+
+    # Query filter by customer name using Django Q filters
+    if customer_name:
+        invoices = invoices.filter(
+            Q(customer_name__icontains=customer_name) |
+            Q(customer__name__icontains=customer_name)
+        )
+
+    # Query filter by invoice ID using Django Q filters
+    if invoice_id:
+        clean_inv_id = invoice_id.lstrip('#').strip()
+        id_q = Q(invoice_number__icontains=clean_inv_id)
+        if clean_inv_id.isdigit():
+            id_q |= Q(id=int(clean_inv_id))
+        num_match = re.search(r'\d+', clean_inv_id)
+        if num_match and len(num_match.group(0)) <= 9:
+            id_q |= Q(id=int(num_match.group(0)))
+        invoices = invoices.filter(id_q)
+
+    # Universal search query
+    if query:
+        q_clean = query.lstrip('#').strip()
+        q_filter = (
+            Q(customer_name__icontains=query) |
+            Q(customer__name__icontains=query) |
+            Q(customer_phone__icontains=query) |
+            Q(invoice_number__icontains=q_clean)
+        )
+        if q_clean.isdigit():
+            q_filter |= Q(id=int(q_clean))
+        num_match = re.search(r'\d+', q_clean)
+        if num_match and len(num_match.group(0)) <= 9:
+            q_filter |= Q(id=int(num_match.group(0)))
+        invoices = invoices.filter(q_filter)
+
+    total_count = invoices.count()
+
+    # Pagination to limit results per page
+    if per_page_param in ('all', '0', 'none', 'unlimited'):
+        page_invoices = invoices
+        page_num = 1
+        num_pages = 1
+        is_paginated = False
+    else:
+        try:
+            limit = int(per_page_param)
+            if limit <= 0:
+                limit = 100
+        except ValueError:
+            limit = 100
+        paginator = Paginator(invoices, limit)
+        page_param = request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_param)
+        page_invoices = page_obj.object_list
+        page_num = page_obj.number
+        num_pages = paginator.num_pages
+        is_paginated = page_obj.has_other_pages()
+
     results = []
-    for inv in invoices:
+    for inv in page_invoices:
         d = inv.get_complete_details()
         results.append({
             'id': d['id'],
@@ -929,11 +997,15 @@ def api_all_invoices_details(request):
             'payment_method': d['payment_method'],
             'items_count': len(d['items']),
         })
-        
+
     response = JsonResponse({
         'status': 'success',
         'success': True,
-        'total_count': len(results),
+        'total_count': total_count,
+        'returned_count': len(results),
+        'page': page_num,
+        'num_pages': num_pages,
+        'is_paginated': is_paginated,
         'invoices': results
     }, json_dumps_params={'indent': 2})
 
@@ -1729,14 +1801,22 @@ def generate_invoice_pdf_view(request, invoice_id):
 def invoice_list_view(request):
     """
     Fetch all invoice records from the database and display them in a
-    responsive Bootstrap-styled table with filters, KPI statistics, and actions.
+    responsive Bootstrap-styled table with customer name and invoice ID search filters,
+    pagination to limit results per page, KPI statistics, and actions.
     """
     initialize_default_users()
     query = request.GET.get('q', '').strip()
+    customer_name = request.GET.get('customer_name', '').strip()
+    invoice_id = request.GET.get('invoice_id', '').strip()
     start_date = request.GET.get('start_date', '').strip()
     end_date = request.GET.get('end_date', '').strip()
     status_filter = request.GET.get('status', '').strip()
-    per_page_param = request.GET.get('per_page', '10').strip().lower()
+    per_page_param = (
+        request.GET.get('per_page') or 
+        request.GET.get('page_size') or 
+        request.GET.get('limit') or 
+        '10'
+    ).strip().lower()
     
     # Fetch all invoice records from database with related customer, distributor, and line items
     if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN') or request.GET.get('all') in ('1', 'true'):
@@ -1746,12 +1826,40 @@ def invoice_list_view(request):
         invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').filter(distributor=request.user).order_by('-created_at')
         role = 'Distributor'
         
-    if query:
+    # Search by customer name using Django query filters (Q object)
+    if customer_name:
         invoices = invoices.filter(
-            Q(invoice_number__icontains=query) |
-            Q(customer_name__icontains=query) |
-            Q(customer_phone__icontains=query)
+            Q(customer_name__icontains=customer_name) |
+            Q(customer__name__icontains=customer_name)
         )
+
+    # Search by invoice ID / number using Django query filters (Q object)
+    if invoice_id:
+        clean_inv_id = invoice_id.lstrip('#').strip()
+        id_q = Q(invoice_number__icontains=clean_inv_id)
+        if clean_inv_id.isdigit():
+            id_q |= Q(id=int(clean_inv_id))
+        num_match = re.search(r'\d+', clean_inv_id)
+        if num_match and len(num_match.group(0)) <= 9:
+            id_q |= Q(id=int(num_match.group(0)))
+        invoices = invoices.filter(id_q)
+
+    # Universal / Quick search query filter
+    if query:
+        q_clean = query.lstrip('#').strip()
+        q_filter = (
+            Q(customer_name__icontains=query) |
+            Q(customer__name__icontains=query) |
+            Q(customer_phone__icontains=query) |
+            Q(invoice_number__icontains=q_clean)
+        )
+        if q_clean.isdigit():
+            q_filter |= Q(id=int(q_clean))
+        num_match = re.search(r'\d+', q_clean)
+        if num_match and len(num_match.group(0)) <= 9:
+            q_filter |= Q(id=int(num_match.group(0)))
+        invoices = invoices.filter(q_filter)
+
     date_range_error = None
     if start_date and end_date:
         try:
@@ -1786,9 +1894,12 @@ def invoice_list_view(request):
     total_amount_billed = invoices.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
     total_pending_amount = invoices.filter(payment_status='PENDING').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
         
-    if per_page_param in ('all', '0', 'none'):
+    # Pagination to limit results per page
+    if per_page_param in ('all', '0', 'none', 'unlimited'):
         page_obj = invoices
         is_paginated = False
+        paginator = None
+        limit = total_invoices_count or 1
     else:
         try:
             limit = int(per_page_param)
@@ -1801,17 +1912,22 @@ def invoice_list_view(request):
         page_obj = paginator.get_page(page_number)
         is_paginated = page_obj.has_other_pages()
     
-    has_filters = bool(query or start_date or end_date or status_filter)
+    has_filters = bool(query or customer_name or invoice_id or start_date or end_date or status_filter)
     
     context = {
         'invoices': page_obj,
+        'page_obj': page_obj,
+        'paginator': paginator,
         'is_paginated': is_paginated,
         'per_page': per_page_param,
+        'current_per_page': limit if per_page_param not in ('all', '0', 'none') else 'all',
         'total_invoices_count': total_invoices_count,
         'total_amount_collected': total_amount_collected,
         'total_amount_billed': total_amount_billed,
         'total_pending_amount': total_pending_amount,
         'query': query,
+        'customer_name': customer_name,
+        'invoice_id': invoice_id,
         'start_date': start_date,
         'end_date': end_date,
         'status_filter': status_filter,
@@ -1827,12 +1943,20 @@ def invoice_list_view(request):
 def invoice_bootstrap_table_view(request):
     """
     Dedicated view to fetch all invoice records from the database
-    and display them in a modern Bootstrap-styled responsive table.
+    and display them in a modern Bootstrap-styled responsive table
+    with customer name and invoice ID search filters and pagination.
     """
     initialize_default_users()
     query = request.GET.get('q', '').strip()
+    customer_name = request.GET.get('customer_name', '').strip()
+    invoice_id = request.GET.get('invoice_id', '').strip()
     status_filter = request.GET.get('status', '').strip()
-    per_page_param = request.GET.get('per_page', 'all').strip().lower()
+    per_page_param = (
+        request.GET.get('per_page') or 
+        request.GET.get('page_size') or 
+        request.GET.get('limit') or 
+        'all'
+    ).strip().lower()
 
     if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN') or request.GET.get('all') in ('1', 'true'):
         invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').all().order_by('-created_at')
@@ -1841,12 +1965,39 @@ def invoice_bootstrap_table_view(request):
         invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').filter(distributor=request.user).order_by('-created_at')
         role = 'Distributor'
 
-    if query:
+    # Search by customer name using Django query filters (Q object)
+    if customer_name:
         invoices = invoices.filter(
-            Q(invoice_number__icontains=query) |
-            Q(customer_name__icontains=query) |
-            Q(customer_phone__icontains=query)
+            Q(customer_name__icontains=customer_name) |
+            Q(customer__name__icontains=customer_name)
         )
+
+    # Search by invoice ID / number using Django query filters (Q object)
+    if invoice_id:
+        clean_inv_id = invoice_id.lstrip('#').strip()
+        id_q = Q(invoice_number__icontains=clean_inv_id)
+        if clean_inv_id.isdigit():
+            id_q |= Q(id=int(clean_inv_id))
+        num_match = re.search(r'\d+', clean_inv_id)
+        if num_match and len(num_match.group(0)) <= 9:
+            id_q |= Q(id=int(num_match.group(0)))
+        invoices = invoices.filter(id_q)
+
+    # Universal / Quick search query filter
+    if query:
+        q_clean = query.lstrip('#').strip()
+        q_filter = (
+            Q(customer_name__icontains=query) |
+            Q(customer__name__icontains=query) |
+            Q(customer_phone__icontains=query) |
+            Q(invoice_number__icontains=q_clean)
+        )
+        if q_clean.isdigit():
+            q_filter |= Q(id=int(q_clean))
+        num_match = re.search(r'\d+', q_clean)
+        if num_match and len(num_match.group(0)) <= 9:
+            q_filter |= Q(id=int(num_match.group(0)))
+        invoices = invoices.filter(q_filter)
 
     if status_filter:
         invoices = invoices.filter(payment_status=status_filter)
@@ -1856,9 +2007,12 @@ def invoice_bootstrap_table_view(request):
     total_amount_billed = invoices.aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
     total_pending_amount = invoices.filter(payment_status='PENDING').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
 
-    if per_page_param in ('all', '0', 'none'):
+    # Pagination to limit results per page
+    if per_page_param in ('all', '0', 'none', 'unlimited'):
         page_obj = invoices
         is_paginated = False
+        paginator = None
+        limit = total_invoices_count or 1
     else:
         try:
             limit = int(per_page_param)
@@ -1873,15 +2027,20 @@ def invoice_bootstrap_table_view(request):
 
     context = {
         'invoices': page_obj,
+        'page_obj': page_obj,
+        'paginator': paginator,
         'is_paginated': is_paginated,
         'per_page': per_page_param,
+        'current_per_page': limit if per_page_param not in ('all', '0', 'none') else 'all',
         'total_invoices_count': total_invoices_count,
         'total_amount_collected': total_amount_collected,
         'total_amount_billed': total_amount_billed,
         'total_pending_amount': total_pending_amount,
         'query': query,
+        'customer_name': customer_name,
+        'invoice_id': invoice_id,
         'status_filter': status_filter,
-        'has_filters': bool(query or status_filter),
+        'has_filters': bool(query or customer_name or invoice_id or status_filter),
         'role': role,
         'bootstrap_table_mode': True,
     }

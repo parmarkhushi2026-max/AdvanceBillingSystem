@@ -2,11 +2,42 @@
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 [![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
-[![Tests](https://img.shields.io/badge/Tests-160%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+[![Tests](https://img.shields.io/badge/Tests-172%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
 A feature-packed, production-ready Django Billing, QR Payment, and Financial Intelligence System designed for managing distributors, customers, dynamic UPI QR code billing, audit reporting, tax receipts, and ledger tracking.
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+
+## 🔎 🌟 Feature: Customer Name & Invoice ID Search with Query Filters & Results Pagination
+
+Comprehensive search functionality filtering by Customer Name and Invoice ID using Django `Q` query filters, accompanied by customizable pagination limiting results per page:
+- **Search Functionality Using Django Query Filters (`billing_app/views.py`)**:
+  - **Search by Customer Name**:
+    - Evaluates query filters across both the direct `customer_name` string and foreign-key relational `customer__name`:
+      ```python
+      invoices = invoices.filter(
+          Q(customer_name__icontains=customer_name) |
+          Q(customer__name__icontains=customer_name)
+      )
+      ```
+    - Case-insensitive substring matching (`__icontains`) allowing partial name searches.
+  - **Search by Invoice ID & Invoice Number**:
+    - Automatically parses integer primary key IDs (`Q(id=int(clean_id))`) and alphanumeric invoice number references (`Q(invoice_number__icontains=...)`).
+    - Strips prefixes such as `#` or `INV-` gracefully.
+  - **Combined Multi-Criteria Filtering**:
+    - Allows combining `customer_name`, `invoice_id`, date range, and payment status simultaneously using sequential AND filter chaining.
+    - Also supports unified search query (`q`) spanning customer name, customer phone, and invoice numbers.
+- **Pagination Limiting Results Per Page (`templates/billing/invoice_list.html` & `views.py`)**:
+  - Implements Django `Paginator` with customizable limits per page (`?per_page=5|10|20|50|all`).
+  - Interactive page size selector dropdown in the filter toolbar (`5 / page`, `10 / page`, `20 / page`, `50 / page`, `View All`).
+  - Pagination navigation controls (Previous, Page numbers, Next) cleanly preserve all active search parameters (`customer_name`, `invoice_id`, `q`, `start_date`, `end_date`, `status`, `per_page`).
+  - Displays dynamic summary caption: *"Showing X to Y of Z invoices (Limit: N per page)"*.
+- **REST API Search & Pagination (`api_all_invoices_details`)**:
+  - `GET /api/invoices/details/?customer_name=...&invoice_id=...&page=1&limit=10` returns paginated JSON results with total count, current page, and num_pages.
+- **Automated Test Suite (`billing_app/test_invoice_search_pagination.py`)**:
+  - 12 comprehensive unit tests verifying customer name query filters, integer invoice ID lookup, invoice number string search, hash prefix handling, combined search, universal query search, pagination limits per page, page navigation isolation, search filter URL preservation, unpaginated view-all, dedicated table endpoint, and REST API search.
+
+---
 
 ## 📥 🌟 Feature: Download PDF Button Beside Each Row (With DB Customer & Invoice Data)
 
