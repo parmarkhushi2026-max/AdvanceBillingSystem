@@ -80,6 +80,64 @@ def initialize_default_users():
     from .invoice_seeder import ensure_invoice_data_exists
     ensure_invoice_data_exists(skip_in_test=True)
 
+# 0. Central Dashboard & Unified Login Views
+@login_required
+def dashboard_view(request):
+    """
+    Central Dashboard View strictly restricted to authenticated users.
+    Redirects Admin users to Admin Dashboard and Distributors to Distributor Dashboard.
+    """
+    initialize_default_users()
+    if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'):
+        return redirect('admin_dashboard')
+    return redirect('distributor_dashboard')
+
+
+def general_login_view(request):
+    """
+    Django-based Login View with session control.
+    Supports email/username authentication, 'Remember Me' session duration configuration,
+    and automatic redirection for already authenticated users.
+    """
+    initialize_default_users()
+    if request.user.is_authenticated:
+        if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'):
+            return redirect('admin_dashboard')
+        return redirect('distributor_dashboard')
+
+    if request.method == 'POST':
+        if request.content_type == 'application/json' or (request.body and request.body.strip().startswith(b'{')):
+            return api_login_general(request)
+
+        form = DistributorLoginForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            auth_login(request, user)
+            
+            # Session Control: configure session expiry based on Remember Me
+            if request.POST.get('remember_me'):
+                request.session.set_expiry(60 * 60 * 24 * 30)  # 30 days persistent session
+            else:
+                request.session.set_expiry(0)  # Session cookie expires on browser close
+
+            messages.success(request, f'Welcome back, {user.get_full_name() or user.username}!')
+            next_url = request.GET.get('next')
+            if next_url and next_url.startswith('/'):
+                return redirect(next_url)
+
+            if user.is_superuser or (hasattr(user, 'profile') and user.profile.role == 'ADMIN'):
+                return redirect('admin_dashboard')
+            return redirect('distributor_dashboard')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, error)
+    else:
+        form = DistributorLoginForm(request)
+
+    return render(request, 'auth/login_distributor.html', {'form': form})
+
+
 # 1. Landing Page / Portal Selector
 def portal_select(request):
     initialize_default_users()

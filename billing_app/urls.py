@@ -4,6 +4,8 @@ from . import views
 urlpatterns = [
     # Portal Landing & Authentication
     path('', views.portal_select, name='portal_select'),
+    path('login/', views.general_login_view, name='login'),
+    path('dashboard/', views.dashboard_view, name='dashboard'),
     path('login/admin/', views.admin_login_view, name='admin_login'),
     path('register/admin/', views.admin_register_view, name='admin_register'),
     path('login/distributor/', views.distributor_login_view, name='distributor_login'),

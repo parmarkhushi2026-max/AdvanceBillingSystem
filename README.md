@@ -2,11 +2,38 @@
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 [![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
-[![Tests](https://img.shields.io/badge/Tests-172%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+[![Tests](https://img.shields.io/badge/Tests-188%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
 A feature-packed, production-ready Django Billing, QR Payment, and Financial Intelligence System designed for managing distributors, customers, dynamic UPI QR code billing, audit reporting, tax receipts, and ledger tracking.
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+
+## 🔐 🌟 Feature: Django-based Login/Logout with Session Control & Restricted Dashboard Access
+
+Enterprise-grade authentication, session management, and role-based route protection:
+- **Django-Based Login & Session Control (`billing_app/views.py` & `settings.py`)**:
+  - **Multi-Role Authentication**: Dedicated and unified login views (`admin_login_view`, `distributor_login_view`, `general_login_view`) supporting both username and email authentication backends.
+  - **Dynamic Session Lifetime ("Remember Me")**:
+    - **Remember Me Active**: Configures persistent session lasting 30 days (`request.session.set_expiry(60 * 60 * 24 * 30)`), persisting across browser restarts (`expire_at_browser_close == False`).
+    - **Standard Login**: Sets session to expire immediately upon browser closure (`request.session.set_expiry(0)`), enhancing workstation security.
+  - **Session Fixation Prevention**: Rotates session keys upon successful authentication via `request.session.cycle_key()`.
+  - **Secure Session Termination (`user_logout`)**:
+    - Invokes `auth_logout(request)` and purges the session store via `request.session.flush()`, removing session records from the database and wiping browser cookies.
+- **Restricted Dashboard Access & Route Protection (`billing_app/middleware.py` & `billing_app/decorators.py`)**:
+  - **Strict Access Restriction**: All dashboards (`/admin/dashboard/`, `/distributor/dashboard/`, and central `/dashboard/`) are protected by `@login_required`, `@admin_required`, `@distributor_required`, and `RouteProtectionMiddleware`.
+  - **Unauthenticated Handling**:
+    - Web browser requests are automatically redirected to login pages with friendly alert messages and preserved `next` redirect parameters.
+    - AJAX/API requests receive standardized HTTP 401 Unauthorized JSON responses (`{'success': False, 'message': 'Authentication required...'}`).
+  - **Role Isolation (RBAC)**:
+    - Admin users have full oversight across `/admin/dashboard/`.
+    - Distributors are restricted to their operational `/distributor/dashboard/` and forbidden from accessing Admin views (HTTP 403 Forbidden on AJAX / redirect with Access Denied message).
+    - Central `/dashboard/` dynamically routes authenticated users to their corresponding dashboard based on their role.
+- **Live Session Status API (`/api/auth/session/`)**:
+  - Enables real-time frontend session heartbeat monitoring, reporting authentication state, user identity, active role, and session TTL.
+- **Automated Test Suite (`billing_app/test_session_control_dashboard_protection.py`)**:
+  - 16 comprehensive unit tests covering unauthenticated dashboard redirection, AJAX 401 responses, authenticated role routing, distributor access denial to admin dashboards, Remember Me session lifespan, session flush upon logout, post-logout dashboard blocking, and REST session management. (51 total tests in authentication and route guarding suites).
+
+---
 
 ## 🔎 🌟 Feature: Customer Name & Invoice ID Search with Query Filters & Results Pagination
 

@@ -48,6 +48,8 @@ class RouteProtectionMiddleware:
             '/admin/forgot-password/',
             '/admin/forgot-password/resend-otp/',
             '/logout/',
+            '/login/',
+            '/dashboard',
             '/api/login/',
             '/api/login/admin/',
             '/api/admin/login/',
@@ -120,6 +122,17 @@ class RouteProtectionMiddleware:
             return self.get_response(request)
 
         # 2. Check Admin Protected Routes (/admin/...)
+        # Check central dashboard route
+        if path == '/dashboard' or path == '/dashboard/':
+            if not request.user.is_authenticated:
+                if self.is_ajax_or_api(request):
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Authentication required. Please log in to access the dashboard.'
+                    }, status=401)
+                _safe_message(request, 'warning', 'Please log in to access the dashboard.')
+                return redirect('portal_select')
+
         is_admin_path = any(path.startswith(prefix) for prefix in self.admin_prefixes) or (
             path.startswith('/admin/') and not path.startswith('/admin/forgot-password')
         )
