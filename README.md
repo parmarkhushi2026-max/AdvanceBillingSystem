@@ -2,11 +2,35 @@
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 [![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
-[![Tests](https://img.shields.io/badge/Tests-188%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+[![Tests](https://img.shields.io/badge/Tests-200%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
 A feature-packed, production-ready Django Billing, QR Payment, and Financial Intelligence System designed for managing distributors, customers, dynamic UPI QR code billing, audit reporting, tax receipts, and ledger tracking.
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+
+## 🛡️ 🌟 Feature: Custom Middleware & Decorators for Admin vs Distributor Role Distinction
+
+Comprehensive role-based architecture distinguishing between Admin and Distributor users across the request lifecycle, view controllers, API endpoints, and templates:
+- **Custom Role Middleware (`billing_app/middleware.py::UserRoleMiddleware`)**:
+  - Automatically identifies and distinguishes authenticated user roles on every incoming request:
+    - `request.user_role`: Evaluates to `'ADMIN'`, `'DISTRIBUTOR'`, or `'ANONYMOUS'`.
+    - `request.is_admin`: Boolean flag (`True` for Superusers and users with `ADMIN` role).
+    - `request.is_distributor`: Boolean flag (`True` for `DISTRIBUTOR` role).
+    - `request.user_profile`: Resolves and attaches the associated `UserProfile` model instance.
+  - Positioned directly in the Django middleware pipeline after `AuthenticationMiddleware`.
+- **Custom View & Dispatcher Decorators (`billing_app/decorators.py`)**:
+  - **`@admin_required`**: Restricts view execution to Admin users only. Unauthenticated requests are redirected to login (or return HTTP 401 for AJAX); Distributor users attempting access are detected and redirected to `/distributor/dashboard/` with an Access Denied alert (or HTTP 403 Forbidden for AJAX).
+  - **`@distributor_required`**: Restricts access to Distributor accounts, redirecting unauthenticated requests to the distributor login portal.
+  - **`@role_required(allowed_roles=['ADMIN', 'DISTRIBUTOR'])`**: Flexible decorator accepting a role or list of authorized roles.
+  - **`@distinguish_role(admin_func=..., distributor_func=...)`**: Smart role dispatcher decorator that detects whether the logged-in user is an Admin or a Distributor and dispatches execution to the corresponding handler automatically.
+  - **`@api_admin_required` & `@api_distributor_required`**: Dedicated JSON API decorators returning structured HTTP 401/403 responses.
+  - **`get_user_role(user)`**: Utility helper returning `'ADMIN'`, `'DISTRIBUTOR'`, or `'ANONYMOUS'`.
+- **Template Context Processor (`billing_app/context_processors.py::user_role_context`)**:
+  - Injects `user_role`, `is_admin`, `is_distributor`, and `user_profile` into all template contexts, allowing frontends to cleanly render role-specific navigation bars, actions, and sidebars (`{% if is_admin %}...{% elif is_distributor %}...{% endif %}`).
+- **Automated Test Suite (`billing_app/test_role_distinction_middleware_decorators.py`)**:
+  - 12 comprehensive unit tests verifying middleware role resolution, Admin vs Distributor access control, role dispatching, API 401/403 responses, template context processors, and helper functions. (63 total passing tests across authentication, RBAC, and route protection suites).
+
+---
 
 ## 🔐 🌟 Feature: Django-based Login/Logout with Session Control & Restricted Dashboard Access
 

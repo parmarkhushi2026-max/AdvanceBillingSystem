@@ -239,3 +239,4 @@ class SessionControlDashboardProtectionTestCase(TestCase):
         # Post-logout check
         check_resp = self.client.get(reverse('api_session_status'))
         self.assertFalse(check_resp.json()['authenticated'])
+

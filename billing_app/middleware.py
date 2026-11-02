@@ -20,6 +20,50 @@ def _safe_message(request, level, text):
         pass
 
 
+class UserRoleMiddleware:
+    """
+    Custom Middleware to distinguish between Admin and Distributor users after login.
+    Enriches request with role distinction attributes:
+      - request.user_role: 'ADMIN', 'DISTRIBUTOR', or 'ANONYMOUS'
+      - request.is_admin: True if superuser or role == 'ADMIN', else False
+      - request.is_distributor: True if authenticated and not is_admin, else False
+      - request.user_profile: The linked UserProfile instance
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.user.is_authenticated:
+            try:
+                profile = getattr(request.user, 'profile', None)
+                if profile is None:
+                    profile, _ = UserProfile.objects.get_or_create(
+                        user=request.user,
+                        defaults={'role': 'ADMIN' if request.user.is_superuser else 'DISTRIBUTOR'}
+                    )
+                request.user_profile = profile
+                if request.user.is_superuser or profile.role == 'ADMIN':
+                    request.user_role = 'ADMIN'
+                    request.is_admin = True
+                    request.is_distributor = False
+                else:
+                    request.user_role = 'DISTRIBUTOR'
+                    request.is_admin = False
+                    request.is_distributor = True
+            except Exception:
+                request.user_role = 'ADMIN' if request.user.is_superuser else 'DISTRIBUTOR'
+                request.is_admin = bool(request.user.is_superuser)
+                request.is_distributor = not request.is_admin
+                request.user_profile = None
+        else:
+            request.user_role = 'ANONYMOUS'
+            request.is_admin = False
+            request.is_distributor = False
+            request.user_profile = None
+
+        return self.get_response(request)
+
+
 class RouteProtectionMiddleware:
     """
     Comprehensive Route Protection & Role-Based Access Control (RBAC) Middleware.

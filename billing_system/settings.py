@@ -72,6 +72,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'billing_app.middleware.UserRoleMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'billing_app.middleware.RouteProtectionMiddleware',
@@ -89,6 +90,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'billing_app.context_processors.user_role_context',
             ],
         },
     },
@@ -171,4 +173,4 @@ AUTHENTICATION_BACKENDS = [
 # Django Auth Settings
 LOGIN_URL = 'portal_select'
 LOGIN_REDIRECT_URL = 'portal_select'
-LOGOUT_REDIRECT_URL = 'portal_select'
+LOGOUT_REDIRECT_URL = 'portal_select'

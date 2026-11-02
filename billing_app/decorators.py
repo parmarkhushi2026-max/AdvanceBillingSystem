@@ -165,3 +165,69 @@ def api_admin_required(view_func):
             }, status=403)
         return view_func(request, *args, **kwargs)
     return _wrapped_view
+
+
+def get_user_role(user) -> str:
+    """
+    Helper function to distinguish role of given user.
+    Returns 'ADMIN', 'DISTRIBUTOR', or 'ANONYMOUS'.
+    """
+    if not user or not user.is_authenticated:
+        return 'ANONYMOUS'
+    if user.is_superuser:
+        return 'ADMIN'
+    profile = getattr(user, 'profile', None)
+    if not profile:
+        profile = UserProfile.objects.filter(user=user).first()
+    if profile and profile.role == 'ADMIN':
+        return 'ADMIN'
+    return 'DISTRIBUTOR'
+
+
+def distinguish_role(admin_func=None, distributor_func=None):
+    """
+    Custom decorator to distinguish between Admin and Distributor users after login
+    and dispatch execution to the corresponding role-specific handler.
+    Example:
+        @distinguish_role(admin_func=admin_view, distributor_func=distributor_view)
+        def my_view(request): ...
+    """
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                if is_ajax_or_api(request):
+                    return JsonResponse({'success': False, 'message': 'Authentication required.'}, status=401)
+                return redirect('portal_select')
+
+            role = getattr(request, 'user_role', None) or get_user_role(request.user)
+            if role == 'ADMIN' and admin_func:
+                return admin_func(request, *args, **kwargs)
+            elif role == 'DISTRIBUTOR' and distributor_func:
+                return distributor_func(request, *args, **kwargs)
+
+            return view_func(request, *args, **kwargs)
+        return _wrapped
+    return decorator
+
+
+def api_distributor_required(view_func):
+    """
+    Dedicated decorator for Distributor API endpoints requiring DISTRIBUTOR role.
+    Returns JSON 401 if unauthenticated, 403 if unauthorized.
+    """
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({
+                'success': False,
+                'message': 'Authentication required. Please log in as a Distributor.'
+            }, status=401)
+        role = getattr(request, 'user_role', None) or get_user_role(request.user)
+        if role != 'DISTRIBUTOR':
+            return JsonResponse({
+                'success': False,
+                'message': 'Access Denied: Distributor role required.'
+            }, status=403)
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
