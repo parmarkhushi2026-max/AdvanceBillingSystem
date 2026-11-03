@@ -2,11 +2,50 @@
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 [![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
-[![Tests](https://img.shields.io/badge/Tests-200%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+[![Tests](https://img.shields.io/badge/Tests-210%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
 A feature-packed, production-ready Django Billing, QR Payment, and Financial Intelligence System designed for managing distributors, customers, dynamic UPI QR code billing, audit reporting, tax receipts, and ledger tracking.
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+
+## 🏢 🌟 Feature: Distributor Table Model & Admin Data Management
+
+Dedicated database table structure (`billing_app_distributor`) and comprehensive administrative workflows enabling System Admins to create, view, search, and manage distributor master records directly via Django Admin and the Admin Web Portal:
+- **Dedicated Distributor Database Model (`billing_app/models.py::Distributor`)**:
+  - Creates the physical database table `billing_app_distributor` with rich enterprise master data:
+    - `name`: Authorized proprietor / contact person name.
+    - `business_name`: Distributor trade / firm name.
+    - `user`: One-to-one foreign key relationship to `auth.User` (optional login account linking).
+    - `phone` & `email`: Primary commercial contact channels.
+    - `address`, `city`, `state`, `pincode`: Physical warehouse and operational billing location.
+    - `gstin`: 15-character Indian Goods & Services Tax Identification Number.
+    - `upi_id`: Dedicated UPI Virtual Payment Address (VPA) for dynamic QR payment routing.
+    - `is_active`: Status flag controlling distributor operational state.
+    - `created_at` & `updated_at`: Audit timestamps.
+  - **Dynamic Financial & Invoice Aggregates**:
+    - `total_invoices`: Computes count of invoices issued by this distributor.
+    - `total_revenue`: Aggregates settled revenue across all PAID invoices.
+  - **Automatic Two-Way Profile Sync**:
+    - Saving a `Distributor` record linked to a `User` automatically synchronizes role, business name, contact phone, and payment UPI ID with `UserProfile`.
+- **Admin Data Addition & Management in Django Admin (`billing_app/admin.py::DistributorAdmin`)**:
+  - Registered under the Django Admin portal (`/django-admin/billing_app/distributor/` and `/django-admin/billing_app/distributor/add/`):
+    - **Structured Form Fieldsets**: Segmented into *Distributor Enterprise Profile*, *Contact & Location Details*, and *Tax & QR Payment Setup*.
+    - **Interactive List Display**: Shows Firm Name, Contact Person, Phone, Email, City, GSTIN, UPI ID Badge, Linked User Account link, Invoices count, Settled Revenue, and Active status.
+    - **Distributor Invoices Inline (`DistributorInvoiceInline`)**: Direct inline table showing all invoices issued by the distributor inside the distributor change page.
+    - **Search & Filters**: Comprehensive search across business name, proprietor, phone, email, GSTIN, UPI ID, and city, with status and location filters.
+- **Admin Portal Web Interface (`/admin/distributors/` & `/admin/distributors/add/`)**:
+  - **Distributor Master Table View (`templates/admin/distributor_list.html`)**:
+    - Bootstrap fintech-styled table with search bar, status filter (Active/Inactive), summary statistics cards, pagination, and direct links to add or edit records via Django Admin.
+  - **Distributor Creation Form (`templates/admin/distributor_form.html` & `billing_app/forms.py::DistributorForm`)**:
+    - Clean web form with full validation for business credentials, contact info, GSTIN, and UPI ID.
+  - **Admin Dashboard Integration (`templates/dashboard/admin_dashboard.html`)**:
+    - Enhanced "Registered Distributors Master Table" card with one-click links to the full distributor table, add form, and backend admin portal.
+  - **Navigation Integration (`templates/base.html`)**:
+    - Sidebar link to "Distributors" under Admin Controls for quick access.
+- **Automated Test Suite (`billing_app/test_distributor_model_admin.py`)**:
+  - 10 comprehensive unit tests covering model table creation, field integrity, string formatting, profile synchronization, computed invoice metrics, adding data via Django Admin, admin changelist search, portal access control (`@admin_required`), portal search/filter, model form validation, and automatic invoice foreign key linking. (210 total passing tests across the entire application suite).
+
+---
 
 ## 🛡️ 🌟 Feature: Custom Middleware & Decorators for Admin vs Distributor Role Distinction
 

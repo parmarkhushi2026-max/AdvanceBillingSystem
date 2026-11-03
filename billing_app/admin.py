@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from decimal import Decimal
-from .models import UserProfile, Product, Invoice, InvoiceItem, OTPToken, Customer
+from .models import UserProfile, Product, Invoice, InvoiceItem, OTPToken, Customer, Distributor
 
 admin.site.site_header = "Advance Billing System - Administration"
 admin.site.site_title = "Advance Billing Admin Portal"
@@ -25,6 +25,77 @@ class CustomerInvoiceInline(admin.TabularInline):
     readonly_fields = ('invoice_number', 'grand_total', 'payment_status', 'payment_method', 'created_at')
     can_delete = False
     show_change_link = True
+
+
+class DistributorInvoiceInline(admin.TabularInline):
+    """Inline view of distributor invoices within Distributor Admin."""
+    model = Invoice
+    fk_name = 'distributor_ref'
+    extra = 0
+    fields = ('invoice_number', 'customer_name', 'grand_total', 'payment_status', 'payment_method', 'created_at')
+    readonly_fields = ('invoice_number', 'customer_name', 'grand_total', 'payment_status', 'payment_method', 'created_at')
+    can_delete = False
+    show_change_link = True
+
+
+@admin.register(Distributor)
+class DistributorAdmin(admin.ModelAdmin):
+    """
+    Administration interface for managing registered Distributor enterprises,
+    enabling Admins to view, add, search, and edit distributors.
+    """
+    list_display = (
+        'business_name',
+        'name',
+        'phone',
+        'email',
+        'city',
+        'gstin',
+        'upi_badge',
+        'user_link',
+        'is_active',
+        'invoices_count_display',
+        'total_revenue_display',
+        'created_at',
+    )
+    list_filter = ('is_active', 'city', 'state', 'created_at')
+    search_fields = ('business_name', 'name', 'phone', 'email', 'gstin', 'upi_id', 'city')
+    ordering = ('-created_at',)
+    inlines = [DistributorInvoiceInline]
+    fieldsets = (
+        ('Distributor Enterprise Profile', {
+            'fields': ('business_name', 'name', 'user', 'is_active')
+        }),
+        ('Contact & Location Details', {
+            'fields': ('phone', 'email', 'address', 'city', 'state', 'pincode')
+        }),
+        ('Tax & QR Payment Setup', {
+            'fields': ('gstin', 'upi_id'),
+            'description': 'Configure GSTIN and UPI ID for customer QR invoicing and settlement.'
+        }),
+    )
+
+    def upi_badge(self, obj):
+        if obj.upi_id:
+            return format_html('<code style="background:#e0e7ff; color:#4338ca; padding:2px 6px; border-radius:4px; font-weight:600;">{}</code>', obj.upi_id)
+        return "—"
+    upi_badge.short_description = "UPI ID"
+
+    def user_link(self, obj):
+        if obj.user:
+            return format_html('<a href="/django-admin/auth/user/{}/change/">{}</a>', obj.user.id, obj.user.username)
+        return mark_safe('<span style="color:#94a3b8;">No linked account</span>')
+    user_link.short_description = "Linked User"
+
+    def invoices_count_display(self, obj):
+        count = obj.total_invoices
+        return format_html('<b>{}</b> invoice(s)', count)
+    invoices_count_display.short_description = "Invoices"
+
+    def total_revenue_display(self, obj):
+        rev = obj.total_revenue
+        return format_html('<span style="color:#059669; font-weight:700;">₹{}</span>', rev)
+    total_revenue_display.short_description = "Settled Revenue"
 
 
 @admin.register(Customer)
@@ -62,7 +133,7 @@ class InvoiceAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Invoice Identification', {
-            'fields': ('invoice_number', 'distributor')
+            'fields': ('invoice_number', 'distributor', 'distributor_ref')
         }),
         ('Customer Association (FK)', {
             'fields': ('customer', 'customer_name', 'customer_phone'),
@@ -108,6 +179,12 @@ class InvoiceAdmin(admin.ModelAdmin):
                 obj.customer_phone = obj.customer.phone
         if not obj.distributor and request.user.is_authenticated:
             obj.distributor = request.user
+        if not obj.distributor_ref and obj.distributor:
+            dist_acc = getattr(obj.distributor, 'distributor_account', None)
+            if dist_acc:
+                obj.distributor_ref = dist_acc
+        elif not obj.distributor and obj.distributor_ref and obj.distributor_ref.user:
+            obj.distributor = obj.distributor_ref.user
         super().save_model(request, obj, form, change)
 
     def save_related(self, request, form, formsets, change):

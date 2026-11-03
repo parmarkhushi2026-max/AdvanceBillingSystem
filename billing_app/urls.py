@@ -49,6 +49,8 @@ urlpatterns = [
     path('admin/dashboard/', views.admin_dashboard_view, name='admin_dashboard'),
     path('admin/reports/', views.admin_reports_view, name='admin_reports'),
     path('admin/reports/export/csv/', views.admin_reports_export_csv_view, name='admin_reports_export_csv'),
+    path('admin/distributors/', views.admin_distributor_list_view, name='admin_distributor_list'),
+    path('admin/distributors/add/', views.admin_distributor_add_view, name='admin_distributor_add'),
 
     # Distributor Portal & QR Billing
     path('distributor/dashboard/', views.distributor_dashboard_view, name='distributor_dashboard'),

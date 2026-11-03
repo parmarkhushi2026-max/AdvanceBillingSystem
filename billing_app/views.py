@@ -15,11 +15,11 @@ from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from datetime import datetime, date, timedelta
 from django.core.paginator import Paginator
-from .models import UserProfile, Product, Invoice, InvoiceItem, OTPToken, Customer
+from .models import UserProfile, Product, Invoice, InvoiceItem, OTPToken, Customer, Distributor
 from .forms import (
     AdminLoginForm, DistributorLoginForm, ForgotPasswordForm, VerifyOTPForm,
     ResetPasswordForm, DistributorRegistrationForm, DistributorProfileForm,
-    CustomerForm, ProductForm, InvoiceCreationForm, InvoiceItemForm
+    CustomerForm, ProductForm, InvoiceCreationForm, InvoiceItemForm, DistributorForm
 )
 from .decorators import (
     admin_required, distributor_required, role_required,
@@ -62,6 +62,23 @@ def initialize_default_users():
             'business_name': 'Sharma Tech & Retail Distribution',
             'phone': '+91 98123 45678',
             'upi_id': 'sharmadist@upi'
+        }
+    )
+
+    Distributor.objects.get_or_create(
+        user=dist_user,
+        defaults={
+            'name': 'Rahul Sharma',
+            'business_name': 'Sharma Tech & Retail Distribution',
+            'phone': '+91 98123 45678',
+            'email': 'distributor@agency.com',
+            'address': 'Plot 42, GIDC Electronic Estate, Gandhinagar',
+            'city': 'Ahmedabad',
+            'state': 'Gujarat',
+            'pincode': '382024',
+            'gstin': '24AAECS1234F1Z9',
+            'upi_id': 'sharmadist@upi',
+            'is_active': True,
         }
     )
 
@@ -353,6 +370,7 @@ def admin_dashboard_view(request):
 
     recent_invoices = Invoice.objects.all().order_by('-created_at')[:10]
     distributors = UserProfile.objects.filter(role='DISTRIBUTOR').select_related('user')
+    distributor_records = Distributor.objects.all().select_related('user')
 
     # Prepare visual charts data
     charts_data = prepare_dashboard_charts(Invoice.objects.all(), is_distributor=False)
@@ -364,6 +382,8 @@ def admin_dashboard_view(request):
         'total_products': total_products,
         'recent_invoices': recent_invoices,
         'distributors': distributors,
+        'distributor_records': distributor_records,
+        'total_distributor_records': distributor_records.count(),
         'role': 'Admin',
         **charts_data,
     }
@@ -3623,6 +3643,77 @@ def qr_decoder_view(request):
         'sample_qrs': sample_qrs,
     }
     return render(request, 'billing/qr_decoder.html', context)
+
+
+# ==============================================================================
+# Distributor Management (Admin Access Only)
+# ==============================================================================
+
+@admin_required
+def admin_distributor_list_view(request):
+    """
+    Displays the Distributor table in the Admin Portal with search,
+    status filtering, performance aggregates, and actions to add/edit.
+    """
+    initialize_default_users()
+    query = request.GET.get('q', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+
+    qs = Distributor.objects.all().select_related('user').order_by('-created_at')
+
+    if query:
+        qs = qs.filter(
+            Q(business_name__icontains=query) |
+            Q(name__icontains=query) |
+            Q(phone__icontains=query) |
+            Q(email__icontains=query) |
+            Q(gstin__icontains=query) |
+            Q(city__icontains=query)
+        )
+
+    if status_filter == 'active':
+        qs = qs.filter(is_active=True)
+    elif status_filter == 'inactive':
+        qs = qs.filter(is_active=False)
+
+    total_count = qs.count()
+    active_count = Distributor.objects.filter(is_active=True).count()
+
+    paginator = Paginator(qs, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'distributors': page_obj.object_list,
+        'query': query,
+        'status_filter': status_filter,
+        'total_count': total_count,
+        'active_count': active_count,
+        'role': 'Admin',
+    }
+    return render(request, 'admin/distributor_list.html', context)
+
+
+@admin_required
+def admin_distributor_add_view(request):
+    """
+    Allows system administrators to add new distributor entities to the database.
+    """
+    if request.method == 'POST':
+        form = DistributorForm(request.POST)
+        if form.is_valid():
+            dist = form.save()
+            messages.success(request, f"Distributor '{dist.business_name}' successfully added through Admin.")
+            return redirect('admin_distributor_list')
+    else:
+        form = DistributorForm()
+
+    return render(request, 'admin/distributor_form.html', {
+        'form': form,
+        'title': 'Add New Distributor Record',
+        'role': 'Admin',
+    })
 
 
 

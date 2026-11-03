@@ -197,40 +197,99 @@
 </div>
 
 <!-- Active Distributors -->
-<div class="dashboard-card">
-    <div class="card-header-clean">
+<div class="dashboard-card" style="margin-bottom: 2rem;">
+    <div class="card-header-clean" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div class="card-title-clean">
             <i class="fa-solid fa-store" style="color: #4f46e5;"></i>
-            <span>Registered Distributors</span>
+            <span>Registered Distributors Master Table</span>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="{% url 'admin_distributor_list' %}" class="btn-action-sm" style="background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; padding: 6px 14px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-table-list"></i> Full Distributor Table
+            </a>
+            <a href="{% url 'admin_distributor_add' %}" class="btn-action-sm" style="background: #4f46e5; color: white; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-plus"></i> Add Distributor
+            </a>
+            <a href="/django-admin/billing_app/distributor/add/" target="_blank" class="btn-action-sm" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-screwdriver-wrench"></i> Add via Admin
+            </a>
         </div>
     </div>
     <div class="table-responsive">
         <table class="app-table">
             <thead>
                 <tr>
-                    <th>Distributor Name</th>
-                    <th>Business / Agency</th>
-                    <th>Phone</th>
+                    <th>Firm / Agency</th>
+                    <th>Contact Person</th>
+                    <th>Phone / Email</th>
+                    <th>City / State</th>
                     <th>Assigned UPI ID</th>
-                    <th>Role</th>
+                    <th>GSTIN</th>
+                    <th>Invoices</th>
+                    <th>Status</th>
+                    <th style="text-align: center;">Admin</th>
                 </tr>
             </thead>
             <tbody>
-                {% for dist in distributors %}
+                {% for dist in distributor_records %}
                 <tr>
                     <td>
-                        <div style="font-weight: 700;">{{ dist.user.get_full_name|default:dist.user.username }}</div>
-                        <div style="font-size: 0.8rem; color: #64748b;">{{ dist.user.email }}</div>
+                        <div style="font-weight: 800; color: #0f172a;">{{ dist.business_name }}</div>
+                        {% if dist.user %}
+                            <div style="font-size: 0.78rem; color: #6366f1;">
+                                <i class="fa-solid fa-user-shield"></i> {{ dist.user.username }}
+                            </div>
+                        {% endif %}
                     </td>
-                    <td>{{ dist.business_name|default:"General Agency" }}</td>
-                    <td>{{ dist.phone|default:"N/A" }}</td>
-                    <td><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #4f46e5;">{{ dist.upi_id }}</code></td>
-                    <td><span class="role-pill distributor">DISTRIBUTOR</span></td>
+                    <td style="font-weight: 600;">{{ dist.name }}</td>
+                    <td>
+                        <div style="font-weight: 600;">{{ dist.phone }}</div>
+                        <div style="font-size: 0.8rem; color: #64748b;">{{ dist.email|default:"—" }}</div>
+                    </td>
+                    <td>{{ dist.city }}, <span style="color: #64748b; font-size: 0.85rem;">{{ dist.state }}</span></td>
+                    <td><code style="background: #e0e7ff; padding: 2px 6px; border-radius: 4px; color: #4338ca; font-size: 0.85rem;">{{ dist.upi_id }}</code></td>
+                    <td>
+                        {% if dist.gstin %}
+                            <code style="background: #f1f5f9; color: #0f172a; padding: 2px 6px; border-radius: 4px; font-size: 0.82rem;">{{ dist.gstin }}</code>
+                        {% else %}
+                            <span style="color: #94a3b8;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span style="font-weight: 700;">{{ dist.total_invoices }}</span>
+                        <div style="font-size: 0.75rem; color: #059669; font-weight: 700;">₹{{ dist.total_revenue|floatformat:2 }}</div>
+                    </td>
+                    <td>
+                        {% if dist.is_active %}
+                            <span class="role-pill" style="background: rgba(16, 185, 129, 0.1); color: #059669; font-size: 0.75rem; font-weight: 700;">ACTIVE</span>
+                        {% else %}
+                            <span class="role-pill" style="background: rgba(239, 68, 68, 0.1); color: #dc2626; font-size: 0.75rem; font-weight: 700;">INACTIVE</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        <a href="/django-admin/billing_app/distributor/{{ dist.id }}/change/" target="_blank" style="color: #4f46e5; text-decoration: none; font-weight: 700; font-size: 0.82rem;" title="Edit in Django Admin">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                        </a>
+                    </td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="5" style="text-align: center; color: #94a3b8; padding: 2rem;">No distributors registered yet.</td>
-                </tr>
+                    {% for dist in distributors %}
+                    <tr>
+                        <td style="font-weight: 700;">{{ dist.business_name|default:"General Agency" }}</td>
+                        <td>{{ dist.user.get_full_name|default:dist.user.username }}</td>
+                        <td>{{ dist.phone|default:"N/A" }}</td>
+                        <td>Ahmedabad</td>
+                        <td><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #4f46e5;">{{ dist.upi_id }}</code></td>
+                        <td>—</td>
+                        <td>0</td>
+                        <td><span class="role-pill distributor">DISTRIBUTOR</span></td>
+                        <td style="text-align: center;">—</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; color: #94a3b8; padding: 2rem;">No distributors registered yet.</td>
+                    </tr>
+                    {% endfor %}
                 {% endfor %}
             </tbody>
         </table>

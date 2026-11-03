@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError
-from .models import UserProfile
+from .models import UserProfile, Distributor
 
 class AdminLoginForm(AuthenticationForm):
     """Custom Django Authentication form specifically validating Admin privileges."""
@@ -935,6 +935,44 @@ class InvoiceCreationForm(forms.Form):
         invoice.save()
 
         return invoice
+
+
+class DistributorForm(forms.ModelForm):
+    """
+    Form for creating and editing distributor profiles.
+    Allows linking existing user or entering company and tax details.
+    """
+    class Meta:
+        model = Distributor
+        fields = [
+            'business_name',
+            'name',
+            'user',
+            'phone',
+            'email',
+            'address',
+            'city',
+            'state',
+            'pincode',
+            'gstin',
+            'upi_id',
+            'is_active',
+        ]
+        widgets = {
+            'business_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Apex Distribution Ltd'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Ramesh Patel'}),
+            'user': forms.Select(attrs={'class': 'form-control form-select'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. +91 98765 43210'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'e.g. ramesh@apexdist.in'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Office / Warehouse Address'}),
+            'city': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'City'}),
+            'state': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'State'}),
+            'pincode': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'PIN code'}),
+            'gstin': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '24AAAAA0000A1Z5'}),
+            'upi_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'distributor@upi'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
 
 
 

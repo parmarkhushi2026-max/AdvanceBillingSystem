@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth.models import User
-from .models import UserProfile, Product, Customer, Invoice, InvoiceItem
+from .models import UserProfile, Product, Customer, Invoice, InvoiceItem, Distributor
 
 
 def ensure_invoice_data_exists(skip_in_test=False):
@@ -35,6 +35,22 @@ def ensure_invoice_data_exists(skip_in_test=False):
             'business_name': 'Sharma Tech & Retail Distribution',
             'phone': '+91 98123 45678',
             'upi_id': 'sharmadist@upi'
+        }
+    )
+    Distributor.objects.get_or_create(
+        user=dist_user,
+        defaults={
+            'name': 'Rahul Sharma',
+            'business_name': 'Sharma Tech & Retail Distribution',
+            'phone': '+91 98123 45678',
+            'email': 'distributor@agency.com',
+            'address': 'Plot 42, GIDC Electronic Estate, Gandhinagar',
+            'city': 'Ahmedabad',
+            'state': 'Gujarat',
+            'pincode': '382024',
+            'gstin': '24AAECS1234F1Z9',
+            'upi_id': 'sharmadist@upi',
+            'is_active': True,
         }
     )
 
