@@ -100,7 +100,7 @@ class DistributorAdmin(admin.ModelAdmin):
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'phone', 'email', 'city', 'gstin', 'created_by', 'invoices_count', 'created_at')
+    list_display = ('name', 'phone', 'email', 'city', 'gstin', 'created_by', 'distributor_ref', 'invoices_count', 'created_at')
     list_filter = ('created_at', 'city')
     search_fields = ('name', 'phone', 'email', 'gstin')
     ordering = ('-created_at',)
@@ -233,7 +233,7 @@ class UserProfileAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'sku', 'category', 'price', 'gst_rate', 'hsn_code', 'stock', 'unit', 'created_by')
+    list_display = ('name', 'sku', 'category', 'price', 'gst_rate', 'hsn_code', 'stock', 'unit', 'created_by', 'distributor_ref')
     list_filter = ('category', 'gst_rate', 'created_at')
     search_fields = ('name', 'sku', 'hsn_code')
 

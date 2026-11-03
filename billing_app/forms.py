@@ -737,7 +737,7 @@ class InvoiceCreationForm(forms.Form):
                 self.fields['customer'].queryset = Customer.objects.all().order_by('name')
             else:
                 self.fields['customer'].queryset = Customer.objects.filter(
-                    Q(created_by=user) | Q(created_by__isnull=True)
+                    Q(created_by=user) | Q(distributor_ref__user=user)
                 ).order_by('name')
         else:
             self.fields['customer'].queryset = Customer.objects.all().order_by('name')

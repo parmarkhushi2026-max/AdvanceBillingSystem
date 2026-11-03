@@ -363,27 +363,35 @@ def prepare_dashboard_charts(queryset=None, is_distributor=False, distributor_us
 @admin_required
 def admin_dashboard_view(request):
     initialize_default_users()
+    total_customers = Customer.objects.count()
+    total_products = Product.objects.count()
     total_invoices = Invoice.objects.count()
     total_revenue = Invoice.objects.filter(payment_status='PAID').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
     total_distributors = UserProfile.objects.filter(role='DISTRIBUTOR').count()
-    total_products = Product.objects.count()
 
-    recent_invoices = Invoice.objects.all().order_by('-created_at')[:10]
-    distributors = UserProfile.objects.filter(role='DISTRIBUTOR').select_related('user')
     distributor_records = Distributor.objects.all().select_related('user')
+    distributors = UserProfile.objects.filter(role='DISTRIBUTOR').select_related('user')
+
+    recent_invoices = Invoice.objects.select_related('customer', 'distributor').order_by('-created_at')[:8]
+    recent_customers = Customer.objects.select_related('created_by', 'distributor_ref').order_by('-created_at')[:6]
+    recent_products = Product.objects.select_related('created_by', 'distributor_ref').order_by('-id')[:6]
 
     # Prepare visual charts data
     charts_data = prepare_dashboard_charts(Invoice.objects.all(), is_distributor=False)
 
     context = {
+        'total_customers': total_customers,
+        'total_products': total_products,
         'total_invoices': total_invoices,
         'total_revenue': total_revenue,
         'total_distributors': total_distributors,
-        'total_products': total_products,
-        'recent_invoices': recent_invoices,
-        'distributors': distributors,
-        'distributor_records': distributor_records,
         'total_distributor_records': distributor_records.count(),
+        'distributor_records': distributor_records,
+        'distributors': distributors,
+        'recent_invoices': recent_invoices,
+        'recent_customers': recent_customers,
+        'recent_products': recent_products,
+        'admin_name': request.user.get_full_name() or request.user.username,
         'role': 'Admin',
         **charts_data,
     }
@@ -600,13 +608,17 @@ def distributor_dashboard_view(request):
     upi_id = profile.upi_id if profile else 'merchant@upi'
     business_name = profile.business_name if profile else 'Distributor Agency'
 
-    my_invoices = Invoice.objects.filter(distributor=distributor).order_by('-created_at')
-    if not my_invoices.exists() and request.user.is_superuser:
-        my_invoices = Invoice.objects.all().order_by('-created_at')
-
+    my_invoices = Invoice.objects.filter(
+        Q(distributor=distributor) | Q(distributor_ref__user=distributor)
+    ).order_by('-created_at')
     my_revenue = my_invoices.filter(payment_status='PAID').aggregate(Sum('grand_total'))['grand_total__sum'] or Decimal('0.00')
     my_invoice_count = my_invoices.count()
-    products = Product.objects.all()
+    my_customers = Customer.objects.filter(
+        Q(created_by=distributor) | Q(distributor_ref__user=distributor)
+    )
+    products = Product.objects.filter(
+        Q(created_by=distributor) | Q(distributor_ref__user=distributor)
+    ).order_by('-id')
 
     # Prepare distributor-specific visual charts data
     charts_data = prepare_dashboard_charts(my_invoices, is_distributor=True, distributor_user=distributor)
@@ -616,6 +628,8 @@ def distributor_dashboard_view(request):
         'total_revenue': my_revenue,
         'invoice_count': my_invoice_count,
         'products_count': products.count(),
+        'customers_count': my_customers.count(),
+        'my_customers': my_customers[:5],
         'upi_id': upi_id,
         'business_name': business_name,
         'products': products,
@@ -628,7 +642,13 @@ def distributor_dashboard_view(request):
 @distributor_required
 def create_invoice_view(request):
     initialize_default_users()
-    products = Product.objects.all().order_by('name')
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+    if is_admin:
+        products = Product.objects.all().order_by('name')
+    else:
+        products = Product.objects.filter(
+            Q(created_by=request.user) | Q(distributor_ref__user=request.user)
+        ).order_by('name')
     profile = getattr(request.user, 'profile', None)
     upi_id = profile.upi_id if profile else 'advancebilling@upi'
     business_name = profile.business_name if profile else 'Advance Billing Agency'
@@ -688,6 +708,10 @@ def create_invoice_view(request):
 @login_required
 def invoice_detail_view(request, invoice_id):
     invoice = get_object_or_404(Invoice, id=invoice_id)
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+    if not is_admin and invoice.distributor and invoice.distributor != request.user and invoice.distributor_ref != getattr(request.user, 'distributor_account', None):
+        messages.error(request, "Access Denied: You can only view invoices issued by your account.")
+        return redirect('invoice_list')
     profile = getattr(invoice.distributor, 'profile', None) if invoice.distributor else None
     upi_id = profile.upi_id if profile else 'advancebilling@upi'
     business_name = profile.business_name if profile else 'Advance Billing Agency'
@@ -790,6 +814,10 @@ def invoice_preview_view(request, invoice_id):
     """
     from .invoice_qr import generate_invoice_qr_bundle
     invoice = get_object_or_404(Invoice, id=invoice_id)
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+    if not is_admin and invoice.distributor and invoice.distributor != request.user and invoice.distributor_ref != getattr(request.user, 'distributor_account', None):
+        messages.error(request, "Access Denied: You can only preview invoices issued by your account.")
+        return redirect('invoice_list')
     profile = getattr(invoice.distributor, 'profile', None) if invoice.distributor else None
     
     business_name = getattr(profile, 'business_name', None) or 'Advance Billing Agency'
@@ -999,6 +1027,9 @@ def api_all_invoices_details(request):
     ).strip().lower()
 
     invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').all().order_by('-created_at')
+    is_admin = request.user.is_authenticated and (request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'))
+    if request.user.is_authenticated and not is_admin:
+        invoices = invoices.filter(Q(distributor=request.user) | Q(distributor_ref__user=request.user))
 
     # Query filter by customer name using Django Q filters
     if customer_name:
@@ -1594,9 +1625,10 @@ def customer_list_view(request):
     query = request.GET.get('q', '').strip()
     is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
     
-    customers = Customer.objects.all()
     if not is_admin:
-        customers = customers.filter(Q(created_by=request.user) | Q(created_by__isnull=True))
+        customers = Customer.objects.filter(Q(created_by=request.user) | Q(distributor_ref__user=request.user))
+    else:
+        customers = Customer.objects.all()
 
     if query:
         customers = customers.filter(
@@ -1690,7 +1722,11 @@ def product_list_view(request):
     query = request.GET.get('q', '').strip()
     category_filter = request.GET.get('category', '').strip()
     
-    products = Product.objects.all().order_by('-id')
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+    if not is_admin:
+        products = Product.objects.filter(Q(created_by=request.user) | Q(distributor_ref__user=request.user)).order_by('-id')
+    else:
+        products = Product.objects.all().order_by('-id')
     
     if query:
         products = products.filter(
@@ -1723,7 +1759,11 @@ def product_list_view(request):
 # 18.1 Interactive Product Management Workspace (API & Modals driven)
 def product_manage_frontend_view(request):
     initialize_default_users()
-    products = Product.objects.all().order_by('-id')
+    is_admin = request.user.is_authenticated and (request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'))
+    if request.user.is_authenticated and not is_admin:
+        products = Product.objects.filter(Q(created_by=request.user) | Q(distributor_ref__user=request.user)).order_by('-id')
+    else:
+        products = Product.objects.all().order_by('-id')
     categories = Product.objects.values_list('category', flat=True).distinct()
     is_admin = request.user.is_authenticated and (request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'))
 
@@ -1896,12 +1936,15 @@ def invoice_list_view(request):
         '10'
     ).strip().lower()
     
-    # Fetch all invoice records from database with related customer, distributor, and line items
-    if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN') or request.GET.get('all') in ('1', 'true'):
+    # Fetch invoice records based on user role (Admin sees all, Distributor sees only their own)
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+    if is_admin:
         invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').all().order_by('-created_at')
         role = 'Admin'
     else:
-        invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').filter(distributor=request.user).order_by('-created_at')
+        invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').filter(
+            Q(distributor=request.user) | Q(distributor_ref__user=request.user)
+        ).order_by('-created_at')
         role = 'Distributor'
         
     # Search by customer name using Django query filters (Q object)
@@ -2036,11 +2079,14 @@ def invoice_bootstrap_table_view(request):
         'all'
     ).strip().lower()
 
-    if request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN') or request.GET.get('all') in ('1', 'true'):
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+    if is_admin:
         invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').all().order_by('-created_at')
         role = 'Admin'
     else:
-        invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').filter(distributor=request.user).order_by('-created_at')
+        invoices = Invoice.objects.select_related('customer', 'distributor').prefetch_related('items').filter(
+            Q(distributor=request.user) | Q(distributor_ref__user=request.user)
+        ).order_by('-created_at')
         role = 'Distributor'
 
     # Search by customer name using Django query filters (Q object)
@@ -3155,7 +3201,11 @@ def api_products(request):
         category = request.GET.get('category', '').strip()
         limit = int(request.GET.get('limit', 100))
 
-        products = Product.objects.all().order_by('-id')
+        is_admin = request.user.is_authenticated and (request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN'))
+        if request.user.is_authenticated and not is_admin:
+            products = Product.objects.filter(Q(created_by=request.user) | Q(distributor_ref__user=request.user)).order_by('-id')
+        else:
+            products = Product.objects.all().order_by('-id')
         if query:
             products = products.filter(
                 Q(name__icontains=query) |

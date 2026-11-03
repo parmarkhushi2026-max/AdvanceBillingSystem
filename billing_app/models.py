@@ -27,8 +27,21 @@ class Product(models.Model):
     unit = models.CharField(max_length=20, default='Pcs', help_text='Measurement unit (Pcs, Kg, Box, Mtr, Ltr, set)')
     description = models.TextField(blank=True, null=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
+    distributor_ref = models.ForeignKey('Distributor', on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if self.created_by and not self.distributor_ref:
+            try:
+                dist = getattr(self.created_by, 'distributor_account', None)
+                if dist:
+                    self.distributor_ref = dist
+            except Exception:
+                pass
+        elif self.distributor_ref and not self.created_by and self.distributor_ref.user:
+            self.created_by = self.distributor_ref.user
+        super().save(*args, **kwargs)
 
     @property
     def tax_rate(self):
@@ -50,6 +63,7 @@ class Customer(models.Model):
     city = models.CharField(max_length=100, blank=True, null=True)
     gstin = models.CharField(max_length=20, blank=True, null=True, help_text='GST Identification Number')
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='customers')
+    distributor_ref = models.ForeignKey('Distributor', on_delete=models.SET_NULL, null=True, blank=True, related_name='customers')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -57,6 +71,18 @@ class Customer(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.phone})"
+
+    def save(self, *args, **kwargs):
+        if self.created_by and not self.distributor_ref:
+            try:
+                dist = getattr(self.created_by, 'distributor_account', None)
+                if dist:
+                    self.distributor_ref = dist
+            except Exception:
+                pass
+        elif self.distributor_ref and not self.created_by and self.distributor_ref.user:
+            self.created_by = self.distributor_ref.user
+        super().save(*args, **kwargs)
 
 
 class Distributor(models.Model):

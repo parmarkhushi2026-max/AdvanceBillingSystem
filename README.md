@@ -2,11 +2,67 @@
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 [![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
-[![Tests](https://img.shields.io/badge/Tests-210%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+[![Tests](https://img.shields.io/badge/Tests-220%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
 A feature-packed, production-ready Django Billing, QR Payment, and Financial Intelligence System designed for managing distributors, customers, dynamic UPI QR code billing, audit reporting, tax receipts, and ledger tracking.
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+
+## 👑 🌟 Feature: Admin Welcome Dashboard with Live DB Metrics (Customers, Products & Invoices)
+
+A modern, high-aesthetic Welcome Dashboard page designed exclusively for System Administrators, displaying live database counts fetched directly from DB tables (`Customer`, `Product`, `Invoice`, and `Distributor`):
+- **Welcome Hero Banner (`templates/dashboard/admin_dashboard.html`)**:
+  - Personalized greeting with the logged-in administrator's name: *"Welcome, {{ admin_name }}! 👋"*.
+  - Live system connectivity indicator: *"Live DB Connected • System Admin Portal"*.
+  - Direct quick-action shortcuts for Quick QR Bill creation, Reports Studio, and Django Backend Admin.
+- **Primary Database Metric Cards (Directly Powered by DB Queries)**:
+  - **Total Customers (`{{ total_customers }}`)**: Real-time count from the `Customer` table (`Customer.objects.count()`), with quick link to the Customer Directory.
+  - **Total Products (`{{ total_products }}`)**: Real-time count from the `Product` table (`Product.objects.count()`), with quick link to Product Inventory.
+  - **Total Invoices (`{{ total_invoices }}`)**: Real-time count from the `Invoice` table (`Invoice.objects.count()`), with quick link to All Invoices.
+  - **Total Settled Revenue (`₹{{ total_revenue }}`)**: Sum of all PAID invoices across the entire system.
+  - **Distributor Network (`{{ total_distributor_records }}`)**: Total registered distributor entities from `Distributor` master table.
+- **Live Database Overview Tables**:
+  - **Customer Database Glance**: Table displaying recently registered customers with phone, city, GSTIN, and linked invoice counts.
+  - **Product Database Glance**: Table displaying catalog products with SKU, category, price, stock quantity, and low-stock alerts.
+  - **Registered Distributors Master Table**: Comprehensive table of distributors with firm name, contact, phone, GSTIN, UPI ID, active status, and inline actions.
+  - **Recent Invoices Ledger**: Displays recent invoices with customer name, payment method, grand total, status, and one-click actions for Preview, PDF download, and QR bill view.
+- **Automated Route Protection (`@admin_required`)**:
+  - Restricts dashboard access to authenticated Administrators only. Unauthenticated users are redirected to login, while Distributors are denied access and redirected to their operational portal.
+
+---
+
+## 🔒 🌟 Feature: Multi-Tenant Role Isolation (Distributors See ONLY Their Customers, Products & Invoices)
+
+Robust multi-tenant user role logic ensuring complete data isolation so that Distributors can view, search, and manage ONLY their own customers, products, and invoices, while System Administrators retain full centralized oversight:
+- **Foreign Key Relational Architecture Across Models (`billing_app/models.py`)**:
+  - **`Customer`**: Linked to distributor user via `created_by` (FK to `User`) and `distributor_ref` (FK to `Distributor`).
+  - **`Product`**: Linked to distributor user via `created_by` (FK to `User`) and `distributor_ref` (FK to `Distributor`).
+  - **`Invoice`**: Linked to distributor user via `distributor` (FK to `User`), `distributor_ref` (FK to `Distributor`), and `customer` (FK to `Customer`).
+  - **`InvoiceItem`**: Linked to parent invoice via `invoice` (FK to `Invoice`) and catalog item via `product` (FK to `Product`).
+  - Automatic `save()` synchronization keeps `created_by` and `distributor_ref` in sync across all models.
+- **View-Level Tenant Isolation (`billing_app/views.py`)**:
+  - **Customer Isolation (`customer_list_view`)**:
+    - If user is Distributor: Strictly filters `Customer.objects.filter(Q(created_by=request.user) | Q(distributor_ref__user=request.user))`. Customers of other distributors are completely hidden.
+    - If user is Admin: Displays all customers across all distributors.
+  - **Product Isolation (`product_list_view` & `product_manage_frontend_view`)**:
+    - If user is Distributor: Strictly filters `Product.objects.filter(Q(created_by=request.user) | Q(distributor_ref__user=request.user))`. Products of other distributors are completely hidden.
+    - If user is Admin: Displays all catalog products.
+  - **Invoice Isolation (`invoice_list_view` & `invoice_bootstrap_table_view`)**:
+    - If user is Distributor: Strictly filters `Invoice.objects.filter(Q(distributor=request.user) | Q(distributor_ref__user=request.user))`. Other distributors' invoices are completely hidden.
+    - If user is Admin: Displays all invoices across the entire network.
+  - **Distributor Dashboard Isolation (`distributor_dashboard_view`)**:
+    - Distributor metrics (Total Revenue, Invoices Issued, Catalog Products, and Registered Customers) are calculated strictly from the logged-in distributor's data.
+  - **Invoice Creation Dropdown Isolation (`create_invoice_view` & `InvoiceCreationForm`)**:
+    - Dynamic Customer dropdown is filtered strictly to the logged-in distributor's customers (`Q(created_by=user) | Q(distributor_ref__user=user)`).
+    - Available Products for billing are restricted strictly to that distributor's catalog.
+  - **Cross-Tenant Access Prevention (`invoice_detail_view` & `invoice_preview_view`)**:
+    - Blocks distributors from viewing, previewing, or downloading invoices issued by another distributor (redirects with Access Denied message).
+  - **API Tenant Isolation (`api_products` & `api_all_invoices_details`)**:
+    - REST API endpoints enforce role-based filtering, ensuring distributors only receive their own records via JSON responses.
+- **Automated Test Suite (`billing_app/test_admin_welcome_dashboard_and_distributor_isolation.py`)**:
+  - 10 comprehensive unit tests verifying Admin Welcome Dashboard DB counts, hero greeting, foreign key integrity, Distributor 1 vs Distributor 2 customer isolation, product isolation, invoice isolation, cross-tenant detail/preview blocking, distributor dashboard metric isolation, and invoice creation dropdown filtering. (220 total passing tests across the entire application suite).
+
+---
 
 ## 🏢 🌟 Feature: Distributor Table Model & Admin Data Management
 

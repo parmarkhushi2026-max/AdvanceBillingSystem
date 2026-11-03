@@ -3,63 +3,99 @@
 {% block title %}Admin Overview - Advance Billing System{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1 class="page-title">System Admin Dashboard</h1>
-        <p class="page-subtitle">Centralized oversight, live revenue tracking, and distributor registry.</p>
+<!-- Admin Welcome Hero Banner -->
+<div class="admin-welcome-hero" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%); border-radius: 20px; padding: 2rem 2.25rem; color: white; margin-bottom: 2rem; box-shadow: 0 10px 25px -5px rgba(67, 56, 202, 0.3); position: relative; overflow: hidden;">
+    <div style="position: absolute; right: -20px; bottom: -20px; font-size: 11rem; color: rgba(255,255,255,0.04); pointer-events: none;">
+        <i class="fa-solid fa-shield-halved"></i>
     </div>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <a href="{% url 'admin_reports' %}" class="btn-print" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); text-decoration: none;">
-            <i class="fa-solid fa-chart-line"></i> Dedicated Reports Studio
-        </a>
-        <a href="/django-admin/" target="_blank" class="btn-print" style="background: #1e1b4b;">
-            <i class="fa-solid fa-screwdriver-wrench"></i> Django Backend Admin
-        </a>
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem; position: relative; z-index: 1;">
+        <div>
+            <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #34d399; display: inline-block;"></span>
+                Live DB Connected • System Admin Portal
+            </div>
+            <h1 style="font-size: 2.1rem; font-weight: 800; margin: 0 0 6px 0; color: #ffffff; letter-spacing: -0.02em;">
+                Welcome, {{ admin_name|default:request.user.username }}! 👋
+            </h1>
+            <p style="margin: 0; font-size: 1rem; color: #c7d2fe; max-width: 650px; line-height: 1.5;">
+                Live oversight for your billing system. Track total customers, products, and invoices fetched directly from PostgreSQL / SQLite database tables.
+            </p>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="{% url 'create_invoice' %}" style="background: #10b981; color: white; padding: 10px 18px; border-radius: 10px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(16,185,129,0.3); font-size: 0.92rem;">
+                <i class="fa-solid fa-receipt"></i> Quick QR Bill
+            </a>
+            <a href="{% url 'admin_reports' %}" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); padding: 10px 18px; border-radius: 10px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-size: 0.92rem;">
+                <i class="fa-solid fa-chart-line"></i> Reports Studio
+            </a>
+            <a href="/django-admin/" target="_blank" style="background: #0f172a; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); padding: 10px 18px; border-radius: 10px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-size: 0.92rem;">
+                <i class="fa-solid fa-screwdriver-wrench"></i> Backend Admin
+            </a>
+        </div>
     </div>
-
 </div>
 
-<!-- Metrics Cards -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon emerald">
-            <i class="fa-solid fa-indian-rupee-sign"></i>
+<!-- Primary DB Metrics Cards: Total Customers, Products, and Invoices -->
+<div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+    <!-- 1. Total Customers from DB Table -->
+    <a href="{% url 'customer_list' %}" class="stat-card" style="text-decoration: none; color: inherit; border-left: 4px solid #4f46e5;">
+        <div class="stat-icon indigo" style="background: rgba(79, 70, 229, 0.1); color: #4f46e5;">
+            <i class="fa-solid fa-users"></i>
         </div>
         <div>
-            <div class="stat-val">₹{{ total_revenue|floatformat:2 }}</div>
-            <div class="stat-lbl">Total System Revenue</div>
+            <div class="stat-val" style="font-size: 1.85rem; font-weight: 800; color: #0f172a;">{{ total_customers }}</div>
+            <div class="stat-lbl" style="font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Customers</div>
+            <span style="font-size: 0.78rem; color: #4f46e5; font-weight: 700;">Customer DB Table &rarr;</span>
         </div>
-    </div>
+    </a>
 
-    <div class="stat-card">
-        <div class="stat-icon indigo">
-            <i class="fa-solid fa-receipt"></i>
-        </div>
-        <div>
-            <div class="stat-val">{{ total_invoices }}</div>
-            <div class="stat-lbl">Invoices Generated</div>
-        </div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-icon amber">
-            <i class="fa-solid fa-users-gear"></i>
-        </div>
-        <div>
-            <div class="stat-val">{{ total_distributors }}</div>
-            <div class="stat-lbl">Active Distributors</div>
-        </div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-icon sky">
+    <!-- 2. Total Products from DB Table -->
+    <a href="{% url 'product_list' %}" class="stat-card" style="text-decoration: none; color: inherit; border-left: 4px solid #0891b2;">
+        <div class="stat-icon sky" style="background: rgba(6, 182, 212, 0.1); color: #0891b2;">
             <i class="fa-solid fa-boxes-stacked"></i>
         </div>
         <div>
-            <div class="stat-val">{{ total_products }}</div>
-            <div class="stat-lbl">Catalog Products</div>
+            <div class="stat-val" style="font-size: 1.85rem; font-weight: 800; color: #0f172a;">{{ total_products }}</div>
+            <div class="stat-lbl" style="font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Products</div>
+            <span style="font-size: 0.78rem; color: #0891b2; font-weight: 700;">Product DB Table &rarr;</span>
+        </div>
+    </a>
+
+    <!-- 3. Total Invoices from DB Table -->
+    <a href="{% url 'invoice_list' %}" class="stat-card" style="text-decoration: none; color: inherit; border-left: 4px solid #d97706;">
+        <div class="stat-icon amber" style="background: rgba(245, 158, 11, 0.1); color: #d97706;">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+        </div>
+        <div>
+            <div class="stat-val" style="font-size: 1.85rem; font-weight: 800; color: #0f172a;">{{ total_invoices }}</div>
+            <div class="stat-lbl" style="font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Invoices</div>
+            <span style="font-size: 0.78rem; color: #d97706; font-weight: 700;">Invoice DB Table &rarr;</span>
+        </div>
+    </a>
+
+    <!-- 4. Total Settled Revenue -->
+    <div class="stat-card" style="border-left: 4px solid #10b981;">
+        <div class="stat-icon emerald" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+            <i class="fa-solid fa-indian-rupee-sign"></i>
+        </div>
+        <div>
+            <div class="stat-val" style="font-size: 1.85rem; font-weight: 800; color: #059669;">₹{{ total_revenue|floatformat:2 }}</div>
+            <div class="stat-lbl" style="font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Settled Revenue</div>
+            <span style="font-size: 0.78rem; color: #059669; font-weight: 700;">PAID Invoices Only</span>
         </div>
     </div>
+
+    <!-- 5. Active Distributors -->
+    <a href="{% url 'admin_distributor_list' %}" class="stat-card" style="text-decoration: none; color: inherit; border-left: 4px solid #7c3aed;">
+        <div class="stat-icon purple" style="background: rgba(139, 92, 246, 0.1); color: #7c3aed;">
+            <i class="fa-solid fa-truck-ramp-box"></i>
+        </div>
+        <div>
+            <div class="stat-val" style="font-size: 1.85rem; font-weight: 800; color: #0f172a;">{{ total_distributor_records|default:total_distributors }}</div>
+            <div class="stat-lbl" style="font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Distributor Master</div>
+            <span style="font-size: 0.78rem; color: #7c3aed; font-weight: 700;">Manage Network &rarr;</span>
+        </div>
+    </a>
 </div>
 
 <!-- ================= BillFlow Financial Analytics & Visualizers ================= -->
@@ -192,6 +228,103 @@
                     <span class="fintech-breakdown-pct">{{ status_cash_pct }}%</span>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Live Database Tables Overview: Customers & Products -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Recent Customers Table -->
+    <div class="dashboard-card" style="margin-bottom: 0;">
+        <div class="card-header-clean" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div class="card-title-clean">
+                <i class="fa-solid fa-users" style="color: #4f46e5;"></i>
+                <span>Customer Database Table</span>
+            </div>
+            <a href="{% url 'customer_list' %}" class="btn-action-sm" style="background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; padding: 4px 10px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.8rem;">
+                View All ({{ total_customers }}) &rarr;
+            </a>
+        </div>
+        <div class="table-responsive">
+            <table class="app-table">
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>City</th>
+                        <th>GSTIN</th>
+                        <th>Invoices</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in recent_customers %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: 700; color: #0f172a;">{{ c.name }}</div>
+                            <div style="font-size: 0.8rem; color: #64748b;">{{ c.phone }}</div>
+                        </td>
+                        <td>{{ c.city|default:"—" }}</td>
+                        <td>
+                            {% if c.gstin %}
+                                <code style="background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: 0.8rem;">{{ c.gstin }}</code>
+                            {% else %}
+                                <span style="color: #94a3b8;">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span style="font-weight: 700; color: #4f46e5;">{{ c.invoices.count }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #94a3b8; padding: 1.5rem;">No customer records found in DB.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Catalog Products Table -->
+    <div class="dashboard-card" style="margin-bottom: 0;">
+        <div class="card-header-clean" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div class="card-title-clean">
+                <i class="fa-solid fa-boxes-stacked" style="color: #0891b2;"></i>
+                <span>Product Database Table</span>
+            </div>
+            <a href="{% url 'product_list' %}" class="btn-action-sm" style="background: #ecfeff; color: #0e7490; border: 1px solid #a5f3fc; padding: 4px 10px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.8rem;">
+                View All ({{ total_products }}) &rarr;
+            </a>
+        </div>
+        <div class="table-responsive">
+            <table class="app-table">
+                <thead>
+                    <tr>
+                        <th>Product / SKU</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in recent_products %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: 700; color: #0f172a;">{{ p.name }}</div>
+                            <div style="font-size: 0.78rem; color: #0891b2; font-family: monospace;">{{ p.sku|default:"N/A" }}</div>
+                        </td>
+                        <td><span class="role-pill" style="background: #f1f5f9; color: #334155; font-size: 0.75rem;">{{ p.category }}</span></td>
+                        <td style="font-weight: 700;">₹{{ p.price|floatformat:2 }}</td>
+                        <td>
+                            <span style="font-weight: 700; color: {% if p.stock < 10 %}#dc2626{% else %}#059669{% endif %};">{{ p.stock }} {{ p.unit }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #94a3b8; padding: 1.5rem;">No product records found in DB.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
