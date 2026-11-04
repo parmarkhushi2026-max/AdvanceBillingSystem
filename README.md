@@ -2,11 +2,49 @@
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 [![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
-[![Tests](https://img.shields.io/badge/Tests-225%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+[![Tests](https://img.shields.io/badge/Tests-232%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
 A feature-packed, production-ready Django Billing, QR Payment, and Financial Intelligence System designed for managing distributors, customers, dynamic UPI QR code billing, audit reporting, tax receipts, and ledger tracking.
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+
+## 🗄️ 🌟 Feature: Necessary Database Tables Setup, Schema Architecture & Relational Integrity
+
+Comprehensive database table infrastructure establishing all core tables required across billing, dynamic QR code payments, distributor multi-tenant isolation, customer directory management, product inventory, and audit ledger tracking:
+
+- **1. User Profile Table (`billing_app_userprofile`)**:
+  - One-to-One extension of `auth_user` (`user = OneToOneField(User)`).
+  - Role distinction (`ADMIN`, `DISTRIBUTOR`), business firm name, contact phone, and assigned merchant `upi_id` for payment QR codes.
+- **2. Distributor Agency Master Table (`billing_app_distributor`)**:
+  - Stores wholesale distribution enterprises (`name`, `business_name`, `phone`, `email`, `address`, `city`, `state`, `pincode`, `gstin`, `upi_id`, `is_active`).
+  - Optional link to login user account (`user = OneToOneField(User, null=True, blank=True)`).
+  - Computed property metrics: `total_invoices` and `total_revenue` for settled billing velocity.
+- **3. Customer Directory Table (`billing_app_customer`)**:
+  - Client entities (`name`, `email`, `phone`, `address`, `city`, `gstin`).
+  - Relational Foreign Keys: `created_by` (FK to `User`) and `distributor_ref` (FK to `Distributor`) for multi-tenant isolation.
+- **4. Product Inventory Table (`billing_app_product`)**:
+  - Catalog inventory items (`name`, `sku`, `category`, `price`, `stock`, `unit`, `gst_rate`, `hsn_code`, `description`).
+  - Relational Foreign Keys: `created_by` (FK to `User`) and `distributor_ref` (FK to `Distributor`).
+- **5. Invoice Ledger Table (`billing_app_invoice`)**:
+  - Core billing records (`invoice_number`, `customer_name`, `customer_phone`, `subtotal`, `tax_amount`, `discount`, `grand_total`, `payment_status`, `payment_method`, `notes`, `created_at`).
+  - Relational Foreign Keys: `customer` (FK to `Customer`), `distributor` (FK to `User`), and `distributor_ref` (FK to `Distributor`).
+  - Dynamic QR Artifacts: `qr_code_image` (stored image file) and `qr_code_payload` (encoded payload text).
+- **6. Invoice Line Items Table (`billing_app_invoiceitem`)**:
+  - Line-level items (`invoice` FK, `product` FK, `product_name`, `quantity`, `unit_price`, `discount`, `tax_rate`, `total`).
+  - Auto-calculation logic computes taxable base, item discounts, and GST percentages.
+- **7. OTP Security Token Table (`billing_app_otptoken`)**:
+  - Cryptographically secure 6-digit recovery codes (`user` FK, `otp_code`, `is_verified`, `created_at`, `expires_at`).
+
+- **Django Admin Registration for All Necessary Tables (`billing_app/admin.py`)**:
+  - Every table is fully registered in the Django Admin portal with search fields, list filters, inline invoice item editors (`InvoiceItemInline`), customer invoice inlines (`CustomerInvoiceInline`), and distributor invoice inlines (`DistributorInvoiceInline`).
+
+- **Database Initialization Management Command (`python manage.py setup_necessary_tables`)**:
+  - Automated command ensuring all 7 tables are populated with representative master data, distributors, products, customers, and settled invoices.
+
+- **Automated Verification Test Suite (`billing_app/test_necessary_tables.py`)**:
+  - 7 comprehensive unit tests verifying table schema presence in SQLite introspection, bidirectional foreign key navigation, financial aggregations, dynamic QR code creation on invoice save, OTP token validation, Django Admin registry coverage, and management command execution. (232 total passing tests across the entire test suite).
+
+---
 
 ## 🎨 🌟 Feature: Clean & Professional Bootstrap 5 Styling for Login & Dashboard Pages
 
