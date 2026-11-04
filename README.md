@@ -2,11 +2,52 @@
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 [![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
-[![Tests](https://img.shields.io/badge/Tests-220%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+[![Tests](https://img.shields.io/badge/Tests-225%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
 A feature-packed, production-ready Django Billing, QR Payment, and Financial Intelligence System designed for managing distributors, customers, dynamic UPI QR code billing, audit reporting, tax receipts, and ledger tracking.
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+
+## 🎨 🌟 Feature: Clean & Professional Bootstrap 5 Styling for Login & Dashboard Pages
+
+A complete, modern redesign and styling pass for the Login and Dashboard pages utilizing **Bootstrap 5.3 CDN** alongside custom fintech CSS, delivering a clean, executive, and responsive user experience across desktop and mobile devices:
+
+- **Bootstrap 5.3 Integration in Base Layout (`templates/base.html`)**:
+  - Global integration of **Bootstrap 5.3.3 CSS** and **Bootstrap 5.3.3 JS Bundle** via CDN.
+  - Added smooth `.hover-lift` transition utilities for interactive dashboard cards and stat counters.
+  - Seamlessly harmonized with custom layout styles (`.sidebar`, `.main-content`, and `.toast-container`).
+
+- **Redesigned Admin Authorization Portal (`templates/auth/login_admin.html`)**:
+  - **Split-Card Layout (`card border-0 shadow-lg rounded-4 overflow-hidden`)**:
+    - **Executive Dark Indigo Showcase Column (`col-lg-5 text-white`)**: Gradients (`#0f172a` to `#312e81`), clearance badge, 256-bit cryptography highlights, audit studio features, and live database engine status.
+    - **Interactive Sign-In Column (`col-lg-7 bg-white`)**:
+      - Bootstrap pill navigation (`nav nav-pills nav-fill p-1 bg-light rounded-pill mb-4`) for 1-click switching between Admin Console and Distributor Portal.
+      - Modern input groups (`input-group input-group-lg rounded-3 border overflow-hidden`) with FontAwesome icons.
+      - Password visibility toggle (`togglePasswordBtn` / `togglePasswordIcon`) and interactive Caps Lock indicator (`capsWarningAlert`).
+      - Styled Remember Me checkbox (`form-check`), SSL protection badge, and animated loading state on submission.
+      - Quick demo credentials card (`card bg-light border-0 rounded-3 p-3`) with 1-click Auto-fill for `admin / admin123`.
+
+- **Redesigned Distributor POS Terminal Login (`templates/auth/login_distributor.html`)**:
+  - **POS & QR Smart Billing Theme**: Emerald/teal gradient showcase (`#022c22` to `#0f766e`) with dynamic UPI QR and thermal printing badges.
+  - Matching clean Bootstrap inputs, tab switchers, Caps Lock warning, and quick Auto-fill for demo distributor credentials (`distributor / dist123`).
+
+- **Executive Admin Welcome Dashboard (`templates/dashboard/admin_dashboard.html`)**:
+  - **Welcome Hero Card**: Styled with Bootstrap card, live database connectivity pill, and quick-action buttons (`Quick QR Bill`, `Reports Studio`, `Backend Admin`).
+  - **KPI Metrics Grid (`row g-3 mb-4`)**: 5 responsive stat cards (`col-12 col-sm-6 col-xl`) with custom `.hover-lift`, color-coded borders (Primary, Info, Warning, Success, Purple), big numbers, and direct navigation links.
+  - **Live Database Tables Overview**: Customers & Products cards in `row g-4` with Bootstrap `table table-hover align-middle mb-0` and light headers.
+  - **Registered Distributors Master Table**: Bootstrap responsive table with firm names, contact details, assigned UPI ID codes, active status badges (`badge bg-success-subtle text-success border`), and inline edit actions.
+  - **Reports & Intelligence Hub**: Bootstrap 3-card grid for 1-click CSV downloads (Sales Ledger, GST Tax Breakdown, Distributor Performance).
+  - **Recent Invoices Table**: Clean Bootstrap table with customer details, payment badges, and button groups (`Preview`, `PDF`, `View`).
+
+- **Distributor Operational Dashboard (`templates/dashboard/distributor_dashboard.html`)**:
+  - **Terminal Hero Banner**: Bootstrap card featuring distributor firm name, linked UPI ID code, and "+ Create New QR Bill" button.
+  - **Collection Metrics Grid**: 4 clean Bootstrap stat cards (My Collections, Invoices Issued, Catalog Products, and My Customers).
+  - **Recent Invoices Ledger**: Responsive Bootstrap table with one-click invoice preview, PDF download, and print actions.
+
+- **Automated Test Suite (`billing_app/test_bootstrap_styling_login_dashboard.py`)**:
+  - 5 automated unit tests verifying Bootstrap 5 CDN link presence, Admin Login Bootstrap components and form controls, Distributor Login components, Admin Dashboard hero card and metrics grid, and Distributor Dashboard layout. (225 total passing tests across the entire application).
+
+---
 
 ## 👑 🌟 Feature: Admin Welcome Dashboard with Live DB Metrics (Customers, Products & Invoices)
 

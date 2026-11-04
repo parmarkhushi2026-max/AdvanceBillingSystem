@@ -3,555 +3,592 @@
 {% block title %}Admin Overview - Advance Billing System{% endblock %}
 
 {% block content %}
-<!-- Admin Welcome Hero Banner -->
-<div class="admin-welcome-hero" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%); border-radius: 20px; padding: 2rem 2.25rem; color: white; margin-bottom: 2rem; box-shadow: 0 10px 25px -5px rgba(67, 56, 202, 0.3); position: relative; overflow: hidden;">
-    <div style="position: absolute; right: -20px; bottom: -20px; font-size: 11rem; color: rgba(255,255,255,0.04); pointer-events: none;">
-        <i class="fa-solid fa-shield-halved"></i>
-    </div>
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem; position: relative; z-index: 1;">
-        <div>
-            <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">
-                <span style="width: 8px; height: 8px; border-radius: 50%; background: #34d399; display: inline-block;"></span>
-                Live DB Connected • System Admin Portal
-            </div>
-            <h1 style="font-size: 2.1rem; font-weight: 800; margin: 0 0 6px 0; color: #ffffff; letter-spacing: -0.02em;">
-                Welcome, {{ admin_name|default:request.user.username }}! 👋
-            </h1>
-            <p style="margin: 0; font-size: 1rem; color: #c7d2fe; max-width: 650px; line-height: 1.5;">
-                Live oversight for your billing system. Track total customers, products, and invoices fetched directly from PostgreSQL / SQLite database tables.
-            </p>
+<div class="container-fluid px-0">
+    <!-- Admin Welcome Hero Banner -->
+    <div class="card border-0 rounded-4 shadow-sm mb-4 text-white position-relative overflow-hidden" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);">
+        <div style="position: absolute; right: -20px; bottom: -20px; font-size: 11rem; color: rgba(255,255,255,0.04); pointer-events: none;">
+            <i class="fa-solid fa-shield-halved"></i>
         </div>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <a href="{% url 'create_invoice' %}" style="background: #10b981; color: white; padding: 10px 18px; border-radius: 10px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(16,185,129,0.3); font-size: 0.92rem;">
-                <i class="fa-solid fa-receipt"></i> Quick QR Bill
-            </a>
-            <a href="{% url 'admin_reports' %}" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); padding: 10px 18px; border-radius: 10px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-size: 0.92rem;">
-                <i class="fa-solid fa-chart-line"></i> Reports Studio
-            </a>
-            <a href="/django-admin/" target="_blank" style="background: #0f172a; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); padding: 10px 18px; border-radius: 10px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-size: 0.92rem;">
-                <i class="fa-solid fa-screwdriver-wrench"></i> Backend Admin
-            </a>
-        </div>
-    </div>
-</div>
-
-<!-- Primary DB Metrics Cards: Total Customers, Products, and Invoices -->
-<div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
-    <!-- 1. Total Customers from DB Table -->
-    <a href="{% url 'customer_list' %}" class="stat-card" style="text-decoration: none; color: inherit; border-left: 4px solid #4f46e5;">
-        <div class="stat-icon indigo" style="background: rgba(79, 70, 229, 0.1); color: #4f46e5;">
-            <i class="fa-solid fa-users"></i>
-        </div>
-        <div>
-            <div class="stat-val" style="font-size: 1.85rem; font-weight: 800; color: #0f172a;">{{ total_customers }}</div>
-            <div class="stat-lbl" style="font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Customers</div>
-            <span style="font-size: 0.78rem; color: #4f46e5; font-weight: 700;">Customer DB Table &rarr;</span>
-        </div>
-    </a>
-
-    <!-- 2. Total Products from DB Table -->
-    <a href="{% url 'product_list' %}" class="stat-card" style="text-decoration: none; color: inherit; border-left: 4px solid #0891b2;">
-        <div class="stat-icon sky" style="background: rgba(6, 182, 212, 0.1); color: #0891b2;">
-            <i class="fa-solid fa-boxes-stacked"></i>
-        </div>
-        <div>
-            <div class="stat-val" style="font-size: 1.85rem; font-weight: 800; color: #0f172a;">{{ total_products }}</div>
-            <div class="stat-lbl" style="font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Products</div>
-            <span style="font-size: 0.78rem; color: #0891b2; font-weight: 700;">Product DB Table &rarr;</span>
-        </div>
-    </a>
-
-    <!-- 3. Total Invoices from DB Table -->
-    <a href="{% url 'invoice_list' %}" class="stat-card" style="text-decoration: none; color: inherit; border-left: 4px solid #d97706;">
-        <div class="stat-icon amber" style="background: rgba(245, 158, 11, 0.1); color: #d97706;">
-            <i class="fa-solid fa-file-invoice-dollar"></i>
-        </div>
-        <div>
-            <div class="stat-val" style="font-size: 1.85rem; font-weight: 800; color: #0f172a;">{{ total_invoices }}</div>
-            <div class="stat-lbl" style="font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Invoices</div>
-            <span style="font-size: 0.78rem; color: #d97706; font-weight: 700;">Invoice DB Table &rarr;</span>
-        </div>
-    </a>
-
-    <!-- 4. Total Settled Revenue -->
-    <div class="stat-card" style="border-left: 4px solid #10b981;">
-        <div class="stat-icon emerald" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
-            <i class="fa-solid fa-indian-rupee-sign"></i>
-        </div>
-        <div>
-            <div class="stat-val" style="font-size: 1.85rem; font-weight: 800; color: #059669;">₹{{ total_revenue|floatformat:2 }}</div>
-            <div class="stat-lbl" style="font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Settled Revenue</div>
-            <span style="font-size: 0.78rem; color: #059669; font-weight: 700;">PAID Invoices Only</span>
-        </div>
-    </div>
-
-    <!-- 5. Active Distributors -->
-    <a href="{% url 'admin_distributor_list' %}" class="stat-card" style="text-decoration: none; color: inherit; border-left: 4px solid #7c3aed;">
-        <div class="stat-icon purple" style="background: rgba(139, 92, 246, 0.1); color: #7c3aed;">
-            <i class="fa-solid fa-truck-ramp-box"></i>
-        </div>
-        <div>
-            <div class="stat-val" style="font-size: 1.85rem; font-weight: 800; color: #0f172a;">{{ total_distributor_records|default:total_distributors }}</div>
-            <div class="stat-lbl" style="font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Distributor Master</div>
-            <span style="font-size: 0.78rem; color: #7c3aed; font-weight: 700;">Manage Network &rarr;</span>
-        </div>
-    </a>
-</div>
-
-<!-- ================= BillFlow Financial Analytics & Visualizers ================= -->
-<div class="fintech-visualizers-grid">
-    <!-- Module 1: Dual Spline/Bar Revenue Flow (2 Columns) -->
-    <div class="fintech-card">
-        <div class="fintech-header">
-            <div class="fintech-title-group">
-                <div class="fintech-title-row">
-                    <h2 class="fintech-title">Monthly Billed vs Collected Revenue Flow</h2>
-                    <span class="fintech-tag">FY 2026</span>
+        <div class="card-body p-4 p-md-5 position-relative" style="z-index: 1;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <div class="badge bg-white bg-opacity-15 text-white rounded-pill px-3 py-1.5 fw-bold text-uppercase d-inline-flex align-items-center gap-2 mb-2 border border-white border-opacity-15 small">
+                        <span class="rounded-circle bg-success d-inline-block" style="width: 8px; height: 8px;"></span>
+                        Live DB Connected &bull; System Admin Portal
+                    </div>
+                    <h1 class="h2 fw-bolder text-white mb-2">
+                        Welcome, {{ admin_name|default:request.user.username }}! 👋
+                    </h1>
+                    <p class="text-white-50 mb-0" style="max-width: 650px; font-size: 0.95rem; line-height: 1.5;">
+                        Live oversight for your billing system. Track total customers, products, and invoices fetched directly from PostgreSQL / SQLite database tables.
+                    </p>
                 </div>
-                <p class="fintech-subtitle">Comparative dual vector analytics with linear cash realization velocity</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'create_invoice' %}" class="btn btn-success btn-sm rounded-3 px-3 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2">
+                        <i class="fa-solid fa-receipt"></i> Quick QR Bill
+                    </a>
+                    <a href="{% url 'admin_reports' %}" class="btn btn-outline-light btn-sm rounded-3 px-3 py-2 fw-semibold d-inline-flex align-items-center gap-2">
+                        <i class="fa-solid fa-chart-line"></i> Reports Studio
+                    </a>
+                    <a href="/django-admin/" target="_blank" class="btn btn-dark btn-sm rounded-3 px-3 py-2 fw-semibold border border-white border-opacity-20 d-inline-flex align-items-center gap-2">
+                        <i class="fa-solid fa-screwdriver-wrench"></i> Backend Admin
+                    </a>
+                </div>
             </div>
-            
-            <div class="fintech-controls">
-                <div class="fintech-legend-group">
-                    <div class="fintech-legend-item">
+        </div>
+    </div>
+
+    <!-- Primary DB Metrics Cards: Total Customers, Products, and Invoices -->
+    <div class="row g-3 mb-4">
+        <!-- 1. Total Customers from DB Table -->
+        <div class="col-12 col-sm-6 col-xl">
+            <a href="{% url 'customer_list' %}" class="card border-0 shadow-sm rounded-4 h-100 hover-lift text-decoration-none border-start border-4 border-primary p-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-3 bg-primary bg-opacity-10 text-primary p-3 me-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="fa-solid fa-users fa-xl"></i>
+                    </div>
+                    <div>
+                        <div class="h3 fw-bolder text-dark mb-0">{{ total_customers }}</div>
+                        <div class="text-muted small fw-bold text-uppercase">Total Customers</div>
+                        <span class="small text-primary fw-semibold">Customer DB Table &rarr;</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- 2. Total Products from DB Table -->
+        <div class="col-12 col-sm-6 col-xl">
+            <a href="{% url 'product_list' %}" class="card border-0 shadow-sm rounded-4 h-100 hover-lift text-decoration-none border-start border-4 border-info p-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-3 bg-info bg-opacity-10 text-info p-3 me-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="fa-solid fa-boxes-stacked fa-xl"></i>
+                    </div>
+                    <div>
+                        <div class="h3 fw-bolder text-dark mb-0">{{ total_products }}</div>
+                        <div class="text-muted small fw-bold text-uppercase">Total Products</div>
+                        <span class="small text-info fw-semibold">Product DB Table &rarr;</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- 3. Total Invoices from DB Table -->
+        <div class="col-12 col-sm-6 col-xl">
+            <a href="{% url 'invoice_list' %}" class="card border-0 shadow-sm rounded-4 h-100 hover-lift text-decoration-none border-start border-4 border-warning p-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-3 bg-warning bg-opacity-10 text-warning p-3 me-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="fa-solid fa-file-invoice-dollar fa-xl"></i>
+                    </div>
+                    <div>
+                        <div class="h3 fw-bolder text-dark mb-0">{{ total_invoices }}</div>
+                        <div class="text-muted small fw-bold text-uppercase">Total Invoices</div>
+                        <span class="small text-warning fw-semibold">Invoice DB Table &rarr;</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- 4. Total Settled Revenue -->
+        <div class="col-12 col-sm-6 col-xl">
+            <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift border-start border-4 border-success p-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-3 bg-success bg-opacity-10 text-success p-3 me-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="fa-solid fa-indian-rupee-sign fa-xl"></i>
+                    </div>
+                    <div>
+                        <div class="h3 fw-bolder text-success mb-0">₹{{ total_revenue|floatformat:2 }}</div>
+                        <div class="text-muted small fw-bold text-uppercase">Settled Revenue</div>
+                        <span class="small text-success fw-semibold">PAID Invoices Only</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Active Distributors -->
+        <div class="col-12 col-sm-6 col-xl">
+            <a href="{% url 'admin_distributor_list' %}" class="card border-0 shadow-sm rounded-4 h-100 hover-lift text-decoration-none border-start border-4 border-secondary p-3" style="border-left-color: #7c3aed !important;">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-3 p-3 me-3 d-flex align-items-center justify-content-center" style="background: rgba(124, 58, 237, 0.1); color: #7c3aed; width: 52px; height: 52px;">
+                        <i class="fa-solid fa-truck-ramp-box fa-xl"></i>
+                    </div>
+                    <div>
+                        <div class="h3 fw-bolder text-dark mb-0">{{ total_distributor_records|default:total_distributors }}</div>
+                        <div class="text-muted small fw-bold text-uppercase">Distributor Master</div>
+                        <span class="small fw-semibold" style="color: #7c3aed;">Manage Network &rarr;</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- ================= BillFlow Financial Analytics & Visualizers ================= -->
+    <div class="fintech-visualizers-grid mb-4">
+        <!-- Module 1: Dual Spline/Bar Revenue Flow (2 Columns) -->
+        <div class="fintech-card">
+            <div class="fintech-header">
+                <div class="fintech-title-group">
+                    <div class="fintech-title-row">
+                        <h2 class="fintech-title">Monthly Billed vs Collected Revenue Flow</h2>
+                        <span class="fintech-tag">FY 2026</span>
+                    </div>
+                    <p class="fintech-subtitle">Comparative dual vector analytics with linear cash realization velocity</p>
+                </div>
+                
+                <div class="fintech-controls">
+                    <div class="fintech-legend-group">
+                        <div class="fintech-legend-item">
+                            <span class="fintech-dot primary"></span>
+                            <span>Billed</span>
+                        </div>
+                        <div class="fintech-legend-item">
+                            <span class="fintech-dot tertiary"></span>
+                            <span>Collected</span>
+                        </div>
+                        <div class="fintech-legend-item">
+                            <span class="fintech-dot secondary"></span>
+                            <span style="color: #bbcabf;">Projected</span>
+                        </div>
+                    </div>
+
+                    <!-- Spline / Bars View Switch -->
+                    <div class="fintech-view-switch">
+                        <button type="button" class="fintech-view-btn active" id="toggleSplineBtn">Spline</button>
+                        <button type="button" class="fintech-view-btn" id="toggleBarsBtn">Bars</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas Container with Interactive Floating HUD Tooltip -->
+            <div class="fintech-canvas-container">
+                <canvas id="fintechDualFlowCanvas"></canvas>
+                
+                <!-- Interactive Floating HUD Tooltip -->
+                <div class="fintech-hud-tooltip" id="fintechHudTooltip">
+                    <div class="fintech-hud-date" id="hudDate">{{ hud_date_label }}</div>
+                    <div class="fintech-hud-row">
+                        <span class="fintech-hud-lbl primary">Billed:</span>
+                        <span class="fintech-hud-val" id="hudBilled">{{ hud_billed_val }}</span>
+                    </div>
+                    <div class="fintech-hud-row">
+                        <span class="fintech-hud-lbl tertiary">Collected:</span>
+                        <span class="fintech-hud-val" id="hudCollected">{{ hud_collected_val }}</span>
+                    </div>
+                    <div class="fintech-hud-divider"></div>
+                    <div class="fintech-hud-row">
+                        <span class="fintech-hud-lbl" style="color: #bbcabf;">Efficiency:</span>
+                        <span class="fintech-hud-val" id="hudEff" style="color: #4edea3; font-weight: 700;">{{ hud_efficiency_pct }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Module 2: Invoice Status Radial Donut Visualizer (1 Column) -->
+        <div class="fintech-card">
+            <div class="fintech-header">
+                <div class="fintech-title-group">
+                    <div class="fintech-title-row">
+                        <h2 class="fintech-title">Invoice Status</h2>
+                    </div>
+                    <p class="fintech-subtitle">Distribution across active ledgers</p>
+                </div>
+                <button type="button" style="background: none; border: none; color: #bbcabf; cursor: pointer;">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+            </div>
+
+            <!-- Donut Canvas with Center Readout -->
+            <div class="fintech-donut-wrapper">
+                <canvas id="fintechStatusCanvas"></canvas>
+                <div class="fintech-donut-center">
+                    <span class="fintech-donut-center-lbl">TOTAL BILLED</span>
+                    <span class="fintech-donut-center-val">{{ compact_total_billed }}</span>
+                    <span class="fintech-donut-center-sub">{{ total_invoices_count }} Invoices</span>
+                </div>
+            </div>
+
+            <!-- Legend Breakdown List -->
+            <div class="fintech-breakdown-list">
+                <div class="fintech-breakdown-row">
+                    <div class="fintech-breakdown-left">
                         <span class="fintech-dot primary"></span>
-                        <span>Billed</span>
+                        <span class="fintech-breakdown-title">Paid / Settled</span>
                     </div>
-                    <div class="fintech-legend-item">
+                    <div class="fintech-breakdown-right">
+                        <span class="fintech-breakdown-amt">₹{{ status_paid_tot|floatformat:2 }}</span>
+                        <span class="fintech-breakdown-pct">{{ status_paid_pct }}%</span>
+                    </div>
+                </div>
+
+                <div class="fintech-breakdown-row">
+                    <div class="fintech-breakdown-left">
                         <span class="fintech-dot tertiary"></span>
-                        <span>Collected</span>
+                        <span class="fintech-breakdown-title">Pending / Due</span>
                     </div>
-                    <div class="fintech-legend-item">
+                    <div class="fintech-breakdown-right">
+                        <span class="fintech-breakdown-amt">₹{{ status_pending_tot|floatformat:2 }}</span>
+                        <span class="fintech-breakdown-pct">{{ status_pending_pct }}%</span>
+                    </div>
+                </div>
+
+                <div class="fintech-breakdown-row">
+                    <div class="fintech-breakdown-left">
                         <span class="fintech-dot secondary"></span>
-                        <span style="color: #bbcabf;">Projected</span>
+                        <span class="fintech-breakdown-title">UPI QR Code</span>
+                    </div>
+                    <div class="fintech-breakdown-right">
+                        <span class="fintech-breakdown-amt">₹{{ status_qr_tot|floatformat:2 }}</span>
+                        <span class="fintech-breakdown-pct">{{ status_qr_pct }}%</span>
                     </div>
                 </div>
 
-                <!-- Spline / Bars View Switch -->
-                <div class="fintech-view-switch">
-                    <button type="button" class="fintech-view-btn active" id="toggleSplineBtn">Spline</button>
-                    <button type="button" class="fintech-view-btn" id="toggleBarsBtn">Bars</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Canvas Container with Interactive Floating HUD Tooltip -->
-        <div class="fintech-canvas-container">
-            <canvas id="fintechDualFlowCanvas"></canvas>
-            
-            <!-- Interactive Floating HUD Tooltip -->
-            <div class="fintech-hud-tooltip" id="fintechHudTooltip">
-                <div class="fintech-hud-date" id="hudDate">{{ hud_date_label }}</div>
-                <div class="fintech-hud-row">
-                    <span class="fintech-hud-lbl primary">Billed:</span>
-                    <span class="fintech-hud-val" id="hudBilled">{{ hud_billed_val }}</span>
-                </div>
-                <div class="fintech-hud-row">
-                    <span class="fintech-hud-lbl tertiary">Collected:</span>
-                    <span class="fintech-hud-val" id="hudCollected">{{ hud_collected_val }}</span>
-                </div>
-                <div class="fintech-hud-divider"></div>
-                <div class="fintech-hud-row">
-                    <span class="fintech-hud-lbl" style="color: #bbcabf;">Efficiency:</span>
-                    <span class="fintech-hud-val" id="hudEff" style="color: #4edea3; font-weight: 700;">{{ hud_efficiency_pct }}</span>
+                <div class="fintech-breakdown-row">
+                    <div class="fintech-breakdown-left">
+                        <span class="fintech-dot error"></span>
+                        <span class="fintech-breakdown-title">Cash at Counter</span>
+                    </div>
+                    <div class="fintech-breakdown-right">
+                        <span class="fintech-breakdown-amt">₹{{ status_cash_tot|floatformat:2 }}</span>
+                        <span class="fintech-breakdown-pct">{{ status_cash_pct }}%</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Module 2: Invoice Status Radial Donut Visualizer (1 Column) -->
-    <div class="fintech-card">
-        <div class="fintech-header">
-            <div class="fintech-title-group">
-                <div class="fintech-title-row">
-                    <h2 class="fintech-title">Invoice Status</h2>
+    <!-- Live Database Tables Overview: Customers & Products -->
+    <div class="row g-4 mb-4">
+        <!-- Recent Customers Table -->
+        <div class="col-12 col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2 fw-bold text-dark">
+                        <i class="fa-solid fa-users text-primary"></i>
+                        <span>Customer Database Table</span>
+                    </div>
+                    <a href="{% url 'customer_list' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold">
+                        View All ({{ total_customers }}) &rarr;
+                    </a>
                 </div>
-                <p class="fintech-subtitle">Distribution across active ledgers</p>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-uppercase small text-muted">
+                            <tr>
+                                <th class="ps-4">Customer</th>
+                                <th>City</th>
+                                <th>GSTIN</th>
+                                <th class="pe-4 text-center">Invoices</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in recent_customers %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark">{{ c.name }}</div>
+                                    <div class="small text-muted">{{ c.phone }}</div>
+                                </td>
+                                <td>{{ c.city|default:"—" }}</td>
+                                <td>
+                                    {% if c.gstin %}
+                                        <code class="bg-light px-2 py-1 rounded text-dark small border">{{ c.gstin }}</code>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="pe-4 text-center">
+                                    <span class="badge bg-primary-subtle text-primary fw-bold rounded-pill px-2.5 py-1">{{ c.invoices.count }}</span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">No customer records found in DB.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <button type="button" style="background: none; border: none; color: #bbcabf; cursor: pointer;">
-                <i class="fa-solid fa-ellipsis-vertical"></i>
-            </button>
         </div>
 
-        <!-- Donut Canvas with Center Readout -->
-        <div class="fintech-donut-wrapper">
-            <canvas id="fintechStatusCanvas"></canvas>
-            <div class="fintech-donut-center">
-                <span class="fintech-donut-center-lbl">TOTAL BILLED</span>
-                <span class="fintech-donut-center-val">{{ compact_total_billed }}</span>
-                <span class="fintech-donut-center-sub">{{ total_invoices_count }} Invoices</span>
-            </div>
-        </div>
-
-        <!-- Legend Breakdown List -->
-        <div class="fintech-breakdown-list">
-            <div class="fintech-breakdown-row">
-                <div class="fintech-breakdown-left">
-                    <span class="fintech-dot primary"></span>
-                    <span class="fintech-breakdown-title">Paid / Settled</span>
+        <!-- Catalog Products Table -->
+        <div class="col-12 col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2 fw-bold text-dark">
+                        <i class="fa-solid fa-boxes-stacked text-info"></i>
+                        <span>Product Database Table</span>
+                    </div>
+                    <a href="{% url 'product_list' %}" class="btn btn-sm btn-outline-info rounded-pill px-3 fw-semibold">
+                        View All ({{ total_products }}) &rarr;
+                    </a>
                 </div>
-                <div class="fintech-breakdown-right">
-                    <span class="fintech-breakdown-amt">₹{{ status_paid_tot|floatformat:2 }}</span>
-                    <span class="fintech-breakdown-pct">{{ status_paid_pct }}%</span>
-                </div>
-            </div>
-
-            <div class="fintech-breakdown-row">
-                <div class="fintech-breakdown-left">
-                    <span class="fintech-dot tertiary"></span>
-                    <span class="fintech-breakdown-title">Pending / Due</span>
-                </div>
-                <div class="fintech-breakdown-right">
-                    <span class="fintech-breakdown-amt">₹{{ status_pending_tot|floatformat:2 }}</span>
-                    <span class="fintech-breakdown-pct">{{ status_pending_pct }}%</span>
-                </div>
-            </div>
-
-            <div class="fintech-breakdown-row">
-                <div class="fintech-breakdown-left">
-                    <span class="fintech-dot secondary"></span>
-                    <span class="fintech-breakdown-title">UPI QR Code</span>
-                </div>
-                <div class="fintech-breakdown-right">
-                    <span class="fintech-breakdown-amt">₹{{ status_qr_tot|floatformat:2 }}</span>
-                    <span class="fintech-breakdown-pct">{{ status_qr_pct }}%</span>
-                </div>
-            </div>
-
-            <div class="fintech-breakdown-row">
-                <div class="fintech-breakdown-left">
-                    <span class="fintech-dot error"></span>
-                    <span class="fintech-breakdown-title">Cash at Counter</span>
-                </div>
-                <div class="fintech-breakdown-right">
-                    <span class="fintech-breakdown-amt">₹{{ status_cash_tot|floatformat:2 }}</span>
-                    <span class="fintech-breakdown-pct">{{ status_cash_pct }}%</span>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-uppercase small text-muted">
+                            <tr>
+                                <th class="ps-4">Product / SKU</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th class="pe-4">Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in recent_products %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark">{{ p.name }}</div>
+                                    <div class="small text-info font-monospace">{{ p.sku|default:"N/A" }}</div>
+                                </td>
+                                <td><span class="badge bg-light text-secondary border rounded-pill">{{ p.category }}</span></td>
+                                <td class="fw-bold text-dark">₹{{ p.price|floatformat:2 }}</td>
+                                <td class="pe-4">
+                                    <span class="fw-bold {% if p.stock < 10 %}text-danger{% else %}text-success{% endif %}">
+                                        {{ p.stock }} {{ p.unit }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">No product records found in DB.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Live Database Tables Overview: Customers & Products -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-    <!-- Recent Customers Table -->
-    <div class="dashboard-card" style="margin-bottom: 0;">
-        <div class="card-header-clean" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <div class="card-title-clean">
-                <i class="fa-solid fa-users" style="color: #4f46e5;"></i>
-                <span>Customer Database Table</span>
+    <!-- Active Distributors Master Table -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2 fw-bold text-dark">
+                <i class="fa-solid fa-store text-primary"></i>
+                <span>Registered Distributors Master Table</span>
             </div>
-            <a href="{% url 'customer_list' %}" class="btn-action-sm" style="background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; padding: 4px 10px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.8rem;">
-                View All ({{ total_customers }}) &rarr;
-            </a>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{% url 'admin_distributor_list' %}" class="btn btn-sm btn-outline-primary rounded-3 fw-semibold d-inline-flex align-items-center gap-1">
+                    <i class="fa-solid fa-table-list"></i> Full Distributor Table
+                </a>
+                <a href="{% url 'admin_distributor_add' %}" class="btn btn-sm btn-primary rounded-3 fw-bold d-inline-flex align-items-center gap-1">
+                    <i class="fa-solid fa-plus"></i> Add Distributor
+                </a>
+                <a href="/django-admin/billing_app/distributor/add/" target="_blank" class="btn btn-sm btn-light border rounded-3 fw-semibold d-inline-flex align-items-center gap-1">
+                    <i class="fa-solid fa-screwdriver-wrench"></i> Add via Admin
+                </a>
+            </div>
         </div>
         <div class="table-responsive">
-            <table class="app-table">
-                <thead>
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-uppercase small text-muted">
                     <tr>
-                        <th>Customer</th>
-                        <th>City</th>
+                        <th class="ps-4">Firm / Agency</th>
+                        <th>Contact Person</th>
+                        <th>Phone / Email</th>
+                        <th>City / State</th>
+                        <th>Assigned UPI ID</th>
                         <th>GSTIN</th>
                         <th>Invoices</th>
+                        <th>Status</th>
+                        <th class="pe-4 text-center">Admin</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for c in recent_customers %}
+                    {% for dist in distributor_records %}
                     <tr>
-                        <td>
-                            <div style="font-weight: 700; color: #0f172a;">{{ c.name }}</div>
-                            <div style="font-size: 0.8rem; color: #64748b;">{{ c.phone }}</div>
+                        <td class="ps-4">
+                            <div class="fw-bold text-dark">{{ dist.business_name }}</div>
+                            {% if dist.user %}
+                                <div class="small text-primary">
+                                    <i class="fa-solid fa-user-shield"></i> {{ dist.user.username }}
+                                </div>
+                            {% endif %}
                         </td>
-                        <td>{{ c.city|default:"—" }}</td>
+                        <td class="fw-semibold">{{ dist.name }}</td>
                         <td>
-                            {% if c.gstin %}
-                                <code style="background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: 0.8rem;">{{ c.gstin }}</code>
+                            <div class="fw-semibold">{{ dist.phone }}</div>
+                            <div class="small text-muted">{{ dist.email|default:"—" }}</div>
+                        </td>
+                        <td>{{ dist.city }}, <span class="text-muted small">{{ dist.state }}</span></td>
+                        <td><code class="bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded small">{{ dist.upi_id }}</code></td>
+                        <td>
+                            {% if dist.gstin %}
+                                <code class="bg-light px-2 py-1 rounded text-dark small border">{{ dist.gstin }}</code>
                             {% else %}
-                                <span style="color: #94a3b8;">—</span>
+                                <span class="text-muted">—</span>
                             {% endif %}
                         </td>
                         <td>
-                            <span style="font-weight: 700; color: #4f46e5;">{{ c.invoices.count }}</span>
+                            <span class="fw-bold">{{ dist.total_invoices }}</span>
+                            <div class="small text-success fw-bold">₹{{ dist.total_revenue|floatformat:2 }}</div>
+                        </td>
+                        <td>
+                            {% if dist.is_active %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-bold">ACTIVE</span>
+                            {% else %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1 fw-bold">INACTIVE</span>
+                            {% endif %}
+                        </td>
+                        <td class="pe-4 text-center">
+                            <a href="/django-admin/billing_app/distributor/{{ dist.id }}/change/" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0.5 fw-bold" title="Edit in Django Admin">
+                                <i class="fa-solid fa-pen-to-square"></i> Edit
+                            </a>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="4" style="text-align: center; color: #94a3b8; padding: 1.5rem;">No customer records found in DB.</td>
-                    </tr>
+                        {% for dist in distributors %}
+                        <tr>
+                            <td class="ps-4 fw-bold">{{ dist.business_name|default:"General Agency" }}</td>
+                            <td>{{ dist.user.get_full_name|default:dist.user.username }}</td>
+                            <td>{{ dist.phone|default:"N/A" }}</td>
+                            <td>Ahmedabad</td>
+                            <td><code class="bg-light px-2 py-1 rounded text-primary small">{{ dist.upi_id }}</code></td>
+                            <td>—</td>
+                            <td>0</td>
+                            <td><span class="badge bg-primary-subtle text-primary rounded-pill">DISTRIBUTOR</span></td>
+                            <td class="pe-4 text-center">—</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">No distributors registered yet.</td>
+                        </tr>
+                        {% endfor %}
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- Catalog Products Table -->
-    <div class="dashboard-card" style="margin-bottom: 0;">
-        <div class="card-header-clean" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <div class="card-title-clean">
-                <i class="fa-solid fa-boxes-stacked" style="color: #0891b2;"></i>
-                <span>Product Database Table</span>
+    <!-- ================= Dedicated Reports & Analytics Hub ================= -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 border-top border-4 border-primary">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-3 bg-primary bg-opacity-10 text-primary p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+                    <h2 class="h5 fw-bolder text-dark mb-0">Dedicated Reports & Financial Intelligence</h2>
+                </div>
+                <p class="text-muted small mb-0 mt-1">Download certified audits, export tax data, and analyze distributor collection velocity.</p>
             </div>
-            <a href="{% url 'product_list' %}" class="btn-action-sm" style="background: #ecfeff; color: #0e7490; border: 1px solid #a5f3fc; padding: 4px 10px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.8rem;">
-                View All ({{ total_products }}) &rarr;
+            <a href="{% url 'admin_reports' %}" class="btn btn-primary rounded-3 px-3 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Full Reports Studio
             </a>
         </div>
+
+        <!-- Quick Report Tiles Grid -->
+        <div class="row g-3">
+            <!-- Card 1: Sales Report -->
+            <div class="col-12 col-md-4">
+                <div class="card bg-light border rounded-3 p-3 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">Revenue Audit</span>
+                            <i class="fa-solid fa-receipt text-primary"></i>
+                        </div>
+                        <h4 class="h6 fw-bold text-dark mb-1">Sales & Billing Ledger</h4>
+                        <p class="text-muted small mb-3">Comprehensive transaction history with payment modes, totals, and timestamps.</p>
+                    </div>
+                    <a href="{% url 'admin_reports_export_csv' %}?type=sales" class="btn btn-sm btn-white border bg-white rounded-3 fw-semibold d-flex align-items-center justify-content-center gap-2">
+                        <i class="fa-solid fa-download"></i> Download Sales CSV
+                    </a>
+                </div>
+            </div>
+
+            <!-- Card 2: GST Tax Report -->
+            <div class="col-12 col-md-4">
+                <div class="card bg-light border rounded-3 p-3 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Tax Compliance</span>
+                            <i class="fa-solid fa-scale-balanced text-success"></i>
+                        </div>
+                        <h4 class="h6 fw-bold text-dark mb-1">GST & Tax Breakdown</h4>
+                        <p class="text-muted small mb-3">Taxable base, CGST/SGST amounts, and invoice tax rates ready for CA filing.</p>
+                    </div>
+                    <a href="{% url 'admin_reports_export_csv' %}?type=gst" class="btn btn-sm btn-white border bg-white rounded-3 fw-semibold text-success d-flex align-items-center justify-content-center gap-2">
+                        <i class="fa-solid fa-file-shield"></i> Download GST Tax CSV
+                    </a>
+                </div>
+            </div>
+
+            <!-- Card 3: Distributor Performance -->
+            <div class="col-12 col-md-4">
+                <div class="card bg-light border rounded-3 p-3 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill">Agent Analytics</span>
+                            <i class="fa-solid fa-users text-warning"></i>
+                        </div>
+                        <h4 class="h6 fw-bold text-dark mb-1">Distributor Performance</h4>
+                        <p class="text-muted small mb-3">Billed vs collected volume per distributor with realization metrics.</p>
+                    </div>
+                    <a href="{% url 'admin_reports_export_csv' %}?type=distributor" class="btn btn-sm btn-white border bg-white rounded-3 fw-semibold text-warning-emphasis d-flex align-items-center justify-content-center gap-2">
+                        <i class="fa-solid fa-download"></i> Download Distributor CSV
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Recent Invoices -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2 fw-bold text-dark">
+                <i class="fa-solid fa-clock-rotate-left text-success"></i>
+                <span>Recent System Invoices (Live Feed)</span>
+            </div>
+        </div>
         <div class="table-responsive">
-            <table class="app-table">
-                <thead>
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-uppercase small text-muted">
                     <tr>
-                        <th>Product / SKU</th>
-                        <th>Category</th>
-                        <th>Price</th>
-                        <th>Stock</th>
+                        <th class="ps-4">Invoice No.</th>
+                        <th>Date</th>
+                        <th>Distributor</th>
+                        <th>Customer</th>
+                        <th>Payment Method</th>
+                        <th>Total Amount</th>
+                        <th>Status</th>
+                        <th class="pe-4 text-center">Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for p in recent_products %}
+                    {% for inv in recent_invoices %}
                     <tr>
+                        <td class="ps-4 fw-bold text-primary">#{{ inv.invoice_number }}</td>
+                        <td class="small">{{ inv.created_at|date:"M d, Y H:i" }}</td>
+                        <td>{{ inv.distributor.username|default:"System" }}</td>
                         <td>
-                            <div style="font-weight: 700; color: #0f172a;">{{ p.name }}</div>
-                            <div style="font-size: 0.78rem; color: #0891b2; font-family: monospace;">{{ p.sku|default:"N/A" }}</div>
+                            <div class="fw-semibold text-dark">{{ inv.customer_name }}</div>
+                            <div class="small text-muted">{{ inv.customer_phone }}</div>
                         </td>
-                        <td><span class="role-pill" style="background: #f1f5f9; color: #334155; font-size: 0.75rem;">{{ p.category }}</span></td>
-                        <td style="font-weight: 700;">₹{{ p.price|floatformat:2 }}</td>
+                        <td><i class="fa-solid fa-qrcode text-info me-1"></i> {{ inv.payment_method }}</td>
+                        <td class="fw-bold text-dark">₹{{ inv.grand_total|floatformat:2 }}</td>
                         <td>
-                            <span style="font-weight: 700; color: {% if p.stock < 10 %}#dc2626{% else %}#059669{% endif %};">{{ p.stock }} {{ p.unit }}</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-bold">{{ inv.payment_status }}</span>
+                        </td>
+                        <td class="pe-4 text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'invoice_preview' inv.id %}" class="btn btn-outline-primary" title="Preview Invoice with Details & QR">
+                                    <i class="fa-solid fa-file-invoice"></i> Preview
+                                </a>
+                                <a href="{% url 'invoice_pdf' inv.id %}" class="btn btn-outline-danger" title="Download PDF (xhtml2pdf)">
+                                    <i class="fa-solid fa-file-pdf"></i> PDF
+                                </a>
+                                <a href="{% url 'invoice_detail' inv.id %}" class="btn btn-outline-secondary" title="View QR Bill">
+                                    <i class="fa-solid fa-eye"></i> View
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" style="text-align: center; color: #94a3b8; padding: 1.5rem;">No product records found in DB.</td>
+                        <td colspan="8" class="text-center text-muted py-4">No invoices created yet.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
-</div>
-
-<!-- Active Distributors -->
-<div class="dashboard-card" style="margin-bottom: 2rem;">
-    <div class="card-header-clean" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-        <div class="card-title-clean">
-            <i class="fa-solid fa-store" style="color: #4f46e5;"></i>
-            <span>Registered Distributors Master Table</span>
-        </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <a href="{% url 'admin_distributor_list' %}" class="btn-action-sm" style="background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; padding: 6px 14px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
-                <i class="fa-solid fa-table-list"></i> Full Distributor Table
-            </a>
-            <a href="{% url 'admin_distributor_add' %}" class="btn-action-sm" style="background: #4f46e5; color: white; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
-                <i class="fa-solid fa-plus"></i> Add Distributor
-            </a>
-            <a href="/django-admin/billing_app/distributor/add/" target="_blank" class="btn-action-sm" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
-                <i class="fa-solid fa-screwdriver-wrench"></i> Add via Admin
-            </a>
-        </div>
-    </div>
-    <div class="table-responsive">
-        <table class="app-table">
-            <thead>
-                <tr>
-                    <th>Firm / Agency</th>
-                    <th>Contact Person</th>
-                    <th>Phone / Email</th>
-                    <th>City / State</th>
-                    <th>Assigned UPI ID</th>
-                    <th>GSTIN</th>
-                    <th>Invoices</th>
-                    <th>Status</th>
-                    <th style="text-align: center;">Admin</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for dist in distributor_records %}
-                <tr>
-                    <td>
-                        <div style="font-weight: 800; color: #0f172a;">{{ dist.business_name }}</div>
-                        {% if dist.user %}
-                            <div style="font-size: 0.78rem; color: #6366f1;">
-                                <i class="fa-solid fa-user-shield"></i> {{ dist.user.username }}
-                            </div>
-                        {% endif %}
-                    </td>
-                    <td style="font-weight: 600;">{{ dist.name }}</td>
-                    <td>
-                        <div style="font-weight: 600;">{{ dist.phone }}</div>
-                        <div style="font-size: 0.8rem; color: #64748b;">{{ dist.email|default:"—" }}</div>
-                    </td>
-                    <td>{{ dist.city }}, <span style="color: #64748b; font-size: 0.85rem;">{{ dist.state }}</span></td>
-                    <td><code style="background: #e0e7ff; padding: 2px 6px; border-radius: 4px; color: #4338ca; font-size: 0.85rem;">{{ dist.upi_id }}</code></td>
-                    <td>
-                        {% if dist.gstin %}
-                            <code style="background: #f1f5f9; color: #0f172a; padding: 2px 6px; border-radius: 4px; font-size: 0.82rem;">{{ dist.gstin }}</code>
-                        {% else %}
-                            <span style="color: #94a3b8;">—</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span style="font-weight: 700;">{{ dist.total_invoices }}</span>
-                        <div style="font-size: 0.75rem; color: #059669; font-weight: 700;">₹{{ dist.total_revenue|floatformat:2 }}</div>
-                    </td>
-                    <td>
-                        {% if dist.is_active %}
-                            <span class="role-pill" style="background: rgba(16, 185, 129, 0.1); color: #059669; font-size: 0.75rem; font-weight: 700;">ACTIVE</span>
-                        {% else %}
-                            <span class="role-pill" style="background: rgba(239, 68, 68, 0.1); color: #dc2626; font-size: 0.75rem; font-weight: 700;">INACTIVE</span>
-                        {% endif %}
-                    </td>
-                    <td style="text-align: center;">
-                        <a href="/django-admin/billing_app/distributor/{{ dist.id }}/change/" target="_blank" style="color: #4f46e5; text-decoration: none; font-weight: 700; font-size: 0.82rem;" title="Edit in Django Admin">
-                            <i class="fa-solid fa-pen-to-square"></i> Edit
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                    {% for dist in distributors %}
-                    <tr>
-                        <td style="font-weight: 700;">{{ dist.business_name|default:"General Agency" }}</td>
-                        <td>{{ dist.user.get_full_name|default:dist.user.username }}</td>
-                        <td>{{ dist.phone|default:"N/A" }}</td>
-                        <td>Ahmedabad</td>
-                        <td><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #4f46e5;">{{ dist.upi_id }}</code></td>
-                        <td>—</td>
-                        <td>0</td>
-                        <td><span class="role-pill distributor">DISTRIBUTOR</span></td>
-                        <td style="text-align: center;">—</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="9" style="text-align: center; color: #94a3b8; padding: 2rem;">No distributors registered yet.</td>
-                    </tr>
-                    {% endfor %}
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- ================= Dedicated Reports & Analytics Hub ================= -->
-<div class="dashboard-card" style="margin-bottom: 2rem; border-top: 4px solid #4f46e5; padding: 1.75rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
-        <div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(79, 70, 229, 0.1); color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-                    <i class="fa-solid fa-chart-pie"></i>
-                </div>
-                <h2 style="font-size: 1.35rem; font-weight: 800; color: #0f172a; margin: 0;">Dedicated Reports & Financial Intelligence</h2>
-            </div>
-            <p style="color: #64748b; font-size: 0.9rem; margin: 4px 0 0 0;">Download certified audits, export tax data, and analyze distributor collection velocity.</p>
-        </div>
-        <a href="{% url 'admin_reports' %}" class="btn-primary-action" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); text-decoration: none; padding: 10px 18px; border-radius: 12px; font-weight: 700; font-size: 0.9rem;">
-            <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Full Reports Studio
-        </a>
-    </div>
-
-    <!-- Quick Report Tiles Grid -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem;">
-        <!-- Card 1: Sales Report -->
-        <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                    <span style="font-size: 0.75rem; font-weight: 700; color: #2563eb; background: #dbeafe; padding: 3px 8px; border-radius: 6px; text-transform: uppercase;">Revenue Audit</span>
-                    <i class="fa-solid fa-receipt" style="color: #2563eb; font-size: 1.2rem;"></i>
-                </div>
-                <h4 style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">Sales & Billing Ledger</h4>
-                <p style="font-size: 0.82rem; color: #64748b; margin: 0 0 1rem 0; line-height: 1.4;">Comprehensive transaction history with payment modes, totals, and timestamps.</p>
-            </div>
-            <a href="{% url 'admin_reports_export_csv' %}?type=sales" style="background: #ffffff; color: #0f172a; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s;">
-                <i class="fa-solid fa-download"></i> Download Sales CSV
-            </a>
-        </div>
-
-        <!-- Card 2: GST Tax Report -->
-        <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                    <span style="font-size: 0.75rem; font-weight: 700; color: #059669; background: #d1fae5; padding: 3px 8px; border-radius: 6px; text-transform: uppercase;">Tax Compliance</span>
-                    <i class="fa-solid fa-scale-balanced" style="color: #059669; font-size: 1.2rem;"></i>
-                </div>
-                <h4 style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">GST & Tax Breakdown</h4>
-                <p style="font-size: 0.82rem; color: #64748b; margin: 0 0 1rem 0; line-height: 1.4;">Taxable base, CGST/SGST amounts, and invoice tax rates ready for CA filing.</p>
-            </div>
-            <a href="{% url 'admin_reports_export_csv' %}?type=gst" style="background: #ffffff; color: #065f46; border: 1px solid #a7f3d0; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s;">
-                <i class="fa-solid fa-file-shield"></i> Download GST Tax CSV
-            </a>
-        </div>
-
-        <!-- Card 3: Distributor Performance -->
-        <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                    <span style="font-size: 0.75rem; font-weight: 700; color: #d97706; background: #fef3c7; padding: 3px 8px; border-radius: 6px; text-transform: uppercase;">Agent Analytics</span>
-                    <i class="fa-solid fa-users" style="color: #d97706; font-size: 1.2rem;"></i>
-                </div>
-                <h4 style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">Distributor Performance</h4>
-                <p style="font-size: 0.82rem; color: #64748b; margin: 0 0 1rem 0; line-height: 1.4;">Billed vs collected volume per distributor with realization metrics.</p>
-            </div>
-            <a href="{% url 'admin_reports_export_csv' %}?type=distributor" style="background: #ffffff; color: #92400e; border: 1px solid #fde68a; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s;">
-                <i class="fa-solid fa-download"></i> Download Distributor CSV
-            </a>
-        </div>
-    </div>
-</div>
-
-<!-- Global Recent Invoices -->
-<div class="dashboard-card">
-
-    <div class="card-header-clean">
-        <div class="card-title-clean">
-            <i class="fa-solid fa-clock-rotate-left" style="color: #10b981;"></i>
-            <span>Recent System Invoices (Live Feed)</span>
-        </div>
-    </div>
-    <div class="table-responsive">
-        <table class="app-table">
-            <thead>
-                <tr>
-                    <th>Invoice No.</th>
-                    <th>Date</th>
-                    <th>Distributor</th>
-                    <th>Customer</th>
-                    <th>Payment Method</th>
-                    <th>Total Amount</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for inv in recent_invoices %}
-                <tr>
-                    <td style="font-weight: 700; color: #4f46e5;">#{{ inv.invoice_number }}</td>
-                    <td>{{ inv.created_at|date:"M d, Y H:i" }}</td>
-                    <td>{{ inv.distributor.username|default:"System" }}</td>
-                    <td>
-                        <div style="font-weight: 600;">{{ inv.customer_name }}</div>
-                        <div style="font-size: 0.8rem; color: #64748b;">{{ inv.customer_phone }}</div>
-                    </td>
-                    <td><i class="fa-solid fa-qrcode" style="color: #06b6d4;"></i> {{ inv.payment_method }}</td>
-                    <td style="font-weight: 700; font-size: 1rem;">₹{{ inv.grand_total|floatformat:2 }}</td>
-                    <td><span class="badge-status paid">{{ inv.payment_status }}</span></td>
-                    <td>
-                        <div style="display: flex; gap: 6px; align-items: center;">
-                            <a href="{% url 'invoice_preview' inv.id %}" class="btn-quick-fill" style="text-decoration: none; background: #eef2ff; color: #4338ca; border-color: #c7d2fe;" title="Preview Invoice with Details & QR">
-                                <i class="fa-solid fa-file-invoice"></i> Preview
-                            </a>
-                            <a href="{% url 'invoice_pdf' inv.id %}" class="btn-quick-fill" style="text-decoration: none; background: #fee2e2; color: #b91c1c; border-color: #fca5a5;" title="Download PDF (xhtml2pdf)">
-                                <i class="fa-solid fa-file-pdf"></i> PDF
-                            </a>
-                            <a href="{% url 'invoice_detail' inv.id %}" class="btn-quick-fill" style="text-decoration: none;">
-                                <i class="fa-solid fa-eye"></i> View QR Bill
-                            </a>
-                        </div>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="8" style="text-align: center; color: #94a3b8; padding: 2rem;">No invoices created yet.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
     </div>
 </div>
 {% endblock %}
@@ -599,115 +636,147 @@ document.addEventListener('DOMContentLoaded', function() {
                 {
                     label: 'Billed',
                     data: chartBilled,
+                    type: 'line',
                     borderColor: '#4edea3',
                     backgroundColor: gradPrimary,
+                    fill: true,
+                    tension: 0.4,
                     borderWidth: 2.5,
                     pointBackgroundColor: '#4edea3',
-                    pointBorderColor: '#10131a',
+                    pointBorderColor: '#0b0e15',
                     pointBorderWidth: 2,
                     pointRadius: 4,
                     pointHoverRadius: 7,
-                    fill: true,
-                    tension: 0.38,
-                    order: 2
+                    pointHoverBackgroundColor: '#ffffff',
+                    pointHoverBorderColor: '#4edea3',
+                    pointHoverBorderWidth: 3
                 },
                 {
                     label: 'Collected',
                     data: chartCollected,
+                    type: 'line',
                     borderColor: '#4cd7f6',
                     backgroundColor: gradTertiary,
+                    fill: true,
+                    tension: 0.4,
                     borderWidth: 2.5,
                     pointBackgroundColor: '#4cd7f6',
-                    pointBorderColor: '#10131a',
+                    pointBorderColor: '#0b0e15',
                     pointBorderWidth: 2,
                     pointRadius: 4,
                     pointHoverRadius: 7,
-                    fill: true,
-                    tension: 0.38,
-                    order: 3
+                    pointHoverBackgroundColor: '#ffffff',
+                    pointHoverBorderColor: '#4cd7f6',
+                    pointHoverBorderWidth: 3
                 },
                 {
                     label: 'Projected',
                     data: chartProjected,
+                    type: 'line',
                     borderColor: '#c3c0ff',
-                    borderDash: [4, 4],
+                    borderDash: [5, 5],
                     borderWidth: 1.5,
-                    pointRadius: 0,
                     fill: false,
-                    tension: 0.38,
-                    order: 1
+                    tension: 0.3,
+                    pointRadius: 0
                 }
             ]
-        };
-
-        const flowOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false
-            },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    enabled: false,
-                    external: function(context) {
-                        const tooltipModel = context.tooltip;
-                        if (!tooltipModel || tooltipModel.opacity === 0) return;
-                        
-                        const dataIndex = tooltipModel.dataPoints[0].dataIndex;
-                        const curDate = chartDates[dataIndex];
-                        const curBilled = chartBilled[dataIndex] || 0;
-                        const curCollected = chartCollected[dataIndex] || 0;
-                        const eff = curBilled > 0 ? ((curCollected / curBilled) * 100).toFixed(1) : '100.0';
-
-                        const hudDate = document.getElementById('hudDate');
-                        const hudBilled = document.getElementById('hudBilled');
-                        const hudCollected = document.getElementById('hudCollected');
-                        const hudEff = document.getElementById('hudEff');
-
-                        if (hudDate) hudDate.textContent = curDate + ', 2026';
-                        if (hudBilled) hudBilled.textContent = formatINR(curBilled);
-                        if (hudCollected) hudCollected.textContent = formatINR(curCollected);
-                        if (hudEff) hudEff.textContent = eff + '%';
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    grid: {
-                        color: 'rgba(50, 53, 61, 0.4)',
-                        borderDash: [3, 3]
-                    },
-                    ticks: {
-                        color: '#86948a',
-                        font: { size: 11, weight: '600' }
-                    }
-                },
-                y: {
-                    grid: {
-                        color: 'rgba(50, 53, 61, 0.4)',
-                        borderDash: [3, 3]
-                    },
-                    ticks: {
-                        color: '#86948a',
-                        font: { size: 11 },
-                        callback: (v) => '₹' + v
-                    }
-                }
-            }
         };
 
         flowChart = new Chart(ctxFlow, {
             type: 'line',
             data: flowDataConfig,
-            options: flowOptions
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        enabled: false,
+                        external: function(context) {
+                            const tooltipEl = document.getElementById('fintechHudTooltip');
+                            if (!tooltipEl) return;
+
+                            const tooltipModel = context.tooltip;
+                            if (tooltipModel.opacity === 0) {
+                                tooltipEl.style.opacity = '0';
+                                return;
+                            }
+
+                            if (tooltipModel.body) {
+                                const titleLines = tooltipModel.title || [];
+                                const dataPoints = tooltipModel.dataPoints || [];
+
+                                const dateLbl = document.getElementById('hudDate');
+                                const valBilled = document.getElementById('hudBilled');
+                                const valColl = document.getElementById('hudCollected');
+                                const valEff = document.getElementById('hudEff');
+
+                                if (dateLbl && titleLines.length > 0) {
+                                    dateLbl.textContent = titleLines[0];
+                                }
+
+                                let bAmt = 0;
+                                let cAmt = 0;
+                                dataPoints.forEach(dp => {
+                                    if (dp.datasetIndex === 0) bAmt = dp.raw;
+                                    if (dp.datasetIndex === 1) cAmt = dp.raw;
+                                });
+
+                                if (valBilled) valBilled.textContent = formatINR(bAmt);
+                                if (valColl) valColl.textContent = formatINR(cAmt);
+                                if (valEff) {
+                                    const eff = bAmt > 0 ? ((cAmt / bAmt) * 100).toFixed(1) : '100.0';
+                                    valEff.textContent = eff + '%';
+                                }
+                            }
+
+                            const position = context.chart.canvas.getBoundingClientRect();
+                            tooltipEl.style.opacity = '1';
+                            const targetLeft = tooltipModel.caretX;
+                            const maxLeft = position.width - 200;
+                            tooltipEl.style.left = Math.min(Math.max(targetLeft, 10), maxLeft) + 'px';
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.04)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#86948a',
+                            font: { size: 11, weight: '500' }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.04)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#86948a',
+                            font: { size: 11, weight: '500' },
+                            callback: function(value) {
+                                if (value >= 10000000) return '₹' + (value / 10000000).toFixed(1) + 'Cr';
+                                if (value >= 100000) return '₹' + (value / 100000).toFixed(1) + 'L';
+                                if (value >= 1000) return '₹' + (value / 1000).toFixed(0) + 'k';
+                                return '₹' + value;
+                            }
+                        }
+                    }
+                }
+            }
         });
 
-        // Toggle Spline / Bars View Handler
+        // View toggle (Spline <-> Bars)
         const splineBtn = document.getElementById('toggleSplineBtn');
         const barsBtn = document.getElementById('toggleBarsBtn');
-
         if (splineBtn && barsBtn) {
             splineBtn.addEventListener('click', function() {
                 splineBtn.classList.add('active');
@@ -780,4 +849,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
-

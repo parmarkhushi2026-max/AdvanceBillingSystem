@@ -425,3 +425,4 @@ class AdminWelcomeDashboardAndDistributorIsolationTestCase(TestCase):
         self.assertIn('INV-D1-001', numbers_d1)
         self.assertIn('INV-D1-002', numbers_d1)
         self.assertNotIn('INV-D2-001', numbers_d1)
+
