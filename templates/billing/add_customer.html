@@ -3,138 +3,229 @@
 {% block title %}{% if is_edit %}Edit Customer - {{ customer.name }}{% else %}Add New Customer{% endif %} - Advance Billing System{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1 class="page-title">
-            {% if is_edit %}
-                <i class="fa-solid fa-user-pen"></i> Edit Customer Details
-            {% else %}
-                <i class="fa-solid fa-user-plus"></i> Add New Customer
-            {% endif %}
-        </h1>
-        <p class="page-subtitle">
-            {% if is_edit %}
-                Modify contact info, city, or GSTIN tax ID for {{ customer.name }}.
-            {% else %}
-                Register customer details to manage directory, invoices, and GST billing.
-            {% endif %}
-        </p>
-    </div>
-    <div class="page-actions">
-        <a href="{% url 'customer_list' %}" class="btn-secondary-action">
-            <i class="fa-solid fa-users"></i> View All Customers
-        </a>
-        <a href="{% if user.is_superuser or user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}" class="btn-secondary-action">
-            <i class="fa-solid fa-arrow-left"></i> Dashboard
-        </a>
-    </div>
-</div>
-
-<div class="auth-wrapper" style="min-height: auto; padding: 1rem 0;">
-    <div class="auth-card register-card">
-        <div class="auth-card-header">
-            <div class="auth-role-badge distributor">
-                <i class="fa-solid fa-address-book"></i>
-                <span>Customer Directory</span>
-            </div>
-            <h2 class="auth-title">{% if is_edit %}Update Details{% else %}Customer Information{% endif %}</h2>
-            <p class="auth-subtitle">Enter customer contact info and optional GSTIN for official invoices.</p>
+<div class="container py-4">
+    <!-- Breadcrumb & Header Navigation -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="{% if user.is_superuser or user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}" class="text-decoration-none">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'customer_list' %}" class="text-decoration-none">Customer Directory</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{% if is_edit %}Edit Customer{% else %}Add Customer{% endif %}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bolder text-dark mb-0">
+                {% if is_edit %}
+                    <i class="fa-solid fa-user-pen text-primary me-2"></i>Edit Customer Profile
+                {% else %}
+                    <i class="fa-solid fa-user-plus text-primary me-2"></i>Add New Customer
+                {% endif %}
+            </h1>
+            <p class="text-muted small mb-0 mt-1">
+                {% if is_edit %}
+                    Modify contact details, tax identifiers, and location for {{ customer.name }}.
+                {% elif is_admin %}
+                    Register customer profiles with the ability to assign across any distributor agency or central directory.
+                {% else %}
+                    Register customer details strictly under your distribution agency for quick dynamic QR billing.
+                {% endif %}
+            </p>
         </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'customer_list' %}" class="btn btn-outline-primary rounded-3 px-3 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs">
+                <i class="fa-solid fa-users"></i> Directory List
+            </a>
+            <a href="{% if user.is_superuser or user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}" class="btn btn-light border rounded-3 px-3 fw-semibold text-secondary d-inline-flex align-items-center gap-1.5">
+                <i class="fa-solid fa-house"></i> Home
+            </a>
+        </div>
+    </div>
 
-        <form method="POST" action="{% if is_edit %}{% url 'edit_customer' customer.id %}{% else %}{% url 'add_customer' %}{% endif %}" novalidate>
-            {% csrf_token %}
-
-            <div class="form-row">
-                <!-- Customer Name -->
-                <div class="form-group">
-                    <label for="name" class="form-label">Customer Name <span class="required-star">*</span></label>
-                    <div class="input-icon-group">
-                        <i class="fa-solid fa-user"></i>
-                        {{ form.name }}
+    <!-- Main Customer Form Card -->
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-10 col-xl-9">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="rounded-3 bg-primary bg-opacity-10 text-primary p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                            <i class="fa-solid fa-address-book"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark">{% if is_edit %}Update Customer Record{% else %}Customer Information & Assignment{% endif %}</div>
+                            <div class="small text-muted">Fields marked with an asterisk (<span class="text-danger">*</span>) are mandatory</div>
+                        </div>
                     </div>
-                    {% if form.name.errors %}
-                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.name.errors.0 }}</div>
-                    {% else %}
-                        <div class="field-hint-text">Individual or Business Name</div>
-                    {% endif %}
+                    <div>
+                        {% if is_admin %}
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5">
+                                <i class="fa-solid fa-shield-halved"></i> Admin Mode: Global Multi-Distributor Access
+                            </span>
+                        {% else %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5">
+                                <i class="fa-solid fa-store"></i> Distributor: {{ distributor_profile.business_name|default:user.username }}
+                            </span>
+                        {% endif %}
+                    </div>
                 </div>
 
-                <!-- Phone Number -->
-                <div class="form-group">
-                    <label for="phone" class="form-label">Phone Number <span class="required-star">*</span></label>
-                    <div class="input-icon-group">
-                        <i class="fa-solid fa-phone"></i>
-                        {{ form.phone }}
-                    </div>
-                    {% if form.phone.errors %}
-                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.phone.errors.0 }}</div>
-                    {% else %}
-                        <div class="field-hint-text">10 to 15 digits (e.g. +91 9876543210)</div>
-                    {% endif %}
+                <div class="card-body p-4 p-md-5">
+                    <form method="POST" action="{% if is_edit %}{% url 'edit_customer' customer.id %}{% else %}{% url 'add_customer' %}{% endif %}" novalidate id="customerForm">
+                        {% csrf_token %}
+
+                        <!-- Non-field Errors -->
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger rounded-3 py-2 px-3 mb-4 small">
+                                {% for error in form.non_field_errors %}
+                                    <div><i class="fa-solid fa-circle-exclamation me-1"></i> {{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <!-- Role-based Distributor Assignment (Visible to Admin only) -->
+                        {% if is_admin and form.distributor %}
+                            <div class="card bg-light border-0 rounded-3 p-3 mb-4">
+                                <label for="distributor-select" class="form-label fw-bold text-dark d-flex align-items-center gap-1.5 mb-1">
+                                    <i class="fa-solid fa-network-wired text-primary"></i> Assign to Distributor Agency
+                                </label>
+                                {{ form.distributor }}
+                                {% if form.distributor.errors %}
+                                    <div class="text-danger small mt-1">{{ form.distributor.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text text-muted small mt-1.5">
+                                    <i class="fa-solid fa-circle-info text-info me-1"></i>
+                                    <strong>Admin Privilege:</strong> Select which distributor agency this customer belongs to. If left blank, this customer will be categorized under Central System / Admin.
+                                </div>
+                            </div>
+                        {% elif not is_admin %}
+                            <!-- Distributor Ownership Notice -->
+                            <div class="alert alert-success-subtle border border-success-subtle rounded-3 py-2.5 px-3 mb-4 small d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-lock text-success fs-5"></i>
+                                <div>
+                                    This customer will be strictly registered under your distributor agency: <strong>{{ distributor_profile.business_name|default:user.username }}</strong>. Only your portal and system administrators can view and bill this customer.
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <div class="row g-3">
+                            <!-- Customer Name -->
+                            <div class="col-md-6">
+                                <label for="name" class="form-label fw-semibold text-secondary small text-uppercase mb-1">
+                                    Customer Name <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted border-end-0">
+                                        <i class="fa-solid fa-user text-primary"></i>
+                                    </span>
+                                    {{ form.name }}
+                                </div>
+                                {% if form.name.errors %}
+                                    <div class="text-danger small mt-1"><i class="fa-solid fa-circle-exclamation me-1"></i> {{ form.name.errors.0 }}</div>
+                                {% else %}
+                                    <div class="form-text text-muted small">Individual or company trade name</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Phone Number -->
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label fw-semibold text-secondary small text-uppercase mb-1">
+                                    Phone Number <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted border-end-0">
+                                        <i class="fa-solid fa-phone text-primary"></i>
+                                    </span>
+                                    {{ form.phone }}
+                                </div>
+                                {% if form.phone.errors %}
+                                    <div class="text-danger small mt-1"><i class="fa-solid fa-circle-exclamation me-1"></i> {{ form.phone.errors.0 }}</div>
+                                {% else %}
+                                    <div class="form-text text-muted small">10 to 15 digits (e.g. +91 9876543210)</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Email Address -->
+                            <div class="col-md-6">
+                                <label for="email" class="form-label fw-semibold text-secondary small text-uppercase mb-1">
+                                    Email Address (Optional)
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted border-end-0">
+                                        <i class="fa-solid fa-envelope text-primary"></i>
+                                    </span>
+                                    {{ form.email }}
+                                </div>
+                                {% if form.email.errors %}
+                                    <div class="text-danger small mt-1"><i class="fa-solid fa-circle-exclamation me-1"></i> {{ form.email.errors.0 }}</div>
+                                {% else %}
+                                    <div class="form-text text-muted small">For email invoice dispatch</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- GSTIN -->
+                            <div class="col-md-6">
+                                <label for="gstin" class="form-label fw-semibold text-secondary small text-uppercase mb-1">
+                                    GSTIN Tax Number (Optional)
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted border-end-0">
+                                        <i class="fa-solid fa-file-invoice-dollar text-primary"></i>
+                                    </span>
+                                    {{ form.gstin }}
+                                </div>
+                                {% if form.gstin.errors %}
+                                    <div class="text-danger small mt-1"><i class="fa-solid fa-circle-exclamation me-1"></i> {{ form.gstin.errors.0 }}</div>
+                                {% else %}
+                                    <div class="form-text text-muted small">15-digit GSTIN (e.g. 24AAACA1234A1Z5)</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- City -->
+                            <div class="col-md-6">
+                                <label for="city" class="form-label fw-semibold text-secondary small text-uppercase mb-1">
+                                    City / Town (Optional)
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted border-end-0">
+                                        <i class="fa-solid fa-city text-primary"></i>
+                                    </span>
+                                    {{ form.city }}
+                                </div>
+                                {% if form.city.errors %}
+                                    <div class="text-danger small mt-1"><i class="fa-solid fa-circle-exclamation me-1"></i> {{ form.city.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Street Address -->
+                            <div class="col-md-6">
+                                <label for="address" class="form-label fw-semibold text-secondary small text-uppercase mb-1">
+                                    Street Address / Premises (Optional)
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted border-end-0">
+                                        <i class="fa-solid fa-location-dot text-primary"></i>
+                                    </span>
+                                    {{ form.address }}
+                                </div>
+                                {% if form.address.errors %}
+                                    <div class="text-danger small mt-1"><i class="fa-solid fa-circle-exclamation me-1"></i> {{ form.address.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex align-items-center gap-2 mt-4 pt-3 border-top">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-3 fw-bold px-4 shadow-sm d-inline-flex align-items-center gap-2" id="btnSubmitCustomer">
+                                <i class="fa-solid fa-user-check"></i>
+                                <span>{% if is_edit %}Update Customer Record{% else %}Save &amp; Add Customer{% endif %}</span>
+                            </button>
+                            <a href="{% url 'customer_list' %}" class="btn btn-light btn-lg border rounded-3 px-4 fw-semibold text-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
                 </div>
             </div>
-
-            <div class="form-row">
-                <!-- Email Address -->
-                <div class="form-group">
-                    <label for="email" class="form-label">Email Address (Optional)</label>
-                    <div class="input-icon-group">
-                        <i class="fa-solid fa-envelope"></i>
-                        {{ form.email }}
-                    </div>
-                    {% if form.email.errors %}
-                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.email.errors.0 }}</div>
-                    {% else %}
-                        <div class="field-hint-text">For digital invoice receipts</div>
-                    {% endif %}
-                </div>
-
-                <!-- GSTIN -->
-                <div class="form-group">
-                    <label for="gstin" class="form-label">GSTIN (Optional)</label>
-                    <div class="input-icon-group">
-                        <i class="fa-solid fa-file-invoice-dollar"></i>
-                        {{ form.gstin }}
-                    </div>
-                    {% if form.gstin.errors %}
-                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.gstin.errors.0 }}</div>
-                    {% else %}
-                        <div class="field-hint-text">15-character GST Tax ID (e.g. 27AAAAA0000A1Z5)</div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="form-row">
-                <!-- City -->
-                <div class="form-group">
-                    <label for="city" class="form-label">City / Location (Optional)</label>
-                    <div class="input-icon-group">
-                        <i class="fa-solid fa-city"></i>
-                        {{ form.city }}
-                    </div>
-                    {% if form.city.errors %}
-                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.city.errors.0 }}</div>
-                    {% endif %}
-                </div>
-
-                <!-- Street Address -->
-                <div class="form-group">
-                    <label for="address" class="form-label">Street Address (Optional)</label>
-                    <div class="input-icon-group">
-                        <i class="fa-solid fa-location-dot"></i>
-                        {{ form.address }}
-                    </div>
-                    {% if form.address.errors %}
-                        <div class="field-error-text"><i class="fa-solid fa-circle-exclamation"></i> {{ form.address.errors.0 }}</div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <button type="submit" class="btn-submit-auth btn-submit-emerald mt-4">
-                <span>{% if is_edit %}Update Customer Details{% else %}Save Customer & Add to Directory{% endif %}</span>
-                <i class="fa-solid fa-user-check"></i>
-            </button>
-        </form>
+        </div>
     </div>
 </div>
 {% endblock %}

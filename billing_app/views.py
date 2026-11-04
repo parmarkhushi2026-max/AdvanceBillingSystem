@@ -1571,29 +1571,53 @@ def distributor_profile_view(request):
     return render(request, 'dashboard/distributor_profile.html', context)
 
 
-# 13. Customer Management: Add Customer View
+# 13. Customer Management: Add Customer View (Admin adds for all, Distributor adds only their own)
 @login_required
 def add_customer_view(request):
     initialize_default_users()
     is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+
+    initial_data = {}
+    dist_param = request.GET.get('distributor')
+    if is_admin and dist_param:
+        dist_obj = Distributor.objects.filter(id=dist_param, is_active=True).first()
+        if dist_obj:
+            initial_data['distributor'] = dist_obj
+
     if request.method == 'POST':
-        form = CustomerForm(request.POST)
+        form = CustomerForm(request.POST, user=request.user, is_admin=is_admin)
         if form.is_valid():
             customer = form.save_customer(created_by=request.user)
-            messages.success(request, f"🎉 Customer '{customer.name}' ({customer.phone}) added successfully to database!")
+            assigned_label = (
+                customer.distributor_ref.business_name if customer.distributor_ref 
+                else (customer.created_by.username if customer.created_by else "Admin Central")
+            )
+            messages.success(request, f"🎉 Customer '{customer.name}' ({customer.phone}) added successfully! Assigned to: {assigned_label}")
             return redirect('customer_list')
         else:
             for field, errors in form.errors.items():
                 for err in errors:
                     messages.error(request, f"{field.replace('_', ' ').title()}: {err}")
     else:
-        form = CustomerForm()
+        form = CustomerForm(initial=initial_data, user=request.user, is_admin=is_admin)
+
+    distributor_profile = (
+        getattr(request.user, 'distributor_account', None) or 
+        Distributor.objects.filter(user=request.user).first()
+    )
 
     context = {
         'form': form,
+        'is_admin': is_admin,
         'role': 'Admin' if is_admin else 'Distributor',
+        'distributor_profile': distributor_profile,
+        'distributors': Distributor.objects.filter(is_active=True).order_by('business_name') if is_admin else None,
+        'is_edit': False,
     }
     return render(request, 'billing/add_customer.html', context)
+
+# Direct alias for add_customer_view
+customer_create_view = add_customer_view
 
 
 # 13.1 Interactive Customer Registration Frontend View (Connected to API)
@@ -1649,18 +1673,24 @@ def customer_list_view(request):
     return render(request, 'billing/customer_list.html', context)
 
 
-# 15. Edit Customer View
+# 15. Edit Customer View (Role-Protected)
 @login_required
 def edit_customer_view(request, customer_id):
     initialize_default_users()
     customer = get_object_or_404(Customer, pk=customer_id)
     is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
-    if not is_admin and customer.created_by and customer.created_by != request.user:
+    
+    # Non-admin distributors can only edit their own customers
+    is_owner = (
+        customer.created_by == request.user or 
+        (customer.distributor_ref and customer.distributor_ref.user == request.user)
+    )
+    if not is_admin and not is_owner:
         messages.error(request, "Access denied: You do not have permission to edit this customer profile.")
         return redirect('customer_list')
 
     if request.method == 'POST':
-        form = CustomerForm(request.POST)
+        form = CustomerForm(request.POST, user=request.user, is_admin=is_admin)
         if form.is_valid():
             customer = form.update_customer(customer)
             messages.success(request, f"🎉 Customer '{customer.name}' updated successfully!")
@@ -1670,20 +1700,31 @@ def edit_customer_view(request, customer_id):
                 for err in errors:
                     messages.error(request, f"{field.replace('_', ' ').title()}: {err}")
     else:
-        form = CustomerForm(initial={
+        initial_data = {
             'name': customer.name,
             'email': customer.email or '',
             'phone': customer.phone,
             'address': customer.address or '',
             'city': customer.city or '',
             'gstin': customer.gstin or '',
-        })
+        }
+        if is_admin and customer.distributor_ref:
+            initial_data['distributor'] = customer.distributor_ref
+        form = CustomerForm(initial=initial_data, user=request.user, is_admin=is_admin)
+
+    distributor_profile = (
+        getattr(request.user, 'distributor_account', None) or 
+        Distributor.objects.filter(user=request.user).first()
+    )
 
     context = {
         'form': form,
         'customer': customer,
         'is_edit': True,
+        'is_admin': is_admin,
         'role': 'Admin' if is_admin else 'Distributor',
+        'distributor_profile': distributor_profile,
+        'distributors': Distributor.objects.filter(is_active=True).order_by('business_name') if is_admin else None,
     }
     return render(request, 'billing/add_customer.html', context)
 

@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError
-from .models import UserProfile, Distributor
+from .models import UserProfile, Distributor, Customer, Product, Invoice, InvoiceItem
 
 class AdminLoginForm(AuthenticationForm):
     """Custom Django Authentication form specifically validating Admin privileges."""
@@ -455,39 +455,94 @@ DistributorProfileForm = UserProfileUpdateForm
 from .models import Customer
 
 class CustomerForm(forms.Form):
-    """Form to add a new Customer with strict validations."""
+    """
+    Form to add/edit Customer with role-based distributor assignment:
+    - Admin can add customers for all/any distributor, or assign to central directory.
+    - Distributor can add customers ONLY for their own account (auto-bound to their user & distributor_ref).
+    """
     name = forms.CharField(
         label="Customer Name",
         max_length=150,
-        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Acme Corporation or Anish Patel', 'autofocus': True, 'id': 'name'})
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. Acme Corporation or Anish Patel',
+            'autofocus': True,
+            'id': 'name'
+        })
     )
     email = forms.EmailField(
         label="Email Address",
         required=False,
-        widget=forms.EmailInput(attrs={'class': 'form-input', 'placeholder': 'customer@example.com', 'id': 'email'})
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'customer@example.com',
+            'id': 'email'
+        })
     )
     phone = forms.CharField(
         label="Phone Number",
         max_length=20,
-        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': '+91 98765 43210', 'id': 'phone'})
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '+91 98765 43210',
+            'id': 'phone'
+        })
     )
     address = forms.CharField(
         label="Street Address",
         required=False,
-        widget=forms.Textarea(attrs={'class': 'form-input', 'rows': 3, 'placeholder': '123 Business Way, Suite 400', 'id': 'address'})
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 2,
+            'placeholder': '123 Business Way, Suite 400',
+            'id': 'address'
+        })
     )
     city = forms.CharField(
         label="City / Location",
         max_length=100,
         required=False,
-        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Mumbai', 'id': 'city'})
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ahmedabad',
+            'id': 'city'
+        })
     )
     gstin = forms.CharField(
         label="GSTIN (Optional)",
         max_length=20,
         required=False,
-        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': '27AAAAA0000A1Z5', 'id': 'gstin'})
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '24AAAAA0000A1Z5',
+            'id': 'gstin'
+        })
     )
+    distributor = forms.ModelChoiceField(
+        queryset=Distributor.objects.filter(is_active=True).order_by('business_name'),
+        required=False,
+        empty_label="-- Central System / Admin (All Distributors) --",
+        label="Assign to Distributor Agency",
+        widget=forms.Select(attrs={
+            'class': 'form-control form-select',
+            'id': 'distributor-select'
+        })
+    )
+
+    def __init__(self, *args, user=None, is_admin=False, **kwargs):
+        self.user = user
+        if user is not None:
+            self.is_admin = is_admin or user.is_superuser or (
+                hasattr(user, 'profile') and user.profile.role == 'ADMIN'
+            )
+        else:
+            self.is_admin = is_admin
+        super().__init__(*args, **kwargs)
+
+        # Admin can select any distributor to assign the customer.
+        # Distributors CANNOT select a distributor; they strictly add customers for their own account.
+        if not self.is_admin and 'distributor' in self.fields:
+            del self.fields['distributor']
 
     def clean_name(self):
         name = self.cleaned_data.get('name', '').strip()
@@ -515,11 +570,36 @@ class CustomerForm(forms.Form):
         gstin = self.cleaned_data.get('gstin', '').strip().upper()
         if gstin:
             if not re.match(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", gstin):
-                raise ValidationError("Please enter a valid 15-character GSTIN (e.g. 27AAAAA0000A1Z5).")
+                raise ValidationError("Please enter a valid 15-character GSTIN (e.g. 24AAAAA0000A1Z5).")
         return gstin
 
     def save_customer(self, created_by=None):
-        """Save new Customer to database."""
+        """
+        Save new Customer to database respecting role logic:
+        - Admin: Assigns to chosen distributor_ref (or central admin if none selected).
+        - Distributor: Strictly assigns to logged-in distributor user and distributor_ref.
+        """
+        user = created_by or self.user
+        distributor_ref = None
+        assigned_user = user
+
+        if self.is_admin:
+            selected_dist = self.cleaned_data.get('distributor')
+            if selected_dist:
+                distributor_ref = selected_dist
+                assigned_user = selected_dist.user or user
+            else:
+                distributor_ref = None
+                assigned_user = user
+        else:
+            # Distributor user: strictly assign to their own account
+            assigned_user = user
+            if user:
+                distributor_ref = (
+                    getattr(user, 'distributor_account', None) or 
+                    Distributor.objects.filter(user=user).first()
+                )
+
         customer = Customer.objects.create(
             name=self.cleaned_data['name'].strip(),
             email=(self.cleaned_data.get('email') or '').strip() or None,
@@ -527,7 +607,8 @@ class CustomerForm(forms.Form):
             address=(self.cleaned_data.get('address') or '').strip() or None,
             city=(self.cleaned_data.get('city') or '').strip() or None,
             gstin=(self.cleaned_data.get('gstin') or '').strip() or None,
-            created_by=created_by
+            created_by=assigned_user,
+            distributor_ref=distributor_ref
         )
         return customer
 
@@ -539,10 +620,100 @@ class CustomerForm(forms.Form):
         customer.address = (self.cleaned_data.get('address') or '').strip() or None
         customer.city = (self.cleaned_data.get('city') or '').strip() or None
         customer.gstin = (self.cleaned_data.get('gstin') or '').strip() or None
+
+        if self.is_admin and 'distributor' in self.cleaned_data:
+            selected_dist = self.cleaned_data.get('distributor')
+            if selected_dist:
+                customer.distributor_ref = selected_dist
+                if selected_dist.user:
+                    customer.created_by = selected_dist.user
+            else:
+                customer.distributor_ref = None
+
         customer.save()
         return customer
 
-from .models import Product
+
+class CustomerModelForm(forms.ModelForm):
+    """
+    ModelForm for Customer with role-aware distributor assignment:
+    - Admin can assign customer to any active Distributor or central admin.
+    - Distributor can only create customers for their own account.
+    """
+    distributor = forms.ModelChoiceField(
+        queryset=Distributor.objects.filter(is_active=True).order_by('business_name'),
+        required=False,
+        empty_label="-- Central System / Admin (All Distributors) --",
+        label="Assign to Distributor Agency",
+        widget=forms.Select(attrs={
+            'class': 'form-control form-select',
+            'id': 'distributor-select'
+        })
+    )
+
+    class Meta:
+        model = Customer
+        fields = ['name', 'phone', 'email', 'city', 'address', 'gstin']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Customer or Business Name', 'id': 'id_name'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+91 98765 43210', 'id': 'id_phone'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'customer@example.com', 'id': 'id_email'}),
+            'city': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'City', 'id': 'id_city'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Street Address', 'id': 'id_address'}),
+            'gstin': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '24AAAAA0000A1Z5', 'id': 'id_gstin'}),
+        }
+
+    def __init__(self, *args, user=None, is_admin=False, **kwargs):
+        self.user = user
+        if user is not None:
+            self.is_admin = is_admin or user.is_superuser or (
+                hasattr(user, 'profile') and user.profile.role == 'ADMIN'
+            )
+        else:
+            self.is_admin = is_admin
+        super().__init__(*args, **kwargs)
+
+        # Non-admin distributors cannot choose distributor
+        if not self.is_admin and 'distributor' in self.fields:
+            del self.fields['distributor']
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name', '').strip()
+        if len(name) < 2:
+            raise ValidationError("Customer Name must be at least 2 characters long.")
+        return name
+
+    def clean_phone(self):
+        phone_raw = self.cleaned_data.get('phone', '').strip()
+        phone_clean = re.sub(r'[\s\-\(\)]', '', phone_raw)
+        if not re.match(r"^\+?[0-9]{10,15}$", phone_clean):
+            raise ValidationError("Please enter a valid phone number (10 to 15 digits, optional + country code).")
+        return phone_raw
+
+    def save(self, commit=True, created_by=None):
+        instance = super().save(commit=False)
+        user = created_by or self.user
+
+        if self.is_admin:
+            selected_dist = self.cleaned_data.get('distributor')
+            if selected_dist:
+                instance.distributor_ref = selected_dist
+                instance.created_by = selected_dist.user or user
+            else:
+                instance.distributor_ref = None
+                instance.created_by = user
+        else:
+            instance.created_by = user
+            if user:
+                instance.distributor_ref = (
+                    getattr(user, 'distributor_account', None) or 
+                    Distributor.objects.filter(user=user).first()
+                )
+
+        if commit:
+            instance.save()
+        return instance
+
 
 class ProductForm(forms.ModelForm):
     """Form to add or update a Product."""

@@ -225,3 +225,4 @@ class NecessaryTablesTestCase(TestCase):
         self.assertGreaterEqual(Product.objects.count(), 5)
         self.assertGreaterEqual(Invoice.objects.count(), 4)
         self.assertGreaterEqual(InvoiceItem.objects.count(), 4)
+

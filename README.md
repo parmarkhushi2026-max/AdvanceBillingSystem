@@ -2,11 +2,67 @@
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 [![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
-[![Tests](https://img.shields.io/badge/Tests-232%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+[![Tests](https://img.shields.io/badge/Tests-242%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
 A feature-packed, production-ready Django Billing, QR Payment, and Financial Intelligence System designed for managing distributors, customers, dynamic UPI QR code billing, audit reporting, tax receipts, and ledger tracking.
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+
+## 👥 🌟 Feature: Role-Based Customer Creation (Admin Adds for All, Distributor Adds Only Their Own)
+
+Comprehensive role-based customer management system that strictly segregates customer registration privileges between Administrators and Wholesale Distributors across forms, views, templates, and REST APIs:
+
+- **1. Role-Aware Customer Forms (`CustomerForm` & `CustomerModelForm` in `billing_app/forms.py`)**:
+  - **Administrator View**:
+    - Displays a styled **Distributor Assignment Dropdown** (`distributor` ModelChoiceField / Select) populated with all active distributors registered in the system.
+    - Admin can assign a newly registered customer to any distributor agency or register them under central administration.
+    - Automatic validation and lookup handles distributor assignment via `distributor_ref` and `created_by`.
+  - **Distributor View**:
+    - The `distributor` dropdown field is completely removed/hidden from the form fields.
+    - Prevents form tampering: When a distributor submits customer data, the form automatically binds the new customer strictly to the distributor's own agency (`request.user.distributor_account`) and sets `created_by = request.user`.
+    - Sanitizes and validates customer inputs: name, email, phone (with 10-digit regex check), address, city, state, pincode, and GSTIN.
+  - **Flexible Instantiation**:
+    - Both `CustomerForm(data, user=request.user, is_admin=is_admin)` and `CustomerModelForm(data, user=request.user, is_admin=is_admin)` are supported with consistent API interfaces.
+    - Built-in `save_customer()` and `save()` methods ensuring relational integrity.
+
+- **2. Role-Protected Views & API Endpoints (`billing_app/views.py` & `billing_app/urls.py`)**:
+  - **Customer Creation View (`add_customer_view` / `customer_create_view`)**:
+    - Protected with `@login_required` and role detection.
+    - Evaluates role via `is_user_admin(request.user)`.
+    - Handles GET requests by rendering the role-specific form with role badges and guidance alerts.
+    - Handles POST requests with transactional database commits, flash message notifications, and safe redirection back to the Customer Directory.
+  - **Customer Editing View (`edit_customer_view`)**:
+    - Strictly prevents distributors from editing or modifying customers belonging to other distributors (`distributor_ref != user.distributor_account`).
+    - Admins retain universal editing privileges across all customer records.
+  - **API Registration Endpoint (`api_register_customer`)**:
+    - REST JSON endpoint enforces identical security rules for headless/mobile integrations.
+  - **URL Routing Aliases**:
+    - Accessible via `/customers/add/`, `/customer/create/`, and `/customers/new/` (`name='add_customer'`, `name='customer_create'`, `name='customer_add'`).
+
+- **3. Modern Bootstrap 5 UI Interface (`templates/billing/add_customer.html`)**:
+  - **Card Container**: Modern `card border-0 shadow-sm rounded-4 overflow-hidden` with gradient header and quick navigation back to the directory.
+  - **Dynamic Role Badge**: Displays `👑 Admin Master Portal` (Indigo/Purple) or `🏢 Distributor Workspace` (Teal/Emerald) based on session clearance.
+  - **Role Notice Banner**:
+    - Admin: *"👑 System Admin Mode: You have universal privileges. You can assign this customer to any registered distributor agency."*
+    - Distributor: *"🏢 Distributor Mode: This customer will be automatically bound and isolated under your distributor account ({{ current_distributor.name }})."*
+  - **Interactive Input Groups**: Floating or grouped Bootstrap 5 form controls with FontAwesome icons (user, envelope, phone, map-marker, building, barcode).
+  - **Conditional Distributor Picker**: Rendered neatly inside `div id="distributorAssignmentBlock"` only for administrators.
+
+- **4. Automated Verification Test Suite (`billing_app/test_customer_create_role_based.py`)**:
+  - 10 automated unit tests verifying complete security, isolation, and functionality:
+    1. `test_admin_form_has_distributor_choice_field`: Confirms distributor select dropdown appears for Admin.
+    2. `test_distributor_form_hides_distributor_field`: Confirms distributor field is omitted for distributor users.
+    3. `test_admin_can_create_customer_for_any_distributor`: Confirms Admin can assign customers across different distributor agencies.
+    4. `test_admin_can_create_customer_without_distributor`: Confirms Admin can add central unassigned customers.
+    5. `test_distributor_creates_customer_bound_to_own_account`: Confirms distributor customer is automatically bound to `user.distributor_account`.
+    6. `test_distributor_cannot_spoof_distributor_field`: Confirms tamper attempts in POST payloads are disregarded and bound safely.
+    7. `test_multi_tenant_isolation_between_distributors`: Confirms customers created by Distributor A are strictly invisible to Distributor B.
+    8. `test_distributor_cannot_edit_other_distributors_customer`: Confirms HTTP 403 / redirect protection when accessing another distributor's customer.
+    9. `test_unauthenticated_user_cannot_access_add_customer`: Confirms redirection to login for anonymous requests.
+    10. `test_customer_form_validation_errors`: Confirms validation for invalid email and phone number formats.
+  - **Test Suite Result**: 242/242 tests passing across all test suites.
+
+---
 
 ## 🗄️ 🌟 Feature: Necessary Database Tables Setup, Schema Architecture & Relational Integrity
 

@@ -420,3 +420,4 @@ class Command(BaseCommand):
         self.stdout.write(f"  6. InvoiceItem Table  (Total Line Items: {InvoiceItem.objects.count()})")
         self.stdout.write(f"  7. OTPToken Table     (Total OTP Tokens: {OTPToken.objects.count()})")
         self.stdout.write(self.style.SUCCESS("=== Database Setup Completed Successfully ===\n"))
+
