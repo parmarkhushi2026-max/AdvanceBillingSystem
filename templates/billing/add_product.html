@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}{% if is_edit %}Edit Product - {{ product.name }}{% else %}Add New Product{% endif %} - Advance Billing
-System{% endblock %}
+{% block title %}{% if is_edit %}Edit Product - {{ product.name }}{% else %}Add New Product{% endif %} - Advance Billing System{% endblock %}
 
 {% block content %}
 <div class="container py-4">
@@ -10,40 +9,33 @@ System{% endblock %}
         <div>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-1 small">
-                    <li class="breadcrumb-item"><a
-                            href="{% if user.is_superuser or user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}"
-                            class="text-decoration-none">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'product_list' %}" class="text-decoration-none">Product
-                            Inventory</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">{% if is_edit %}Edit Product{% else %}Add
-                        Product{% endif %}</li>
+                    <li class="breadcrumb-item"><a href="{% if user.is_superuser or user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}" class="text-decoration-none">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'product_list' %}" class="text-decoration-none">Product Inventory</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{% if is_edit %}Edit Product{% else %}Add Product{% endif %}</li>
                 </ol>
             </nav>
             <h1 class="h3 fw-bolder text-dark mb-0">
                 {% if is_edit %}
-                <i class="fa-solid fa-pen-to-square text-primary me-2"></i>Edit Product Details
+                    <i class="fa-solid fa-pen-to-square text-primary me-2"></i>Edit Product Details
                 {% else %}
-                <i class="fa-solid fa-box-open text-primary me-2"></i>Add New Product
+                    <i class="fa-solid fa-box-open text-primary me-2"></i>Add New Product
                 {% endif %}
             </h1>
             <p class="text-muted small mb-0 mt-1">
                 {% if is_edit %}
-                Modify stock, pricing, and category for {{ product.name }}.
+                    Modify stock, pricing, and category for {{ product.name }}.
                 {% elif is_admin %}
-                Register product catalog items with the ability to assign across any distributor agency or central
-                inventory.
+                    Register product catalog items with the ability to assign across any distributor agency or central inventory.
                 {% else %}
-                Register inventory items strictly under your distribution catalog for quick dynamic QR billing.
+                    Register inventory items strictly under your distribution catalog for quick dynamic QR billing.
                 {% endif %}
             </p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{% url 'product_list' %}"
-                class="btn btn-outline-primary rounded-3 px-3 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs">
+            <a href="{% url 'product_list' %}" class="btn btn-outline-primary rounded-3 px-3 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs">
                 <i class="fa-solid fa-boxes-stacked"></i> Inventory List
             </a>
-            <a href="{% if user.is_superuser or user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}"
-                class="btn btn-light border rounded-3 px-3 fw-semibold text-secondary d-inline-flex align-items-center gap-1.5">
+            <a href="{% if user.is_superuser or user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}" class="btn btn-light border rounded-3 px-3 fw-semibold text-secondary d-inline-flex align-items-center gap-1.5">
                 <i class="fa-solid fa-house"></i> Home
             </a>
         </div>
@@ -53,248 +45,212 @@ System{% endblock %}
     <div class="row justify-content-center">
         <div class="col-12 col-lg-10 col-xl-9">
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-                <div
-                    class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div class="d-flex align-items-center gap-2">
-                        <div class="rounded-3 bg-primary bg-opacity-10 text-primary p-2 d-flex align-items-center justify-content-center"
-                            style="width: 38px; height: 38px;">
+                        <div class="rounded-3 bg-primary bg-opacity-10 text-primary p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
                             <i class="fa-solid fa-tags"></i>
                         </div>
                         <div>
-                            <div class="fw-bold text-dark">{% if is_edit %}Update Product Record{% else %}Product
-                                Information & Assignment{% endif %}</div>
-                            <div class="small text-muted">Fields marked with an asterisk (<span
-                                    class="text-danger">*</span>) are mandatory</div>
+                            <div class="fw-bold text-dark">{% if is_edit %}Update Product Record{% else %}Product Information & Assignment{% endif %}</div>
+                            <div class="small text-muted">Fields marked with an asterisk (<span class="text-danger">*</span>) are mandatory</div>
                         </div>
                     </div>
                     <div>
                         {% if is_admin %}
-                        <span
-                            class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5">
-                            <i class="fa-solid fa-shield-halved"></i> Admin Mode: Global Multi-Distributor Access
-                        </span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5">
+                                <i class="fa-solid fa-shield-halved"></i> Admin Mode: Global Multi-Distributor Access
+                            </span>
                         {% else %}
-                        <span
-                            class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5">
-                            <i class="fa-solid fa-store"></i> Distributor: {{
-                            distributor_profile.business_name|default:user.username }}
-                        </span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5">
+                                <i class="fa-solid fa-store"></i> Distributor: {{ distributor_profile.business_name|default:user.username }}
+                            </span>
                         {% endif %}
                     </div>
                 </div>
 
                 <div class="card-body p-4 p-md-5">
-                    <form method="POST"
-                        action="{% if is_edit %}{% url 'edit_product' product.id %}{% else %}{% url 'add_product' %}{% endif %}"
-                        novalidate id="productForm">
+                    <form method="POST" action="{% if is_edit %}{% url 'edit_product' product.id %}{% else %}{% url 'add_product' %}{% endif %}" novalidate id="productForm">
                         {% csrf_token %}
 
                         <!-- Non-field Errors -->
                         {% if form.non_field_errors %}
-                        <div class="alert alert-danger rounded-3 py-2 px-3 mb-4 small">
-                            {% for error in form.non_field_errors %}
-                            <div><i class="fa-solid fa-circle-exclamation me-1"></i> {{ error }}</div>
-                            {% endfor %}
-                        </div>
+                            <div class="alert alert-danger rounded-3 py-2 px-3 mb-4 small">
+                                {% for error in form.non_field_errors %}
+                                    <div><i class="fa-solid fa-circle-exclamation me-1"></i> {{ error }}</div>
+                                {% endfor %}
+                            </div>
                         {% endif %}
 
                         <!-- Role-based Distributor Assignment (Visible to Admin only) -->
                         {% if is_admin and form.distributor %}
-                        <div class="card bg-light border-0 rounded-3 p-3 mb-4">
-                            <label for="distributor-select"
-                                class="form-label fw-bold text-dark d-flex align-items-center gap-1.5 mb-1">
-                                <i class="fa-solid fa-network-wired text-primary"></i> Assign to Distributor Agency
-                            </label>
-                            {{ form.distributor }}
-                            {% if form.distributor.errors %}
-                            <div class="text-danger small mt-1">{{ form.distributor.errors.0 }}</div>
-                            {% endif %}
-                            <div class="form-text text-muted small mt-1.5">
-                                <i class="fa-solid fa-circle-info text-info me-1"></i>
-                                <strong>Admin Privilege:</strong> Select which distributor agency this product belongs
-                                to. If left blank, this product will be categorized under Central System / Admin
-                                inventory.
-                            </div>
-                        </div>
-                        {% elif not is_admin %}
-                        <!-- Distributor Ownership Notice -->
-                        <div class="card bg-success bg-opacity-10 border-0 rounded-3 p-3 mb-4">
-                            <div class="d-flex align-items-center gap-2">
-                                <i class="fa-solid fa-circle-check text-success fs-5"></i>
-                                <div class="small text-dark">
-                                    <strong>Distributor Mode:</strong> This product will be automatically registered and
-                                    bound under your account:
-                                    <span class="badge bg-success text-white ms-1">{{
-                                        distributor_profile.business_name|default:user.username }}</span>.
+                            <div class="card bg-light border-0 rounded-3 p-3 mb-4">
+                                <label for="distributor-select" class="form-label fw-bold text-dark d-flex align-items-center gap-1.5 mb-1">
+                                    <i class="fa-solid fa-network-wired text-primary"></i> Assign to Distributor Agency
+                                </label>
+                                {{ form.distributor }}
+                                {% if form.distributor.errors %}
+                                    <div class="text-danger small mt-1">{{ form.distributor.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text text-muted small mt-1.5">
+                                    <i class="fa-solid fa-circle-info text-info me-1"></i>
+                                    <strong>Admin Privilege:</strong> Select which distributor agency this product belongs to. If left blank, this product will be categorized under Central System / Admin inventory.
                                 </div>
                             </div>
-                        </div>
+                        {% elif not is_admin %}
+                            <!-- Distributor Ownership Notice -->
+                            <div class="card bg-success bg-opacity-10 border-0 rounded-3 p-3 mb-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fa-solid fa-circle-check text-success fs-5"></i>
+                                    <div class="small text-dark">
+                                        <strong>Distributor Mode:</strong> This product will be automatically registered and bound under your account: 
+                                        <span class="badge bg-success text-white ms-1">{{ distributor_profile.business_name|default:user.username }}</span>.
+                                    </div>
+                                </div>
+                            </div>
                         {% endif %}
 
                         <div class="row g-3">
                             <!-- Product Name -->
                             <div class="col-12 col-md-8">
-                                <label for="{{ form.name.id_for_label }}"
-                                    class="form-label fw-semibold text-secondary small mb-1">
+                                <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold text-secondary small mb-1">
                                     Product Name <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-white border-end-0 text-muted"><i
-                                            class="fa-solid fa-box"></i></span>
+                                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-box"></i></span>
                                     {{ form.name }}
                                 </div>
                                 {% if form.name.errors %}
-                                <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
+                                    <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
                                 {% endif %}
                             </div>
 
                             <!-- SKU / Barcode -->
                             <div class="col-12 col-md-4">
-                                <label for="{{ form.sku.id_for_label }}"
-                                    class="form-label fw-semibold text-secondary small mb-1">
+                                <label for="{{ form.sku.id_for_label }}" class="form-label fw-semibold text-secondary small mb-1">
                                     SKU / Barcode <span class="text-muted fw-normal">(Optional)</span>
                                 </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-white border-end-0 text-muted"><i
-                                            class="fa-solid fa-barcode"></i></span>
+                                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-barcode"></i></span>
                                     {{ form.sku }}
                                 </div>
                                 {% if form.sku.errors %}
-                                <div class="text-danger small mt-1">{{ form.sku.errors.0 }}</div>
+                                    <div class="text-danger small mt-1">{{ form.sku.errors.0 }}</div>
                                 {% endif %}
                             </div>
 
                             <!-- Category -->
                             <div class="col-12 col-md-6">
-                                <label for="{{ form.category.id_for_label }}"
-                                    class="form-label fw-semibold text-secondary small mb-1">
+                                <label for="{{ form.category.id_for_label }}" class="form-label fw-semibold text-secondary small mb-1">
                                     Category <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-white border-end-0 text-muted"><i
-                                            class="fa-solid fa-layer-group"></i></span>
+                                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-layer-group"></i></span>
                                     {{ form.category }}
                                 </div>
                                 {% if form.category.errors %}
-                                <div class="text-danger small mt-1">{{ form.category.errors.0 }}</div>
+                                    <div class="text-danger small mt-1">{{ form.category.errors.0 }}</div>
                                 {% endif %}
                             </div>
 
                             <!-- Unit Price -->
                             <div class="col-12 col-md-6">
-                                <label for="{{ form.price.id_for_label }}"
-                                    class="form-label fw-semibold text-secondary small mb-1">
+                                <label for="{{ form.price.id_for_label }}" class="form-label fw-semibold text-secondary small mb-1">
                                     Unit Price (₹) <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-white border-end-0 text-muted"><i
-                                            class="fa-solid fa-indian-rupee-sign"></i></span>
+                                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-indian-rupee-sign"></i></span>
                                     {{ form.price }}
                                 </div>
                                 {% if form.price.errors %}
-                                <div class="text-danger small mt-1">{{ form.price.errors.0 }}</div>
+                                    <div class="text-danger small mt-1">{{ form.price.errors.0 }}</div>
                                 {% endif %}
                             </div>
 
                             <!-- GST Rate -->
                             <div class="col-12 col-md-4">
-                                <label for="{{ form.gst_rate.id_for_label }}"
-                                    class="form-label fw-semibold text-secondary small mb-1">
+                                <label for="{{ form.gst_rate.id_for_label }}" class="form-label fw-semibold text-secondary small mb-1">
                                     GST Rate (%) <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-white border-end-0 text-muted"><i
-                                            class="fa-solid fa-percent"></i></span>
+                                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-percent"></i></span>
                                     {{ form.gst_rate }}
                                 </div>
                                 {% if form.gst_rate.errors %}
-                                <div class="text-danger small mt-1">{{ form.gst_rate.errors.0 }}</div>
+                                    <div class="text-danger small mt-1">{{ form.gst_rate.errors.0 }}</div>
                                 {% else %}
-                                <div class="form-text text-muted small mt-1">E.g., 0, 5, 12, 18, 28</div>
+                                    <div class="form-text text-muted small mt-1">E.g., 0, 5, 12, 18, 28</div>
                                 {% endif %}
                             </div>
 
                             <!-- HSN / SAC Code -->
                             <div class="col-12 col-md-4">
-                                <label for="{{ form.hsn_code.id_for_label }}"
-                                    class="form-label fw-semibold text-secondary small mb-1">
+                                <label for="{{ form.hsn_code.id_for_label }}" class="form-label fw-semibold text-secondary small mb-1">
                                     HSN / SAC Code <span class="text-muted fw-normal">(Optional)</span>
                                 </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-white border-end-0 text-muted"><i
-                                            class="fa-solid fa-file-invoice-dollar"></i></span>
+                                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-file-invoice-dollar"></i></span>
                                     {{ form.hsn_code }}
                                 </div>
                                 {% if form.hsn_code.errors %}
-                                <div class="text-danger small mt-1">{{ form.hsn_code.errors.0 }}</div>
+                                    <div class="text-danger small mt-1">{{ form.hsn_code.errors.0 }}</div>
                                 {% else %}
-                                <div class="form-text text-muted small mt-1">For B2B GST compliance</div>
+                                    <div class="form-text text-muted small mt-1">For B2B GST compliance</div>
                                 {% endif %}
                             </div>
 
                             <!-- Stock Quantity -->
                             <div class="col-12 col-md-4">
-                                <label for="{{ form.stock.id_for_label }}"
-                                    class="form-label fw-semibold text-secondary small mb-1">
+                                <label for="{{ form.stock.id_for_label }}" class="form-label fw-semibold text-secondary small mb-1">
                                     Current Stock <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-white border-end-0 text-muted"><i
-                                            class="fa-solid fa-cubes"></i></span>
+                                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-cubes"></i></span>
                                     {{ form.stock }}
                                 </div>
                                 {% if form.stock.errors %}
-                                <div class="text-danger small mt-1">{{ form.stock.errors.0 }}</div>
+                                    <div class="text-danger small mt-1">{{ form.stock.errors.0 }}</div>
                                 {% endif %}
                             </div>
 
                             <!-- Unit of Measurement -->
                             <div class="col-12 col-md-6">
-                                <label for="{{ form.unit.id_for_label }}"
-                                    class="form-label fw-semibold text-secondary small mb-1">
+                                <label for="{{ form.unit.id_for_label }}" class="form-label fw-semibold text-secondary small mb-1">
                                     Measurement Unit <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-white border-end-0 text-muted"><i
-                                            class="fa-solid fa-scale-balanced"></i></span>
+                                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-scale-balanced"></i></span>
                                     {{ form.unit }}
                                 </div>
                                 {% if form.unit.errors %}
-                                <div class="text-danger small mt-1">{{ form.unit.errors.0 }}</div>
+                                    <div class="text-danger small mt-1">{{ form.unit.errors.0 }}</div>
                                 {% else %}
-                                <div class="form-text text-muted small mt-1">E.g., Pcs, Box, Kg, Mtr, Set</div>
+                                    <div class="form-text text-muted small mt-1">E.g., Pcs, Box, Kg, Mtr, Set</div>
                                 {% endif %}
                             </div>
 
                             <!-- Description -->
                             <div class="col-12">
-                                <label for="{{ form.description.id_for_label }}"
-                                    class="form-label fw-semibold text-secondary small mb-1">
+                                <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold text-secondary small mb-1">
                                     Product Description <span class="text-muted fw-normal">(Optional)</span>
                                 </label>
                                 <div class="input-group">
-                                    <span
-                                        class="input-group-text bg-white border-end-0 text-muted align-items-start pt-2"><i
-                                            class="fa-solid fa-align-left"></i></span>
+                                    <span class="input-group-text bg-white border-end-0 text-muted align-items-start pt-2"><i class="fa-solid fa-align-left"></i></span>
                                     {{ form.description }}
                                 </div>
                                 {% if form.description.errors %}
-                                <div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>
+                                    <div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>
                                 {% endif %}
                             </div>
                         </div>
 
                         <!-- Action Buttons -->
                         <div class="d-flex justify-content-end align-items-center gap-2 mt-4 pt-3 border-top">
-                            <a href="{% url 'product_list' %}"
-                                class="btn btn-light border rounded-3 px-4 fw-semibold text-secondary">
+                            <a href="{% url 'product_list' %}" class="btn btn-light border rounded-3 px-4 fw-semibold text-secondary">
                                 Cancel
                             </a>
-                            <button type="submit"
-                                class="btn btn-primary rounded-3 px-4 fw-bold d-inline-flex align-items-center gap-2 shadow-sm">
+                            <button type="submit" class="btn btn-primary rounded-3 px-4 fw-bold d-inline-flex align-items-center gap-2 shadow-sm">
                                 <i class="fa-solid {% if is_edit %}fa-check{% else %}fa-plus{% endif %}"></i>
-                                {% if is_edit %}Update Product Details{% else %}Save Product & Add to Inventory{% endif
-                                %}
+                                {% if is_edit %}Update Product Details{% else %}Save Product & Add to Inventory{% endif %}
                             </button>
                         </div>
                     </form>

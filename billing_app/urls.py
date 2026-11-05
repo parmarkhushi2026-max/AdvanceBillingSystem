@@ -86,6 +86,8 @@ urlpatterns = [
     path('distributor/customer/register/', views.customer_register_frontend_view, name='distributor_customer_register'),
     path('customers/<int:customer_id>/edit/', views.edit_customer_view, name='edit_customer'),
     path('customers/<int:customer_id>/delete/', views.delete_customer_view, name='delete_customer'),
+    path('customer/<int:customer_id>/edit/', views.edit_customer_view, name='customer_edit'),
+    path('customer/<int:customer_id>/delete/', views.delete_customer_view, name='customer_delete'),
     
     # Product Management
     path('products/', views.product_list_view, name='product_list'),
@@ -96,6 +98,8 @@ urlpatterns = [
     path('product/add/', views.add_product_view, name='product_add'),
     path('products/<int:product_id>/edit/', views.edit_product_view, name='edit_product'),
     path('products/<int:product_id>/delete/', views.delete_product_view, name='delete_product'),
+    path('product/<int:product_id>/edit/', views.edit_product_view, name='product_edit'),
+    path('product/<int:product_id>/delete/', views.delete_product_view, name='product_delete'),
 ]
 
 

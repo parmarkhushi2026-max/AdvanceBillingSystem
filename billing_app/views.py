@@ -1673,17 +1673,19 @@ def customer_list_view(request):
     return render(request, 'billing/customer_list.html', context)
 
 
-# 15. Edit Customer View (Role-Protected)
+# 15. Edit Customer View (Role-Protected with User Ownership Checks)
 @login_required
 def edit_customer_view(request, customer_id):
     initialize_default_users()
     customer = get_object_or_404(Customer, pk=customer_id)
     is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+    user_dist = getattr(request.user, 'distributor_account', None)
     
-    # Non-admin distributors can only edit their own customers
+    # Ownership Check: Admin has universal access; Distributor can only edit their own customers
     is_owner = (
         customer.created_by == request.user or 
-        (customer.distributor_ref and customer.distributor_ref.user == request.user)
+        (customer.distributor_ref and customer.distributor_ref.user == request.user) or
+        (user_dist and customer.distributor_ref == user_dist)
     )
     if not is_admin and not is_owner:
         messages.error(request, "Access denied: You do not have permission to edit this customer profile.")
@@ -1713,7 +1715,7 @@ def edit_customer_view(request, customer_id):
         form = CustomerForm(initial=initial_data, user=request.user, is_admin=is_admin)
 
     distributor_profile = (
-        getattr(request.user, 'distributor_account', None) or 
+        user_dist or 
         Distributor.objects.filter(user=request.user).first()
     )
 
@@ -1729,20 +1731,28 @@ def edit_customer_view(request, customer_id):
     return render(request, 'billing/add_customer.html', context)
 
 
-# 16. Delete Customer View
+# 16. Delete Customer View (Role-Protected with User Ownership Checks)
 @login_required
 def delete_customer_view(request, customer_id):
     initialize_default_users()
     customer = get_object_or_404(Customer, pk=customer_id)
     is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
-    if not is_admin and customer.created_by and customer.created_by != request.user:
+    user_dist = getattr(request.user, 'distributor_account', None)
+
+    # Ownership Check: Admin has universal access; Distributor can only delete their own customers
+    is_owner = (
+        customer.created_by == request.user or 
+        (customer.distributor_ref and customer.distributor_ref.user == request.user) or
+        (user_dist and customer.distributor_ref == user_dist)
+    )
+    if not is_admin and not is_owner:
         messages.error(request, "Access denied: You do not have permission to delete this customer profile.")
         return redirect('customer_list')
+
     name = customer.name
     customer.delete()
-    messages.success(request, f"🗑️ Customer '{name}' deleted successfully.")
+    messages.success(request, f"🗑️ Customer '{name}' deleted successfully from the directory.")
     return redirect('customer_list')
-
 
 # 17. Custom CSRF Failure Handler
 def csrf_failure_view(request, reason=""):
@@ -1879,17 +1889,19 @@ def add_product_view(request):
 product_create_view = add_product_view
 
 
-# 20. Product Management: Edit Product (Role-Protected)
+# 20. Product Management: Edit Product (Role-Protected with User Ownership Checks)
 @login_required
 def edit_product_view(request, product_id):
     initialize_default_users()
     product = get_object_or_404(Product, pk=product_id)
     is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+    user_dist = getattr(request.user, 'distributor_account', None)
 
-    # Non-admin distributors can only edit their own products
+    # Ownership Check: Admin has universal access; Distributor can only edit their own products
     is_owner = (
         product.created_by == request.user or 
-        (product.distributor_ref and product.distributor_ref.user == request.user)
+        (product.distributor_ref and product.distributor_ref.user == request.user) or
+        (user_dist and product.distributor_ref == user_dist)
     )
     if not is_admin and not is_owner:
         messages.error(request, "Access denied: You do not have permission to edit this product.")
@@ -1912,7 +1924,7 @@ def edit_product_view(request, product_id):
         form = ProductForm(instance=product, initial=initial_data, user=request.user, is_admin=is_admin)
 
     distributor_profile = (
-        getattr(request.user, 'distributor_account', None) or 
+        user_dist or 
         Distributor.objects.filter(user=request.user).first()
     )
 
@@ -1928,16 +1940,19 @@ def edit_product_view(request, product_id):
     return render(request, 'billing/add_product.html', context)
 
 
-# 21. Product Management: Delete Product (Role-Protected)
+# 21. Product Management: Delete Product (Role-Protected with User Ownership Checks)
 @login_required
 def delete_product_view(request, product_id):
     initialize_default_users()
     product = get_object_or_404(Product, pk=product_id)
     is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+    user_dist = getattr(request.user, 'distributor_account', None)
 
+    # Ownership Check: Admin has universal access; Distributor can only delete their own products
     is_owner = (
         product.created_by == request.user or 
-        (product.distributor_ref and product.distributor_ref.user == request.user)
+        (product.distributor_ref and product.distributor_ref.user == request.user) or
+        (user_dist and product.distributor_ref == user_dist)
     )
     if not is_admin and not is_owner:
         messages.error(request, "Access denied: You do not have permission to delete this product.")

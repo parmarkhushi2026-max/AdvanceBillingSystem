@@ -2,11 +2,67 @@
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 [![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
-[![Tests](https://img.shields.io/badge/Tests-253%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+[![Tests](https://img.shields.io/badge/Tests-266%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
 A feature-packed, production-ready Django Billing, QR Payment, and Financial Intelligence System designed for managing distributors, customers, dynamic UPI QR code billing, audit reporting, tax receipts, and ledger tracking.
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+
+## 🛡️ 🌟 Feature: Edit & Delete Functionality for Customers & Products with User Ownership Checks
+
+End-to-end implementation of robust edit and delete workflows for both Customer and Product models, backed by ironclad user ownership checks and role-based permissions:
+
+- **1. Multi-Tenant User Ownership Security Model (`billing_app/views.py`)**:
+  - **Ownership Definition**:
+    - An entity (Customer or Product) belongs to the authenticated user if `entity.created_by == request.user`, OR `entity.distributor_ref.user == request.user`, OR `entity.distributor_ref == request.user.distributor_account`.
+  - **Distributor Boundary**:
+    - Distributors can ONLY edit or delete their own customers and products.
+    - If a distributor attempts to modify or delete a customer or product belonging to another distributor or central admin (via URL direct manipulation, form submission, or forged IDs), the system immediately blocks the action with an *"Access denied"* error notification and safely redirects them.
+    - The underlying database record remains 100% untampered.
+  - **Administrator Clearance**:
+    - System Administrators possess universal oversight and clearance.
+    - Admins can view, edit, reassign across different distributor agencies, or delete any customer or product in the entire system.
+  - **Unauthenticated Protection**:
+    - All edit and delete routes are strictly protected by `@login_required`, redirecting anonymous requests to the authentication portal.
+
+- **2. Role-Protected Customer Edit & Delete (`edit_customer_view` & `delete_customer_view`)**:
+  - **Customer Edit (`/customers/<id>/edit/` & `/customer/<id>/edit/`)**:
+    - Pre-populates contact details, address, city, and tax GSTIN.
+    - For Admins, includes dynamic `distributor` selection allowing instantaneous reassignment to any active distributor agency or central directory.
+    - Validates inputs (name length, 10-15 digit phone regex, email, GSTIN format) and applies updates with flash confirmation.
+  - **Customer Delete (`/customers/<id>/delete/` & `/customer/<id>/delete/`)**:
+    - Verifies ownership clearance before deletion.
+    - Safely unlinks associated historical invoices (`on_delete=models.SET_NULL`), preserving invoice numbers, customer names, and audit history.
+    - Integrated with clean confirmation modals in the directory table and grid views.
+
+- **3. Role-Protected Product Edit & Delete (`edit_product_view` & `delete_product_view`)**:
+  - **Product Edit (`/products/<id>/edit/` & `/product/<id>/edit/`)**:
+    - Pre-populates product name, SKU, category, price, GST rate, HSN code, stock level, unit, and description.
+    - For Admins, includes `distributor` dropdown for agency reassignment.
+    - Validates price (> 0), stock (non-negative), and GST rate (0% to 100%).
+  - **Product Delete (`/products/<id>/delete/` & `/product/<id>/delete/`)**:
+    - Verifies ownership clearance before deletion.
+    - Historical line items retain `product_name` and pricing data without cascading loss.
+    - Integrated with danger-themed confirmation modals in the product catalog table.
+
+- **4. Automated Verification Test Suite (`billing_app/test_edit_delete_ownership.py`)**:
+  - 13 comprehensive unit tests validating:
+    1. `test_distributor_can_edit_own_customer`: Owner distributor successfully updates customer details.
+    2. `test_distributor_cannot_edit_other_distributors_customer`: Non-owner distributor blocked from editing; DB unchanged.
+    3. `test_admin_can_edit_any_customer_and_reassign`: Admin updates and reassigns customer across distributor agencies.
+    4. `test_distributor_can_delete_own_customer`: Owner distributor successfully deletes own customer.
+    5. `test_distributor_cannot_delete_other_distributors_customer`: Non-owner distributor blocked from deleting; customer intact.
+    6. `test_admin_can_delete_any_customer`: Admin successfully deletes customer record.
+    7. `test_distributor_can_edit_own_product`: Owner distributor successfully updates catalog product.
+    8. `test_distributor_cannot_edit_other_distributors_product`: Non-owner distributor blocked from editing; product unchanged.
+    9. `test_admin_can_edit_any_product_and_reassign`: Admin updates and reassigns product across distributor catalogs.
+    10. `test_distributor_can_delete_own_product`: Owner distributor successfully deletes own product.
+    11. `test_distributor_cannot_delete_other_distributors_product`: Non-owner distributor blocked from deleting; product intact.
+    12. `test_admin_can_delete_any_product`: Admin successfully deletes product from catalog.
+    13. `test_unauthenticated_user_cannot_edit_or_delete`: Anonymous access blocked across all 4 endpoints.
+  - **Test Suite Result**: 266/266 tests passing across all test suites.
+
+---
 
 ## 📦 🌟 Feature: Role-Based Product Creation (Admin Adds for All, Distributor Adds Only Their Own)
 
