@@ -1765,7 +1765,11 @@ def product_list_view(request):
     
     is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
     if not is_admin:
-        products = Product.objects.filter(Q(created_by=request.user) | Q(distributor_ref__user=request.user)).order_by('-id')
+        user_dist = getattr(request.user, 'distributor_account', None)
+        dist_filter = Q(created_by=request.user) | Q(distributor_ref__user=request.user)
+        if user_dist:
+            dist_filter |= Q(distributor_ref=user_dist)
+        products = Product.objects.filter(dist_filter).distinct().order_by('-id')
     else:
         products = Product.objects.all().order_by('-id')
     
@@ -1826,47 +1830,75 @@ def product_manage_frontend_view(request):
     return render(request, 'billing/manage_products.html', context)
 
 
-# 19. Product Management: Add Product
-
+# 19. Product Management: Add Product (Role-Based: Admin adds for all, Distributor adds only their own)
 @login_required
 def add_product_view(request):
     initialize_default_users()
+    is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+
+    initial_data = {}
+    dist_param = request.GET.get('distributor')
+    if is_admin and dist_param:
+        dist_obj = Distributor.objects.filter(id=dist_param, is_active=True).first()
+        if dist_obj:
+            initial_data['distributor'] = dist_obj
+
     if request.method == 'POST':
-        form = ProductForm(request.POST)
+        form = ProductForm(request.POST, user=request.user, is_admin=is_admin)
         if form.is_valid():
-            product = form.save(commit=False)
-            product.created_by = request.user
-            product.save()
-            messages.success(request, f"🎉 Product '{product.name}' added successfully to inventory!")
+            product = form.save(commit=True, created_by=request.user)
+            assigned_label = (
+                product.distributor_ref.business_name if product.distributor_ref 
+                else (product.created_by.username if product.created_by else "Admin Central")
+            )
+            messages.success(request, f"🎉 Product '{product.name}' (₹{product.price}) added successfully! Assigned to: {assigned_label}")
             return redirect('product_list')
         else:
             for field, errors in form.errors.items():
                 for err in errors:
                     messages.error(request, f"{field.replace('_', ' ').title()}: {err}")
     else:
-        form = ProductForm()
+        form = ProductForm(initial=initial_data, user=request.user, is_admin=is_admin)
+
+    distributor_profile = (
+        getattr(request.user, 'distributor_account', None) or 
+        Distributor.objects.filter(user=request.user).first()
+    )
 
     context = {
         'form': form,
-        'role': 'Admin' if (request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')) else 'Distributor',
+        'is_admin': is_admin,
+        'role': 'Admin' if is_admin else 'Distributor',
+        'distributor_profile': distributor_profile,
+        'distributors': Distributor.objects.filter(is_active=True).order_by('business_name') if is_admin else None,
+        'is_edit': False,
     }
     return render(request, 'billing/add_product.html', context)
 
+# Direct alias for add_product_view
+product_create_view = add_product_view
 
-# 20. Product Management: Edit Product
+
+# 20. Product Management: Edit Product (Role-Protected)
 @login_required
 def edit_product_view(request, product_id):
     initialize_default_users()
     product = get_object_or_404(Product, pk=product_id)
     is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
-    if not is_admin and product.created_by and product.created_by != request.user:
+
+    # Non-admin distributors can only edit their own products
+    is_owner = (
+        product.created_by == request.user or 
+        (product.distributor_ref and product.distributor_ref.user == request.user)
+    )
+    if not is_admin and not is_owner:
         messages.error(request, "Access denied: You do not have permission to edit this product.")
         return redirect('product_list')
 
     if request.method == 'POST':
-        form = ProductForm(request.POST, instance=product)
+        form = ProductForm(request.POST, instance=product, user=request.user, is_admin=is_admin)
         if form.is_valid():
-            product = form.save()
+            product = form.save(commit=True, created_by=request.user)
             messages.success(request, f"🎉 Product '{product.name}' updated successfully!")
             return redirect('product_list')
         else:
@@ -1874,31 +1906,47 @@ def edit_product_view(request, product_id):
                 for err in errors:
                     messages.error(request, f"{field.replace('_', ' ').title()}: {err}")
     else:
-        form = ProductForm(instance=product)
+        initial_data = {}
+        if is_admin and product.distributor_ref:
+            initial_data['distributor'] = product.distributor_ref
+        form = ProductForm(instance=product, initial=initial_data, user=request.user, is_admin=is_admin)
+
+    distributor_profile = (
+        getattr(request.user, 'distributor_account', None) or 
+        Distributor.objects.filter(user=request.user).first()
+    )
 
     context = {
         'form': form,
         'product': product,
         'is_edit': True,
+        'is_admin': is_admin,
         'role': 'Admin' if is_admin else 'Distributor',
+        'distributor_profile': distributor_profile,
+        'distributors': Distributor.objects.filter(is_active=True).order_by('business_name') if is_admin else None,
     }
     return render(request, 'billing/add_product.html', context)
 
 
-# 21. Product Management: Delete Product
+# 21. Product Management: Delete Product (Role-Protected)
 @login_required
 def delete_product_view(request, product_id):
     initialize_default_users()
     product = get_object_or_404(Product, pk=product_id)
     is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
-    if not is_admin and product.created_by and product.created_by != request.user:
+
+    is_owner = (
+        product.created_by == request.user or 
+        (product.distributor_ref and product.distributor_ref.user == request.user)
+    )
+    if not is_admin and not is_owner:
         messages.error(request, "Access denied: You do not have permission to delete this product.")
         return redirect('product_list')
+
     name = product.name
     product.delete()
     messages.success(request, f"🗑️ Product '{name}' deleted successfully from inventory.")
     return redirect('product_list')
-
 
 from django.http import HttpResponse
 from django.template.loader import get_template

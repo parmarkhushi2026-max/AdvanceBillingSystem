@@ -3,6 +3,10 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError
 from .models import UserProfile, Distributor, Customer, Product, Invoice, InvoiceItem
+from decimal import Decimal, InvalidOperation
+import json
+import uuid
+from django.db.models import Q
 
 class AdminLoginForm(AuthenticationForm):
     """Custom Django Authentication form specifically validating Admin privileges."""
@@ -716,21 +720,60 @@ class CustomerModelForm(forms.ModelForm):
 
 
 class ProductForm(forms.ModelForm):
-    """Form to add or update a Product."""
+    """
+    Form to add or update a Product with role-based logic:
+    - Admin: Displays distributor selection dropdown to assign the product to any registered distributor agency or central inventory.
+    - Distributor: Field is hidden/removed. Product is automatically bound strictly to distributor's own account (distributor_ref & created_by).
+    """
+    distributor = forms.ModelChoiceField(
+        queryset=Distributor.objects.filter(is_active=True).order_by('business_name'),
+        required=False,
+        empty_label="-- Central System / Admin (All Distributors) --",
+        label="Assign to Distributor Agency",
+        widget=forms.Select(attrs={
+            'class': 'form-control form-select',
+            'id': 'distributor-select'
+        })
+    )
+
     class Meta:
         model = Product
         fields = ['name', 'sku', 'category', 'price', 'gst_rate', 'hsn_code', 'stock', 'unit', 'description']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Wireless Barcode Scanner Pro', 'autofocus': True}),
-            'sku': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'SKU / Barcode (Optional)'}),
-            'category': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Hardware, Software, etc.'}),
-            'price': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.01', 'min': '0.01'}),
-            'gst_rate': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.01', 'min': '0.00'}),
-            'hsn_code': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'HSN / SAC Code'}),
-            'stock': forms.NumberInput(attrs={'class': 'form-input', 'min': '0', 'step': '1'}),
-            'unit': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Pcs, Kg, Box'}),
-            'description': forms.Textarea(attrs={'class': 'form-input', 'rows': 3, 'placeholder': 'Product description...'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Wireless Barcode Scanner Pro', 'autofocus': True, 'id': 'id_name'}),
+            'sku': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'SKU / Barcode (Optional)', 'id': 'id_sku'}),
+            'category': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Hardware, Software, Electronics, etc.', 'id': 'id_category'}),
+            'price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01', 'id': 'id_price', 'placeholder': '0.00'}),
+            'gst_rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.00', 'max': '100.00', 'id': 'id_gst_rate', 'placeholder': '18.00'}),
+            'hsn_code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'HSN / SAC Code', 'id': 'id_hsn_code'}),
+            'stock': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '1', 'id': 'id_stock', 'placeholder': '100'}),
+            'unit': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Pcs, Kg, Box, Set', 'id': 'id_unit'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Product description, specifications, or notes...', 'id': 'id_description'}),
         }
+
+    def __init__(self, *args, user=None, is_admin=False, **kwargs):
+        self.user = user
+        if user is not None:
+            self.is_admin = is_admin or user.is_superuser or (
+                hasattr(user, 'profile') and user.profile.role == 'ADMIN'
+            )
+        else:
+            self.is_admin = is_admin
+        super().__init__(*args, **kwargs)
+
+        # Set initial distributor if editing an existing instance
+        if self.instance and self.instance.pk and self.instance.distributor_ref:
+            self.fields['distributor'].initial = self.instance.distributor_ref
+
+        # Non-admin distributors cannot choose distributor; strictly bound to own account
+        if not self.is_admin and 'distributor' in self.fields:
+            del self.fields['distributor']
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name', '').strip()
+        if len(name) < 2:
+            raise ValidationError("Product Name must be at least 2 characters long.")
+        return name
 
     def clean_sku(self):
         sku = self.cleaned_data.get('sku')
@@ -746,15 +789,9 @@ class ProductForm(forms.ModelForm):
             return sku
         return None
 
-    def clean_name(self):
-        name = self.cleaned_data.get('name', '').strip()
-        if len(name) < 2:
-            raise ValidationError("Product Name must be at least 2 characters long.")
-        return name
-
     def clean_price(self):
         price = self.cleaned_data.get('price')
-        if price is not None and price <= 0:
+        if price is not None and price <= Decimal('0.00'):
             raise ValidationError("Price must be greater than 0.")
         return price
 
@@ -764,12 +801,67 @@ class ProductForm(forms.ModelForm):
             raise ValidationError("Stock cannot be negative.")
         return stock
 
+    def clean_gst_rate(self):
+        gst_rate = self.cleaned_data.get('gst_rate')
+        if gst_rate is not None:
+            if gst_rate < Decimal('0.00') or gst_rate > Decimal('100.00'):
+                raise ValidationError("GST rate must be between 0% and 100%.")
+        return gst_rate
 
-from decimal import Decimal, InvalidOperation
-import json
-import uuid
-from django.db.models import Q
-from .models import Invoice, InvoiceItem
+    def save(self, commit=True, created_by=None):
+        instance = super().save(commit=False)
+        user = created_by or self.user
+
+        if self.is_admin:
+            selected_dist = self.cleaned_data.get('distributor')
+            if selected_dist:
+                instance.distributor_ref = selected_dist
+                instance.created_by = selected_dist.user or user
+            else:
+                instance.distributor_ref = None
+                instance.created_by = user
+        else:
+            instance.created_by = user
+            if user:
+                instance.distributor_ref = (
+                    getattr(user, 'distributor_account', None) or 
+                    Distributor.objects.filter(user=user).first()
+                )
+
+        if commit:
+            instance.save()
+        return instance
+
+    def save_product(self, created_by=None):
+        """Convenience method to save and return product."""
+        return self.save(commit=True, created_by=created_by)
+
+    def update_product(self, product):
+        """Update existing Product instance in database respecting role privileges."""
+        for field in ['name', 'sku', 'category', 'price', 'gst_rate', 'hsn_code', 'stock', 'unit', 'description']:
+            if field in self.cleaned_data:
+                setattr(product, field, self.cleaned_data[field])
+
+        if self.is_admin and 'distributor' in self.cleaned_data:
+            selected_dist = self.cleaned_data.get('distributor')
+            if selected_dist:
+                product.distributor_ref = selected_dist
+                if selected_dist.user:
+                    product.created_by = selected_dist.user
+            else:
+                product.distributor_ref = None
+
+        product.save()
+        return product
+
+
+class ProductModelForm(ProductForm):
+    """
+    ModelForm alias for Product with role-based logic:
+    Identical interface to ProductForm, supporting both class names seamlessly.
+    """
+    pass
+
 
 class InvoiceItemForm(forms.Form):
     """

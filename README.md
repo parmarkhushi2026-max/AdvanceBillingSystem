@@ -2,11 +2,69 @@
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 [![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
-[![Tests](https://img.shields.io/badge/Tests-242%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+[![Tests](https://img.shields.io/badge/Tests-253%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
 A feature-packed, production-ready Django Billing, QR Payment, and Financial Intelligence System designed for managing distributors, customers, dynamic UPI QR code billing, audit reporting, tax receipts, and ledger tracking.
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+
+## 📦 🌟 Feature: Role-Based Product Creation (Admin Adds for All, Distributor Adds Only Their Own)
+
+A robust, role-based product inventory and catalog management system that strictly segregates product creation and management privileges between Administrators and Wholesale Distributors across forms, views, templates, and REST APIs:
+
+- **1. Role-Aware Product Forms (`ProductForm` & `ProductModelForm` in `billing_app/forms.py`)**:
+  - **Administrator View**:
+    - Displays a styled **Distributor Assignment Dropdown** (`distributor` ModelChoiceField / Select) populated with all active distributors registered in the system.
+    - Admin can assign newly registered products to any distributor agency or register them under central administration inventory.
+    - Automatic validation and lookup handles distributor assignment via `distributor_ref` and `created_by`.
+  - **Distributor View**:
+    - The `distributor` dropdown field is completely removed/hidden from the form fields.
+    - Prevents form tampering: When a distributor submits product data, the form automatically binds the new product strictly to the distributor's own agency (`request.user.distributor_account`) and sets `created_by = request.user`.
+    - Sanitizes and validates product inputs: name, SKU/barcode (uniqueness check), category, unit price (> 0), GST rate (0% to 100%), HSN code, stock (non-negative), measurement unit, and description.
+  - **Flexible Instantiation & Aliases**:
+    - Both `ProductForm(data, user=request.user, is_admin=is_admin)` and `ProductModelForm(data, user=request.user, is_admin=is_admin)` are supported with consistent API interfaces.
+    - Built-in `save(commit=True, created_by=None)`, `save_product()`, and `update_product()` methods ensuring relational integrity.
+
+- **2. Role-Protected Views & API Endpoints (`billing_app/views.py` & `billing_app/urls.py`)**:
+  - **Product Creation View (`add_product_view` / `product_create_view`)**:
+    - Protected with `@login_required` and role detection via `is_user_admin(request.user)`.
+    - Handles GET requests by rendering the role-specific form with role badges and guidance alerts.
+    - Handles POST requests with transactional database commits, flash message notifications, and safe redirection back to the Product Inventory list.
+  - **Product Editing View (`edit_product_view`)**:
+    - Strictly prevents distributors from editing or modifying products belonging to other distributors (`distributor_ref != user.distributor_account`).
+    - Admins retain universal editing and reassignment privileges across all product records.
+  - **Product Deletion View (`delete_product_view`)**:
+    - Enforces identical ownership security checks before permitting product deletion.
+  - **Product Inventory Filter (`product_list_view`)**:
+    - Non-admin distributors only see their own products and products assigned to their agency (`distributor_ref`), while Admins see universal inventory.
+  - **URL Routing Aliases**:
+    - Accessible via `/products/add/`, `/products/create/`, and `/product/add/` (`name='add_product'`, `name='product_create'`, `name='product_add'`).
+
+- **3. Modern Bootstrap 5 UI Interface (`templates/billing/add_product.html`)**:
+  - **Card Container**: Modern `card border-0 shadow-sm rounded-4 overflow-hidden` with gradient header and quick navigation back to inventory.
+  - **Dynamic Role Badge**: Displays `👑 Admin Mode: Global Multi-Distributor Access` (Indigo/Purple) or `🏢 Distributor Workspace` (Teal/Emerald) based on session clearance.
+  - **Role Notice Banner**:
+    - Admin: *"👑 Admin Privilege: Select which distributor agency this product belongs to. If left blank, this product will be categorized under Central System / Admin inventory."*
+    - Distributor: *"🏢 Distributor Mode: This product will be automatically registered and bound under your account ({{ distributor_profile.business_name|default:user.username }})."*
+  - **Interactive Input Groups**: Bootstrap 5 form controls with FontAwesome icons for Product Name, SKU, Category, Price, GST Rate, HSN Code, Stock, Unit, and Description.
+  - **Conditional Distributor Picker**: Rendered neatly inside distributor assignment card only for administrators.
+
+- **4. Automated Verification Test Suite (`billing_app/test_product_create_role_based.py`)**:
+  - 11 automated unit tests verifying complete security, isolation, and functionality:
+    1. `test_product_form_fields_for_admin_vs_distributor`: Confirms distributor select dropdown appears for Admin and is hidden for distributors.
+    2. `test_product_model_form_fields_for_admin_vs_distributor`: Confirms `ProductModelForm` supports identical role behavior.
+    3. `test_admin_can_add_product_for_specific_distributor`: Confirms Admin can assign products across different distributor agencies.
+    4. `test_admin_can_add_product_globally_for_central_admin`: Confirms Admin can add central unassigned products.
+    5. `test_distributor_adds_product_strictly_for_their_own_account`: Confirms distributor product is automatically bound to `user.distributor_account`.
+    6. `test_distributor_cannot_tamper_distributor_assignment`: Confirms tamper attempts in POST payloads are disregarded and bound safely.
+    7. `test_multi_tenant_isolation_between_distributors`: Confirms products created by Distributor 1 are strictly invisible to Distributor 2.
+    8. `test_distributor_cannot_edit_other_distributors_product`: Confirms HTTP 302 access denied redirect when accessing another distributor's product.
+    9. `test_admin_can_edit_any_distributors_product`: Confirms Admin universal edit and reassignment privileges.
+    10. `test_unauthenticated_user_cannot_access_add_product`: Confirms redirection to login for anonymous requests.
+    11. `test_product_form_validation_errors`: Confirms validation for negative price, negative stock, and invalid GST rate.
+  - **Test Suite Result**: 253/253 tests passing across all test suites.
+
+---
 
 ## 👥 🌟 Feature: Role-Based Customer Creation (Admin Adds for All, Distributor Adds Only Their Own)
 
