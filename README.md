@@ -2,11 +2,59 @@
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 [![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
-[![Tests](https://img.shields.io/badge/Tests-266%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+[![Tests](https://img.shields.io/badge/Tests-276%20Passing-success?style=for-the-badge)](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
 
 A feature-packed, production-ready Django Billing, QR Payment, and Financial Intelligence System designed for managing distributors, customers, dynamic UPI QR code billing, audit reporting, tax receipts, and ledger tracking.
 
 🔗 **GitHub Repository Link**: [https://github.com/parmarkhushi2026-max/AdvanceBillingSystem](https://github.com/parmarkhushi2026-max/AdvanceBillingSystem)
+
+## 📊 🌟 Feature: Bootstrap Tabular Customer & Product Lists Filtered by Logged-in User
+
+Complete frontend and backend implementation displaying Customer and Product directories in a clean, executive, and responsive **Bootstrap 5 tabular format**, strictly filtered by the authenticated user's role and account scope:
+
+- **1. Multi-Tenant User Filtering in Querysets (`billing_app/views.py`)**:
+  - **Wholesale Distributors (`not is_admin`)**:
+    - **Customer Directory (`customer_list_view`)**: The table displays ONLY customers registered by or bound to the logged-in distributor (`Q(created_by=request.user) | Q(distributor_ref__user=request.user) | Q(distributor_ref=user_dist)`). Clients of other distributors are completely invisible and omitted from the DOM and query results.
+    - **Product Catalog (`product_list_view`)**: The table displays ONLY catalog inventory items belonging to the logged-in distributor's agency.
+    - Informative badges and hero counters explicitly display the user's isolated agency name (`distributor_profile.business_name`).
+  - **System Administrators (`is_admin`)**:
+    - Universal transparency across all wholesale distributor accounts and central system entries.
+    - Includes an extra **Assigned Distributor** table column displaying the owner agency name or central system clearance for each row.
+
+- **2. Modern Bootstrap 5 Tabular Architecture for Customer Directory (`templates/billing/customer_list.html`)**:
+  - **Table Layout**: Rendered inside a responsive `<div class="table-responsive">` with `<table class="table table-hover align-middle mb-0">` and light text-uppercase header styling.
+  - **Profile Information**: Avatar circle with initials, customer name, street address subtext, and phone/email link items with icons.
+  - **Badges & Tax Verification**: Styled pill badges for city/location and verified B2B GSTIN numbers.
+  - **Quick Action Group**: One-click **Quick Bill** creation (`btn-outline-success`), **Edit** (`btn-outline-primary`), and **Delete** (`btn-outline-danger` triggering a modal).
+  - **Bootstrap 5 Pagination**: Smooth numbered pagination (`pagination pagination-sm justify-content-end mb-0`) displaying 10 records per page.
+  - **Interactive Delete Modal**: Bootstrap 5 danger confirmation dialog (`modal fade`) ensuring safety against accidental deletions.
+
+- **3. Modern Bootstrap 5 Tabular Architecture for Product Catalog (`templates/billing/product_list.html`)**:
+  - **Table Layout**: High-density responsive Bootstrap table (`table table-hover align-middle mb-0`) with inventory icon cards.
+  - **Catalog Classifications**: SKU code tags, HSN / SAC codes, and category pill badges.
+  - **Live Stock Alerts**: Color-coded stock badges:
+    - `In Stock` (> 15 units): Green success badge (`bg-success-subtle text-success`).
+    - `Low Stock` (1-15 units): Amber warning badge (`bg-warning-subtle text-warning`).
+    - `Out of Stock` (0 units): Red danger badge (`bg-danger-subtle text-danger`).
+  - **Price & Tax Presentation**: Highlighted INR unit pricing alongside GST tax percentage subtext.
+  - **Bootstrap 5 Pagination**: Clean 10 items per page pagination controls.
+  - **Interactive Delete Modal**: Bootstrap 5 product removal confirmation modal.
+
+- **4. Automated Verification Test Suite (`billing_app/test_bootstrap_tables_filtered.py`)**:
+  - 10 automated unit tests verifying:
+    1. `test_customer_list_distributor_isolation`: Confirms Distributor 1 sees only their own customers; Distributor 2's customers are strictly omitted.
+    2. `test_customer_list_admin_sees_all_distributors`: Confirms Admin sees universal customers across all agencies.
+    3. `test_product_list_distributor_isolation`: Confirms Distributor 1 sees only their own products; Distributor 2's products are strictly omitted.
+    4. `test_product_list_admin_sees_all_distributors`: Confirms Admin sees universal products across all catalogs.
+    5. `test_customer_table_bootstrap_classes`: Validates presence of `table`, `table-hover`, `table-responsive`, and `card` classes.
+    6. `test_product_table_bootstrap_classes`: Validates presence of `table`, `table-hover`, `table-responsive`, and `card` classes.
+    7. `test_customer_table_search_filter`: Confirms search queries accurately filter customer table records.
+    8. `test_product_table_search_and_category_filter`: Confirms search queries and category filters accurately filter product records.
+    9. `test_customer_and_product_pagination_support`: Confirms paginator divides items into pages.
+    10. `test_unauthenticated_user_redirected`: Confirms anonymous requests are redirected to login.
+  - **Test Suite Result**: 276/276 tests passing across all test suites.
+
+---
 
 ## 🛡️ 🌟 Feature: Edit & Delete Functionality for Customers & Products with User Ownership Checks
 

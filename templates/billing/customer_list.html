@@ -3,362 +3,379 @@
 {% block title %}Customer Directory - Advance Billing System{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1 class="page-title"><i class="fa-solid fa-address-book" style="color: var(--primary);"></i> Customer Directory</h1>
-        <p class="page-subtitle">Manage customer profiles, contact info, tax IDs, and generate instant QR invoices.</p>
-    </div>
-    <div class="page-actions" style="display: flex; gap: 10px;">
-        <a href="{% url 'customer_register_frontend' %}" class="btn-primary-action" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;">
-            <i class="fa-solid fa-bolt"></i> Register Customer (API Form)
-        </a>
-        <a href="{% url 'add_customer' %}" class="btn-secondary-action">
-            <i class="fa-solid fa-user-plus"></i> Standard Form
-        </a>
-    </div>
-
-</div>
-
-<!-- Stats Summary Row -->
-<div class="stats-grid" style="margin-bottom: 1.5rem;">
-    <div class="stat-card">
-        <div class="stat-icon indigo">
-            <i class="fa-solid fa-users"></i>
-        </div>
+<div class="container-fluid px-4 py-4">
+    <!-- Breadcrumb & Page Header -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
         <div>
-            <div class="stat-val">{{ total_count }}</div>
-            <div class="stat-lbl">Total Customers</div>
-        </div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-icon emerald">
-            <i class="fa-solid fa-file-invoice-dollar"></i>
-        </div>
-        <div>
-            <div class="stat-val">{{ gst_count }}</div>
-            <div class="stat-lbl">GST Registered Clients</div>
-        </div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-icon amber">
-            <i class="fa-solid fa-circle-check"></i>
-        </div>
-        <div>
-            <div class="stat-val" style="color: #d97706; font-size: 1.35rem;">Active</div>
-            <div class="stat-lbl">Directory Status</div>
-        </div>
-    </div>
-</div>
-
-<!-- Search, Filter & View Controls -->
-<div class="dashboard-card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-        <!-- Search Form -->
-        <form method="GET" action="{% url 'customer_list' %}" style="display: flex; gap: 10px; flex: 1; min-width: 280px; align-items: center;">
-            <div class="input-icon-group" style="flex: 1;">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" name="q" class="form-input" placeholder="Search by name, phone, email, city, GSTIN..." value="{{ query }}">
-            </div>
-            <button type="submit" class="btn-secondary-action" style="padding: 0 1.25rem;">
-                <i class="fa-solid fa-filter"></i> Search
-            </button>
-            {% if query %}
-                <a href="{% url 'customer_list' %}" class="btn-secondary-action" style="color: var(--accent-rose);" title="Clear Search">
-                    <i class="fa-solid fa-xmark"></i> Clear
-                </a>
-            {% endif %}
-        </form>
-
-        <!-- View Switcher & Counter -->
-        <div style="display: flex; align-items: center; gap: 1rem;">
-            <span class="badge-status paid" style="font-size: 0.82rem; padding: 6px 12px;">
-                <i class="fa-solid fa-database"></i> {{ total_count }} Record{% if total_count != 1 %}s{% endif %}
-            </span>
-
-            <div class="customer-view-toggle">
-                <button type="button" class="view-toggle-btn active" id="btnTableView" onclick="switchView('table')">
-                    <i class="fa-solid fa-list"></i> Table
-                </button>
-                <button type="button" class="view-toggle-btn" id="btnGridView" onclick="switchView('grid')">
-                    <i class="fa-solid fa-grip"></i> Grid
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 1. Table View Container -->
-<div class="dashboard-card" id="tableViewContainer">
-    <div class="table-responsive">
-        <table class="app-table">
-            <thead>
-                <tr>
-                    <th>Customer Name</th>
-                    <th>Contact Info</th>
-                    <th>Location / City</th>
-                    <th>GSTIN / Tax ID</th>
-                    <th>Created On</th>
-                    <th style="text-align: right;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if customers %}
-                    {% for c in customers %}
-                        <tr>
-                            <td>
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div class="avatar-initials">
-                                        {{ c.name|slice:":1"|upper }}
-                                    </div>
-                                    <div>
-                                        <div style="font-weight: 700; color: var(--secondary); font-size: 0.95rem;">{{ c.name }}</div>
-                                        {% if c.address %}
-                                            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
-                                                <i class="fa-solid fa-location-dot" style="color: var(--primary); font-size: 0.72rem;"></i> {{ c.address|truncatechars:35 }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="info-item">
-                                    <i class="fa-solid fa-phone"></i>
-                                    <a href="tel:{{ c.phone }}" style="font-weight: 600;">{{ c.phone }}</a>
-                                </div>
-                                {% if c.email %}
-                                    <div class="info-item" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
-                                        <i class="fa-solid fa-envelope"></i>
-                                        <a href="mailto:{{ c.email }}" style="color: var(--text-muted);">{{ c.email }}</a>
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if c.city %}
-                                    <span class="role-pill distributor" style="font-size: 0.78rem;">
-                                        <i class="fa-solid fa-building"></i> {{ c.city }}
-                                    </span>
-                                {% else %}
-                                    <span style="color: var(--text-light); font-size: 0.85rem;">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if c.gstin %}
-                                    <span class="gst-badge-pill">
-                                        <i class="fa-solid fa-receipt"></i> {{ c.gstin }}
-                                    </span>
-                                {% else %}
-                                    <span class="no-gst-pill">Unregistered</span>
-                                {% endif %}
-                            </td>
-                            <td style="font-size: 0.85rem; color: var(--text-muted);">
-                                {{ c.created_at|date:"M d, Y" }}
-                            </td>
-                            <td style="text-align: right;">
-                                <div style="display: flex; justify-content: flex-end; gap: 6px;">
-                                    <a href="{% url 'create_invoice' %}?customer_name={{ c.name|urlencode }}&customer_phone={{ c.phone|urlencode }}" class="btn-card-create-bill" title="Create Invoice for {{ c.name }}">
-                                        <i class="fa-solid fa-file-invoice"></i> Create Bill
-                                    </a>
-                                    <a href="{% url 'edit_customer' c.id %}" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem;" title="Edit Profile">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </a>
-                                    <button type="button" data-name="{{ c.name }}" data-url="{% url 'delete_customer' c.id %}" onclick="triggerDeleteModal(this)" class="btn-secondary-action" style="padding: 6px 10px; font-size: 0.8rem; color: var(--accent-rose); border-color: #fecdd3;" title="Delete Profile">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    {% endfor %}
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="{% if user.is_superuser or user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}" class="text-decoration-none">Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Customer Directory</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bolder text-dark mb-0">
+                <i class="fa-solid fa-users text-primary me-2"></i>Customer Directory
+            </h1>
+            <p class="text-muted small mb-0 mt-1">
+                {% if is_admin %}
+                    Universal directory displaying all registered clients across all distributor agencies and central system.
                 {% else %}
-                    <tr>
-                        <td colspan="6" style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
-                            <i class="fa-solid fa-folder-open" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--text-light);"></i>
-                            {% if query %}
-                                <h4>No customers found</h4>
-                                <p style="font-size: 0.9rem; margin-top: 4px;">No records matched your search query <strong>"{{ query }}"</strong>.</p>
-                                <a href="{% url 'customer_list' %}" class="btn-secondary-action" style="margin-top: 1rem; display: inline-flex;">Clear Search Filter &rarr;</a>
-                            {% else %}
-                                <h4>No customers registered yet</h4>
-                                <p style="font-size: 0.9rem; margin-top: 4px;">Get started by adding your first customer profile.</p>
-                                <a href="{% url 'add_customer' %}" class="btn-primary-action" style="margin-top: 1rem; display: inline-flex;">
-                                    <i class="fa-solid fa-user-plus"></i> Add First Customer
-                                </a>
-                            {% endif %}
-                        </td>
-                    </tr>
+                    Showing clients strictly registered under your distribution agency (<strong class="text-dark">{{ distributor_profile.business_name|default:user.username }}</strong>).
                 {% endif %}
-            </tbody>
-        </table>
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            {% if is_admin %}
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 fw-bold d-inline-flex align-items-center gap-1.5">
+                    <i class="fa-solid fa-shield-halved"></i> Admin: Global Customer Access
+                </span>
+            {% else %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 fw-bold d-inline-flex align-items-center gap-1.5">
+                    <i class="fa-solid fa-store"></i> Distributor Scope: {{ distributor_profile.business_name|default:user.username }}
+                </span>
+            {% endif %}
+            <a href="{% url 'add_customer' %}" class="btn btn-primary rounded-3 px-3 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-user-plus"></i> Add Customer
+            </a>
+            <a href="{% url 'customer_register_frontend' %}" class="btn btn-outline-success rounded-3 px-3 fw-semibold d-inline-flex align-items-center gap-1.5">
+                <i class="fa-solid fa-bolt"></i> API Form
+            </a>
+            <a href="{% if user.is_superuser or user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% else %}{% url 'distributor_dashboard' %}{% endif %}" class="btn btn-light border rounded-3 px-3 fw-semibold text-secondary d-inline-flex align-items-center gap-1.5">
+                <i class="fa-solid fa-house"></i> Home
+            </a>
+        </div>
     </div>
-</div>
 
-<!-- 2. Grid Cards View Container -->
-<div id="gridViewContainer" style="display: none;">
-    {% if customers %}
-        <div class="customer-card-grid">
-            {% for c in customers %}
-                <div class="customer-card">
-                    <div class="customer-card-header">
-                        <div class="customer-avatar-wrapper">
-                            <div class="avatar-initials">
-                                {{ c.name|slice:":1"|upper }}
-                            </div>
-                            <div>
-                                <div class="customer-card-title">{{ c.name }}</div>
-                                {% if c.city %}
-                                    <div style="font-size: 0.78rem; color: var(--text-muted);"><i class="fa-solid fa-city"></i> {{ c.city }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        {% if c.gstin %}
-                            <span class="gst-badge-pill" title="GSTIN: {{ c.gstin }}">
-                                <i class="fa-solid fa-check-circle"></i> GST
-                            </span>
-                        {% else %}
-                            <span class="no-gst-pill">Consumer</span>
-                        {% endif %}
+    <!-- Stats KPI Cards Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 hover-lift border-start border-4 border-primary">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Total Customers</div>
+                        <div class="fs-3 fw-bolder text-dark mt-1">{{ total_count }}</div>
+                        <div class="small text-muted mt-0.5">{% if is_admin %}Universal Database{% else %}My Agency Clients{% endif %}</div>
                     </div>
-
-                    <div class="customer-card-body">
-                        <div class="info-item">
-                            <i class="fa-solid fa-phone"></i>
-                            <a href="tel:{{ c.phone }}"><strong>{{ c.phone }}</strong></a>
-                        </div>
-                        {% if c.email %}
-                            <div class="info-item">
-                                <i class="fa-solid fa-envelope"></i>
-                                <a href="mailto:{{ c.email }}">{{ c.email }}</a>
-                            </div>
-                        {% endif %}
-                        {% if c.address %}
-                            <div class="info-item">
-                                <i class="fa-solid fa-location-dot"></i>
-                                <span>{{ c.address }}</span>
-                            </div>
-                        {% endif %}
-                        {% if c.gstin %}
-                            <div class="info-item">
-                                <i class="fa-solid fa-receipt"></i>
-                                <span>GSTIN: <strong>{{ c.gstin }}</strong></span>
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="customer-card-footer">
-                        <a href="{% url 'create_invoice' %}?customer_name={{ c.name|urlencode }}&customer_phone={{ c.phone|urlencode }}" class="btn-card-create-bill">
-                            <i class="fa-solid fa-file-invoice"></i> Create Bill
-                        </a>
-                        <a href="{% url 'edit_customer' c.id %}" class="btn-secondary-action" style="padding: 8px 11px;" title="Edit Customer">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </a>
-                        <button type="button" data-name="{{ c.name }}" data-url="{% url 'delete_customer' c.id %}" onclick="triggerDeleteModal(this)" class="btn-secondary-action" style="padding: 8px 11px; color: var(--accent-rose); border-color: #fecdd3;" title="Delete Customer">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
+                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="fa-solid fa-users fs-5"></i>
                     </div>
                 </div>
-            {% endfor %}
+            </div>
         </div>
-    {% else %}
-        <div class="dashboard-card" style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
-            <i class="fa-solid fa-folder-open" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--text-light);"></i>
-            {% if query %}
-                <h4>No customers found</h4>
-                <p style="font-size: 0.9rem; margin-top: 4px;">No records matched your search query <strong>"{{ query }}"</strong>.</p>
-                <a href="{% url 'customer_list' %}" class="btn-secondary-action" style="margin-top: 1rem; display: inline-flex;">Clear Search Filter &rarr;</a>
-            {% else %}
-                <h4>No customers registered yet</h4>
-                <p style="font-size: 0.9rem; margin-top: 4px;">Get started by adding your first customer profile.</p>
-                <a href="{% url 'add_customer' %}" class="btn-primary-action" style="margin-top: 1rem; display: inline-flex;">
-                    <i class="fa-solid fa-user-plus"></i> Add First Customer
-                </a>
-            {% endif %}
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 hover-lift border-start border-4 border-success">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">GST Registered</div>
+                        <div class="fs-3 fw-bolder text-success mt-1">{{ gst_count }}</div>
+                        <div class="small text-muted mt-0.5">B2B Tax Verified Clients</div>
+                    </div>
+                    <div class="rounded-circle bg-success bg-opacity-10 text-success p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="fa-solid fa-file-invoice-dollar fs-5"></i>
+                    </div>
+                </div>
+            </div>
         </div>
-    {% endif %}
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 hover-lift border-start border-4 border-info">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Locations / Cities</div>
+                        <div class="fs-3 fw-bolder text-info mt-1">{{ cities|length }}</div>
+                        <div class="small text-muted mt-0.5">Distinct Geographies</div>
+                    </div>
+                    <div class="rounded-circle bg-info bg-opacity-10 text-info p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="fa-solid fa-location-dot fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 hover-lift border-start border-4 border-warning">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Filter Mode</div>
+                        <div class="fs-4 fw-bolder text-warning mt-1">{% if is_admin %}Universal (All){% else %}Isolated{% endif %}</div>
+                        <div class="small text-muted mt-0.5">User-Filtered Scope</div>
+                    </div>
+                    <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="fa-solid fa-filter fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <form method="GET" action="{% url 'customer_list' %}" class="row g-2 align-items-center">
+                <div class="col-12 col-md-6 col-lg-7">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Search by customer name, phone, email, city, GSTIN..." value="{{ query }}">
+                    </div>
+                </div>
+                {% if cities %}
+                <div class="col-12 col-sm-6 col-md-3 col-lg-3">
+                    <select name="city" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- All Cities ({{ cities|length }}) --</option>
+                        {% for city in cities %}
+                            <option value="{{ city }}" {% if city_filter == city %}selected{% endif %}>{{ city }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="col-12 col-sm-6 col-md-3 col-lg-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary rounded-3 w-100 fw-semibold">
+                        <i class="fa-solid fa-filter me-1"></i> Search
+                    </button>
+                    {% if query or city_filter %}
+                        <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary rounded-3" title="Clear Filters">
+                            <i class="fa-solid fa-xmark"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabular Format Customer Table Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-table-list text-primary fs-5"></i>
+                <h5 class="mb-0 fw-bold text-dark">Customer Directory Ledger</h5>
+                <span class="badge bg-light text-secondary border rounded-pill ms-2">{{ total_count }} Total</span>
+            </div>
+            <div class="small text-muted">
+                {% if is_admin %}
+                    <i class="fa-solid fa-circle-check text-success me-1"></i>Showing all customers across the system
+                {% else %}
+                    <i class="fa-solid fa-lock text-success me-1"></i>Strictly isolated to {{ distributor_profile.business_name|default:user.username }}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-secondary text-uppercase small fw-bold">
+                    <tr>
+                        <th class="ps-4" style="width: 25%;">Customer Profile</th>
+                        <th style="width: 22%;">Contact Information</th>
+                        <th style="width: 14%;">City / Location</th>
+                        <th style="width: 14%;">GSTIN / Tax ID</th>
+                        {% if is_admin %}
+                            <th style="width: 15%;">Assigned Distributor</th>
+                        {% endif %}
+                        <th class="text-end pe-4" style="width: 10%;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if customers %}
+                        {% for c in customers %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center gap-2.5">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 text-primary fw-bolder d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; min-width: 38px;">
+                                            {{ c.name|slice:":1"|upper }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark text-truncate" style="max-width: 220px;">{{ c.name }}</div>
+                                            {% if c.address %}
+                                                <div class="small text-muted text-truncate" style="max-width: 220px;" title="{{ c.address }}">
+                                                    <i class="fa-solid fa-location-dot text-primary me-1"></i>{{ c.address }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <a href="tel:{{ c.phone }}" class="fw-semibold text-decoration-none text-dark d-inline-flex align-items-center gap-1.5 small">
+                                            <i class="fa-solid fa-phone text-success"></i> {{ c.phone }}
+                                        </a>
+                                    </div>
+                                    {% if c.email %}
+                                        <div class="small text-muted mt-0.5">
+                                            <a href="mailto:{{ c.email }}" class="text-decoration-none text-muted d-inline-flex align-items-center gap-1.5">
+                                                <i class="fa-solid fa-envelope text-secondary"></i> {{ c.email }}
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if c.city %}
+                                        <span class="badge bg-light text-dark border px-2.5 py-1.5 rounded-pill fw-semibold">
+                                            <i class="fa-solid fa-building text-secondary me-1"></i>{{ c.city }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if c.gstin %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 rounded-pill fw-semibold font-monospace">
+                                            <i class="fa-solid fa-receipt me-1"></i>{{ c.gstin }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary-subtle text-secondary px-2.5 py-1.5 rounded-pill fw-normal">
+                                            Unregistered
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                {% if is_admin %}
+                                    <td>
+                                        {% if c.distributor_ref %}
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1.5 rounded-pill fw-semibold">
+                                                <i class="fa-solid fa-store me-1"></i>{{ c.distributor_ref.business_name }}
+                                            </span>
+                                        {% elif c.created_by %}
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle px-2.5 py-1.5 rounded-pill fw-semibold">
+                                                <i class="fa-solid fa-user me-1"></i>{{ c.created_by.username }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-light text-muted border px-2.5 py-1.5 rounded-pill">Central Admin</span>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+                                <td class="text-end pe-4">
+                                    <div class="btn-group btn-group-sm shadow-xs" role="group">
+                                        <a href="{% url 'create_invoice' %}?customer_name={{ c.name|urlencode }}&customer_phone={{ c.phone|urlencode }}" class="btn btn-outline-success" title="Quick Invoice Bill">
+                                            <i class="fa-solid fa-file-invoice"></i> Bill
+                                        </a>
+                                        <a href="{% url 'edit_customer' c.id %}" class="btn btn-outline-primary" title="Edit Customer">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger" title="Delete Customer" data-name="{{ c.name }}" data-url="{% url 'delete_customer' c.id %}" onclick="triggerDeleteModal(this)">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="{% if is_admin %}6{% else %}5{% endif %}" class="text-center py-5">
+                                <div class="text-muted mb-3">
+                                    <i class="fa-solid fa-address-book fs-1 text-secondary opacity-50"></i>
+                                </div>
+                                <h5 class="fw-bold text-secondary">No customer profiles found</h5>
+                                <p class="text-muted small mb-3">
+                                    {% if query %}
+                                        No customer records match your filter criteria "<strong>{{ query }}</strong>".
+                                    {% else %}
+                                        No customers registered under this account yet. Click below to register your first customer.
+                                    {% endif %}
+                                </p>
+                                <a href="{% url 'add_customer' %}" class="btn btn-primary rounded-3 px-4 fw-semibold shadow-sm">
+                                    <i class="fa-solid fa-plus me-1"></i> Add New Customer
+                                </a>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls Footer -->
+        {% if is_paginated %}
+            <div class="card-footer bg-white border-top py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="small text-muted">
+                    Showing page <strong>{{ page_obj.number }}</strong> of <strong>{{ paginator.num_pages }}</strong> ({{ total_count }} total customers)
+                </div>
+                <nav aria-label="Customer list navigation">
+                    <ul class="pagination pagination-sm justify-content-end mb-0">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if city_filter %}&city={{ city_filter }}{% endif %}">
+                                    <i class="fa-solid fa-chevron-left"></i> Previous
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                        {% endif %}
+
+                        {% for page_num in paginator.page_range %}
+                            {% if page_num == page_obj.number %}
+                                <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                            {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_num }}{% if query %}&q={{ query }}{% endif %}{% if city_filter %}&city={{ city_filter }}{% endif %}">{{ page_num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if city_filter %}&city={{ city_filter }}{% endif %}">
+                                    Next <i class="fa-solid fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">Next</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        {% endif %}
+    </div>
 </div>
 
-<!-- Custom Confirmation Modal -->
-<div class="modal-overlay" id="deleteModal">
-    <div class="modal-card">
-        <div class="modal-icon-danger">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-        </div>
-        <h3 class="modal-title">Delete Customer Record?</h3>
-        <p class="modal-body-text">
-            Are you sure you want to delete <strong id="modalTargetName" style="color: var(--secondary);">Customer</strong>?
-            <br><br>
-            <span style="color: #e11d48; font-size: 0.85rem;">⚠️ This customer profile will be permanently removed from your system.</span>
-        </p>
-        <div class="modal-actions">
-            <button type="button" class="btn-modal-cancel" onclick="closeDeleteModal()">Cancel</button>
-            <form id="deleteCustomerForm" method="POST" action="" style="margin: 0; display: inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn-danger-confirm" style="border: none; cursor: pointer;">
-                    <i class="fa-solid fa-trash"></i> Delete Profile
-                </button>
-            </form>
+<!-- Bootstrap 5 Delete Confirmation Modal -->
+<div class="modal fade" id="deleteCustomerModal" tabindex="-1" aria-labelledby="deleteCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-danger text-white border-0 py-3 px-4">
+                <h5 class="modal-title fw-bold" id="deleteCustomerModalLabel">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>Delete Customer Record
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="rounded-circle bg-danger bg-opacity-10 text-danger p-3 d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                    <i class="fa-solid fa-trash fs-3"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">Are you sure?</h5>
+                <p class="text-muted small mb-0">
+                    You are about to permanently delete customer profile for <strong id="modalTargetName" class="text-dark">Customer</strong>.
+                </p>
+                <div class="alert alert-warning rounded-3 py-2 px-3 mt-3 mb-0 small text-start">
+                    <i class="fa-solid fa-circle-info me-1"></i>
+                    Past invoice receipts issued for this customer will retain their financial history, but this client profile will be removed.
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0 py-3 px-4 d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-light border rounded-3 px-3 fw-semibold text-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteCustomerForm" method="POST" action="" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger rounded-3 px-4 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5">
+                        <i class="fa-solid fa-trash"></i> Delete Profile
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    // View Switcher logic (Table vs Grid)
-    function switchView(viewMode) {
-        const tableView = document.getElementById('tableViewContainer');
-        const gridView = document.getElementById('gridViewContainer');
-        const btnTable = document.getElementById('btnTableView');
-        const btnGrid = document.getElementById('btnGridView');
-
-        if (viewMode === 'grid') {
-            tableView.style.display = 'none';
-            gridView.style.display = 'block';
-            btnTable.classList.remove('active');
-            btnGrid.classList.add('active');
-            localStorage.setItem('customer_directory_view', 'grid');
-        } else {
-            gridView.style.display = 'none';
-            tableView.style.display = 'block';
-            btnGrid.classList.remove('active');
-            btnTable.classList.add('active');
-            localStorage.setItem('customer_directory_view', 'table');
-        }
-    }
-
-    // Load saved view preference on startup
-    document.addEventListener('DOMContentLoaded', function() {
-        const savedView = localStorage.getItem('customer_directory_view');
-        if (savedView === 'grid') {
-            switchView('grid');
-        }
-    });
-
-    // Delete Modal controls
-    function triggerDeleteModal(btnElement, optionalUrl) {
-        let customerName = btnElement;
-        let deleteUrl = optionalUrl;
-        if (typeof btnElement === 'object' && btnElement !== null && btnElement.getAttribute) {
-            customerName = btnElement.getAttribute('data-name');
-            deleteUrl = btnElement.getAttribute('data-url');
-        }
+    function triggerDeleteModal(btnElement) {
+        const customerName = btnElement.getAttribute('data-name');
+        const deleteUrl = btnElement.getAttribute('data-url');
         document.getElementById('modalTargetName').textContent = customerName;
         document.getElementById('deleteCustomerForm').action = deleteUrl;
-        document.getElementById('deleteModal').classList.add('active');
-    }
-
-    function closeDeleteModal() {
-        document.getElementById('deleteModal').classList.remove('active');
-    }
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeDeleteModal();
-    });
-
-    const deleteModalOverlay = document.getElementById('deleteModal');
-    if (deleteModalOverlay) {
-        deleteModalOverlay.addEventListener('click', function(e) {
-            if (e.target === this) closeDeleteModal();
-        });
+        
+        const modalElement = document.getElementById('deleteCustomerModal');
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+            modal.show();
+        } else {
+            modalElement.classList.add('show');
+            modalElement.style.display = 'block';
+        }
     }
 </script>
 {% endblock %}

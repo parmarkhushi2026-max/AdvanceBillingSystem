@@ -1642,20 +1642,26 @@ def customer_register_frontend_view(request):
 
 
 
-# 14. Customer Management: Customer List View
+# 14. Customer Management: Customer List View (Filtered by Logged-in User in Tabular Format)
 @login_required
 def customer_list_view(request):
     initialize_default_users()
     query = request.GET.get('q', '').strip()
+    city_filter = request.GET.get('city', '').strip()
     is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+    user_dist = getattr(request.user, 'distributor_account', None)
     
+    # Strict multi-tenant filtering by logged-in user
     if not is_admin:
-        customers = Customer.objects.filter(Q(created_by=request.user) | Q(distributor_ref__user=request.user))
+        cust_filter = Q(created_by=request.user) | Q(distributor_ref__user=request.user)
+        if user_dist:
+            cust_filter |= Q(distributor_ref=user_dist)
+        customers_qs = Customer.objects.filter(cust_filter).distinct().select_related('distributor_ref', 'created_by').order_by('-created_at')
     else:
-        customers = Customer.objects.all()
+        customers_qs = Customer.objects.all().select_related('distributor_ref', 'created_by').order_by('-created_at')
 
     if query:
-        customers = customers.filter(
+        customers_qs = customers_qs.filter(
             Q(name__icontains=query) |
             Q(phone__icontains=query) |
             Q(email__icontains=query) |
@@ -1663,15 +1669,33 @@ def customer_list_view(request):
             Q(gstin__icontains=query)
         )
 
+    if city_filter:
+        customers_qs = customers_qs.filter(city__iexact=city_filter)
+
+    total_count = customers_qs.count()
+    gst_count = customers_qs.filter(gstin__isnull=False).exclude(gstin='').count()
+    cities = customers_qs.values_list('city', flat=True).distinct()
+
+    # Pagination: 10 customers per page
+    paginator = Paginator(customers_qs, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     context = {
-        'customers': customers,
+        'customers': page_obj,
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'is_paginated': page_obj.has_other_pages(),
         'query': query,
-        'total_count': customers.count(),
-        'gst_count': customers.filter(gstin__isnull=False).exclude(gstin='').count(),
+        'city_filter': city_filter,
+        'cities': [c for c in cities if c],
+        'total_count': total_count,
+        'gst_count': gst_count,
+        'is_admin': is_admin,
         'role': 'Admin' if is_admin else 'Distributor',
+        'distributor_profile': user_dist or Distributor.objects.filter(user=request.user).first(),
     }
     return render(request, 'billing/customer_list.html', context)
-
 
 # 15. Edit Customer View (Role-Protected with User Ownership Checks)
 @login_required
@@ -1766,7 +1790,7 @@ def csrf_failure_view(request, reason=""):
 
 
 
-# 18. Product Management: List Products
+# 18. Product Management: List Products (Filtered by Logged-in User in Tabular Format)
 @login_required
 def product_list_view(request):
     initialize_default_users()
@@ -1774,42 +1798,49 @@ def product_list_view(request):
     category_filter = request.GET.get('category', '').strip()
     
     is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
+    user_dist = getattr(request.user, 'distributor_account', None)
+    
+    # Strict multi-tenant filtering by logged-in user
     if not is_admin:
-        user_dist = getattr(request.user, 'distributor_account', None)
         dist_filter = Q(created_by=request.user) | Q(distributor_ref__user=request.user)
         if user_dist:
             dist_filter |= Q(distributor_ref=user_dist)
-        products = Product.objects.filter(dist_filter).distinct().order_by('-id')
+        products_qs = Product.objects.filter(dist_filter).distinct().select_related('distributor_ref', 'created_by').order_by('-id')
     else:
-        products = Product.objects.all().order_by('-id')
+        products_qs = Product.objects.all().select_related('distributor_ref', 'created_by').order_by('-id')
     
     if query:
-        products = products.filter(
+        products_qs = products_qs.filter(
             Q(name__icontains=query) |
             Q(sku__icontains=query) |
             Q(hsn_code__icontains=query)
         )
     
     if category_filter:
-        products = products.filter(category__iexact=category_filter)
+        products_qs = products_qs.filter(category__iexact=category_filter)
         
     categories = Product.objects.values_list('category', flat=True).distinct()
+    total_count = products_qs.count()
 
     # Pagination: 10 products per page
-    paginator = Paginator(products, 10)
+    paginator = Paginator(products_qs, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     context = {
         'products': page_obj,
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'is_paginated': page_obj.has_other_pages(),
         'query': query,
         'category_filter': category_filter,
         'categories': [c for c in categories if c],
-        'total_count': products.count(),
-        'role': 'Admin' if (request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')) else 'Distributor',
+        'total_count': total_count,
+        'is_admin': is_admin,
+        'role': 'Admin' if is_admin else 'Distributor',
+        'distributor_profile': user_dist or Distributor.objects.filter(user=request.user).first(),
     }
     return render(request, 'billing/product_list.html', context)
-
 
 # 18.1 Interactive Product Management Workspace (API & Modals driven)
 def product_manage_frontend_view(request):
