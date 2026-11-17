@@ -1642,12 +1642,22 @@ def customer_register_frontend_view(request):
 
 
 
-# 14. Customer Management: Customer List View (Filtered by Logged-in User in Tabular Format)
+# 14. Customer Management: Customer List View (Enhanced Search & Bootstrap Pagination)
 @login_required
 def customer_list_view(request):
     initialize_default_users()
     query = request.GET.get('q', '').strip()
+    customer_name = request.GET.get('customer_name', '').strip()
+    phone_query = request.GET.get('phone', '').strip()
     city_filter = request.GET.get('city', '').strip()
+    gstin_query = request.GET.get('gstin', '').strip()
+    per_page_param = (
+        request.GET.get('per_page') or 
+        request.GET.get('limit') or 
+        request.GET.get('page_size') or 
+        '10'
+    ).strip().lower()
+
     is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
     user_dist = getattr(request.user, 'distributor_account', None)
     
@@ -1660,37 +1670,83 @@ def customer_list_view(request):
     else:
         customers_qs = Customer.objects.all().select_related('distributor_ref', 'created_by').order_by('-created_at')
 
+    # Universal search across customer fields
     if query:
-        customers_qs = customers_qs.filter(
+        clean_q = query.lstrip('#').strip()
+        search_filter = (
             Q(name__icontains=query) |
             Q(phone__icontains=query) |
             Q(email__icontains=query) |
             Q(city__icontains=query) |
+            Q(address__icontains=query) |
             Q(gstin__icontains=query)
         )
+        if clean_q.isdigit():
+            search_filter |= Q(id=int(clean_q))
+        if is_admin:
+            search_filter |= (
+                Q(distributor_ref__business_name__icontains=query) |
+                Q(distributor_ref__name__icontains=query) |
+                Q(created_by__username__icontains=query)
+            )
+        customers_qs = customers_qs.filter(search_filter)
 
+    # Dedicated search filters
+    if customer_name:
+        customers_qs = customers_qs.filter(name__icontains=customer_name)
+    if phone_query:
+        customers_qs = customers_qs.filter(phone__icontains=phone_query)
     if city_filter:
         customers_qs = customers_qs.filter(city__iexact=city_filter)
+    if gstin_query:
+        customers_qs = customers_qs.filter(gstin__icontains=gstin_query)
 
     total_count = customers_qs.count()
     gst_count = customers_qs.filter(gstin__isnull=False).exclude(gstin='').count()
-    cities = customers_qs.values_list('city', flat=True).distinct()
+    
+    # Retrieve all distinct cities for filter dropdown
+    if is_admin:
+        cities = Customer.objects.values_list('city', flat=True).distinct()
+    else:
+        base_filter = Q(created_by=request.user) | Q(distributor_ref__user=request.user)
+        if user_dist:
+            base_filter |= Q(distributor_ref=user_dist)
+        cities = Customer.objects.filter(base_filter).values_list('city', flat=True).distinct()
 
-    # Pagination: 10 customers per page
-    paginator = Paginator(customers_qs, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    # Dynamic pagination handling
+    if per_page_param in ('all', '0', 'none', 'unlimited'):
+        page_obj = customers_qs
+        is_paginated = False
+        paginator = None
+        per_page_clean = 'all'
+    else:
+        try:
+            limit = int(per_page_param)
+            if limit <= 0:
+                limit = 10
+        except ValueError:
+            limit = 10
+        per_page_clean = str(limit)
+        paginator = Paginator(customers_qs, limit)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        is_paginated = page_obj.has_other_pages()
 
     context = {
         'customers': page_obj,
         'page_obj': page_obj,
         'paginator': paginator,
-        'is_paginated': page_obj.has_other_pages(),
+        'is_paginated': is_paginated,
+        'per_page': per_page_clean,
         'query': query,
+        'customer_name': customer_name,
+        'phone_query': phone_query,
         'city_filter': city_filter,
+        'gstin_query': gstin_query,
         'cities': [c for c in cities if c],
         'total_count': total_count,
         'gst_count': gst_count,
+        'has_filters': bool(query or customer_name or phone_query or city_filter or gstin_query),
         'is_admin': is_admin,
         'role': 'Admin' if is_admin else 'Distributor',
         'distributor_profile': user_dist or Distributor.objects.filter(user=request.user).first(),
@@ -1790,12 +1846,21 @@ def csrf_failure_view(request, reason=""):
 
 
 
-# 18. Product Management: List Products (Filtered by Logged-in User in Tabular Format)
+# 18. Product Management: List Products (Enhanced Search & Bootstrap Pagination)
 @login_required
 def product_list_view(request):
     initialize_default_users()
     query = request.GET.get('q', '').strip()
     category_filter = request.GET.get('category', '').strip()
+    stock_status_filter = request.GET.get('stock_status', '').strip().lower()
+    min_price_param = request.GET.get('min_price', '').strip()
+    max_price_param = request.GET.get('max_price', '').strip()
+    per_page_param = (
+        request.GET.get('per_page') or 
+        request.GET.get('limit') or 
+        request.GET.get('page_size') or 
+        '10'
+    ).strip().lower()
     
     is_admin = request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'ADMIN')
     user_dist = getattr(request.user, 'distributor_account', None)
@@ -1809,33 +1874,94 @@ def product_list_view(request):
     else:
         products_qs = Product.objects.all().select_related('distributor_ref', 'created_by').order_by('-id')
     
+    # Universal search across product fields
     if query:
-        products_qs = products_qs.filter(
+        clean_q = query.lstrip('#').strip()
+        search_filter = (
             Q(name__icontains=query) |
             Q(sku__icontains=query) |
-            Q(hsn_code__icontains=query)
+            Q(hsn_code__icontains=query) |
+            Q(category__icontains=query) |
+            Q(description__icontains=query) |
+            Q(unit__icontains=query)
         )
+        if clean_q.isdigit():
+            search_filter |= Q(id=int(clean_q))
+        if is_admin:
+            search_filter |= (
+                Q(distributor_ref__business_name__icontains=query) |
+                Q(distributor_ref__name__icontains=query) |
+                Q(created_by__username__icontains=query)
+            )
+        products_qs = products_qs.filter(search_filter)
     
     if category_filter:
         products_qs = products_qs.filter(category__iexact=category_filter)
+
+    if stock_status_filter == 'in_stock':
+        products_qs = products_qs.filter(stock__gt=15)
+    elif stock_status_filter == 'low_stock':
+        products_qs = products_qs.filter(stock__gt=0, stock__lte=15)
+    elif stock_status_filter == 'out_of_stock':
+        products_qs = products_qs.filter(stock=0)
+
+    if min_price_param:
+        try:
+            min_p = Decimal(min_price_param)
+            products_qs = products_qs.filter(price__gte=min_p)
+        except (InvalidOperation, ValueError):
+            pass
+
+    if max_price_param:
+        try:
+            max_p = Decimal(max_price_param)
+            products_qs = products_qs.filter(price__lte=max_p)
+        except (InvalidOperation, ValueError):
+            pass
         
-    categories = Product.objects.values_list('category', flat=True).distinct()
+    if is_admin:
+        categories = Product.objects.values_list('category', flat=True).distinct()
+    else:
+        base_filter = Q(created_by=request.user) | Q(distributor_ref__user=request.user)
+        if user_dist:
+            base_filter |= Q(distributor_ref=user_dist)
+        categories = Product.objects.filter(base_filter).values_list('category', flat=True).distinct()
+
     total_count = products_qs.count()
 
-    # Pagination: 10 products per page
-    paginator = Paginator(products_qs, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    # Dynamic pagination handling
+    if per_page_param in ('all', '0', 'none', 'unlimited'):
+        page_obj = products_qs
+        is_paginated = False
+        paginator = None
+        per_page_clean = 'all'
+    else:
+        try:
+            limit = int(per_page_param)
+            if limit <= 0:
+                limit = 10
+        except ValueError:
+            limit = 10
+        per_page_clean = str(limit)
+        paginator = Paginator(products_qs, limit)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        is_paginated = page_obj.has_other_pages()
 
     context = {
         'products': page_obj,
         'page_obj': page_obj,
         'paginator': paginator,
-        'is_paginated': page_obj.has_other_pages(),
+        'is_paginated': is_paginated,
+        'per_page': per_page_clean,
         'query': query,
         'category_filter': category_filter,
+        'stock_status_filter': stock_status_filter,
+        'min_price': min_price_param,
+        'max_price': max_price_param,
         'categories': [c for c in categories if c],
         'total_count': total_count,
+        'has_filters': bool(query or category_filter or stock_status_filter or min_price_param or max_price_param),
         'is_admin': is_admin,
         'role': 'Admin' if is_admin else 'Distributor',
         'distributor_profile': user_dist or Distributor.objects.filter(user=request.user).first(),
